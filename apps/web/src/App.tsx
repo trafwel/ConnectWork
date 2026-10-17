@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Toaster } from '@/components/ui/sonner';
 import { TopBar } from '@/components/TopBar';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { PersonCard } from '@/components/PersonCard';
+import { RingMap } from '@/graph/RingMap';
 import { db } from '@/db/db';
 import { ensureSeeded } from '@/db/seed';
+import { dueReminders } from '@/lib/people';
+import { useStore } from '@/store/useStore';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -12,26 +16,49 @@ export default function App() {
     ensureSeeded().then(() => setReady(true));
   }, []);
 
-  const counts = useLiveQuery(async () => ({
-    people: await db.people.count(),
-    links: await db.links.count(),
-    reminders: await db.reminders.count(),
-  }));
+  const people = useLiveQuery(() => db.people.toArray());
+  const links = useLiveQuery(() => db.links.toArray());
+  const tags = useLiveQuery(() => db.tags.toArray());
+  const reminders = useLiveQuery(() => db.reminders.toArray());
+  const selectedId = useStore((s) => s.selectedPersonId);
+
+  const filterContext = useMemo(
+    () => ({ dueIds: new Set(dueReminders(reminders ?? []).map((r) => r.personId)), driftingIds: new Set<string>() }),
+    [reminders],
+  );
+
+  const loaded = ready && people && links && tags;
 
   return (
     <div className="flex h-screen flex-col bg-muted/30 text-foreground">
       <TopBar />
-      <main className="flex flex-1 items-center justify-center">
-        {!ready || !counts ? (
-          <p className="text-muted-foreground">Loading…</p>
-        ) : (
-          <p className="text-muted-foreground" data-testid="counts">
-            {counts.people} people · {counts.links} links · {counts.reminders} reminders
-          </p>
-        )}
-      </main>
+      <div className="flex min-h-0 flex-1">
+        <main className="min-w-0 flex-1">
+          {loaded ? (
+            people.length ? (
+              <RingMap people={people} links={links} tags={tags} filterContext={filterContext} />
+            ) : (
+              <EmptyState />
+            )
+          ) : (
+            <p className="p-6 text-muted-foreground">Loading…</p>
+          )}
+        </main>
+        {selectedId && <PersonCard personId={selectedId} />}
+      </div>
       <SettingsDialog />
       <Toaster position="bottom-center" />
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex h-full items-center justify-center p-6 text-center">
+      <div>
+        <h2 className="text-lg font-semibold">Your map is empty</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Import your LinkedIn connections or press N to add someone.</p>
+      </div>
     </div>
   );
 }
