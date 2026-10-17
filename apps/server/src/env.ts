@@ -31,11 +31,20 @@ try {
 export const env = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
   geminiModel: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
-  /** Used once when the main model is overloaded, times out or is rate limited. Empty disables it. */
-  geminiFallbackModel: process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.6-flash',
+  /**
+   * Tried in order when the main model is overloaded, times out or is rate limited.
+   * GEMINI_FALLBACK_MODELS is a comma list; the older single GEMINI_FALLBACK_MODEL still
+   * works; an empty value disables fallback.
+   */
+  geminiFallbackModels: (process.env.GEMINI_FALLBACK_MODELS ?? process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.6-flash,gemini-3.5-flash-lite')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
   geminiTier: (process.env.GEMINI_TIER ?? 'free') as 'free' | 'paid',
   allowedOrigin: process.env.ALLOWED_ORIGIN ?? 'http://localhost:5173',
   port: Number(process.env.PORT ?? 8787),
+  /** Trust X-Forwarded-For only behind our own proxy (Caddy, M13); otherwise anyone could fake their IP. */
+  trustProxy: process.env.TRUST_PROXY === '1',
   demoCache: (process.env.DEMO_CACHE ?? 'off') as 'off' | 'record' | 'replay',
   // Side tracks — each feature stays off until its variables are set.
   photonProjectId: process.env.SPECTRUM_PROJECT_ID ?? '',

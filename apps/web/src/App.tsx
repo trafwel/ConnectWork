@@ -1,10 +1,11 @@
 /**
- * App shell · M4 state (grows in every milestone)
+ * App shell · M5 state (grows in every milestone)
  *
  * WHAT THIS DOES NOW (M3)
  *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar
  *   (+ Add), the map (pan, zoom, click to select and center), the person card on
  *   the right, Quick add (N), CSV import, Settings and toasts. Escape closes the card.
+ *   M5: "Ask Connectwork" in the top bar, the answer card over the map, the free-tier banner.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
  * WHAT IT BECOMES
@@ -39,7 +40,8 @@
  *          useHotkey('n', openQuickAdd); a "+ Add N" button in the top bar; render <QuickAdd />.
  *   M4  ✓ done.
  *       9. An "Import" button (setDialog('import', true)) and <ImportDialog />.
- *   M5 10. <AgentBar /> centered in the top bar, <DemoBanner /> under it,
+ *   M5  ✓ done.
+ *      10. <AgentBar /> centered in the top bar, <DemoBanner /> under it,
  *          <AgentAnswer /> as the first child of <main>.
  *   M6 11. "Find hidden links" button; the right panel shows <ReviewSheet /> when
  *          rightPanel === 'review', otherwise the person card.
@@ -49,6 +51,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Upload } from 'lucide-react';
+import { AgentAnswer } from '@/components/AgentAnswer';
+import { AgentBar } from '@/components/AgentBar';
+import { DemoBanner } from '@/components/DemoBanner';
 import { PersonCard } from '@/components/PersonCard';
 import { QuickAdd } from '@/components/QuickAdd';
 import { SettingsDialog } from '@/components/SettingsDialog';
@@ -105,7 +110,9 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <TopBar>
-        <span className="flex-1" />
+        <div className="mx-auto w-full max-w-xl">
+          <AgentBar />
+        </div>
         <Button size="sm" variant="outline" onClick={() => setDialog('import', true)}>
           <Upload /> Import
         </Button>
@@ -113,9 +120,11 @@ export default function App() {
           <Plus /> Add <kbd className="ml-1 text-xs opacity-70">N</kbd>
         </Button>
       </TopBar>
+      <DemoBanner />
       <div className="flex min-h-0 flex-1">
         {/* Step 6 */}
         <main className="relative min-w-0 flex-1">
+          <AgentAnswer />
           {seedError ? (
             <Centered title="This browser blocked local storage" detail="Connectwork keeps your data in this browser. Try a normal (not private) window." />
           ) : !loaded ? (

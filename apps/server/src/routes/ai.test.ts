@@ -1,6 +1,6 @@
 // ACCEPTANCE TESTS for M5 (routes/ai.ts, cache.ts, gemini.ts).
 // These are skipped until you build that milestone. They describe exactly what
-// "done" means: when you finish it, change every `describe.skip(` below back to
+// "done" means: when you finish it, change every `describe(` below back to
 // `describe(` and run `pnpm test` — they should all pass.
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -23,13 +23,13 @@ const post = (app: ReturnType<typeof createApp>, body: unknown) =>
 
 const appWith = (generate: Generate | null, cache = new DemoCache('off')) => createApp({ generate, cache });
 
-describe.skip('summaryIds', () => {
+describe('summaryIds', () => {
   it('reads person ids from P lines only', () => {
     expect([...summaryIds(summary)]).toEqual(['p_abbey', 'p_john']);
   });
 });
 
-describe.skip('POST /api/ai/query', () => {
+describe('POST /api/ai/query', () => {
   it('returns the answer and drops ids the model invented', async () => {
     const generate = vi.fn<Generate>(async () =>
       JSON.stringify({ answer: 'You know Abbey Chen at Microsoft.', personIds: ['p_abbey', 'p_ghost', 'p_abbey'], filterHint: 'none' }),
@@ -103,8 +103,62 @@ describe.skip('POST /api/ai/query', () => {
   });
 });
 
-describe.skip('canonicalJson', () => {
+describe('canonicalJson', () => {
   it('ignores key order', () => {
     expect(canonicalJson({ b: 1, a: [1, { d: 2, c: 3 }] })).toBe(canonicalJson({ a: [1, { c: 3, d: 2 }], b: 1 }));
+  });
+});
+
+// M5 review additions.
+describe('requestToday', async () => {
+  const { requestToday } = await import('./ai');
+  const now = new Date(2026, 9, 17, 23, 30); // 11:30 PM local
+  it("uses the browser's local date when it is plausible", () => {
+    expect(requestToday('2026-10-17', now)).toBe('2026-10-17');
+    expect(requestToday('2026-10-18', now)).toBe('2026-10-18'); // a user a time zone ahead
+  });
+  it('falls back to the server local date for missing, malformed or far-off dates', () => {
+    expect(requestToday(undefined, now)).toBe('2026-10-17');
+    expect(requestToday('2026-02-30', now)).toBe('2026-10-17');
+    expect(requestToday('2020-01-01', now)).toBe('2026-10-17');
+    expect(requestToday('tomorrow', now)).toBe('2026-10-17');
+  });
+  it('puts that date in the prompt but not in the cache key', async () => {
+    const generate = vi.fn<Generate>(async () => JSON.stringify({ answer: 'x', personIds: [] }));
+    const app = appWith(generate);
+    await app.request('/api/ai/query', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-client-date': '2026-10-18' },
+      body: JSON.stringify({ question: 'Who?', summary }),
+    });
+    expect(JSON.stringify(generate.mock.calls[0]![0].parts)).toContain('Today is ');
+  });
+});
+
+describe('rate limit', () => {
+  const generate: Generate = async () => JSON.stringify({ answer: 'x', personIds: [] });
+  it('allows 30 requests a minute, then answers 429 with retry-after; health is never limited', async () => {
+    const app = appWith(generate);
+    const statuses: number[] = [];
+    for (let i = 0; i < 31; i++) statuses.push((await post(app, { question: 'Who?', summary })).status);
+    expect(statuses.slice(0, 30).every((s) => s === 200)).toBe(true);
+    const last = await post(app, { question: 'Who?', summary });
+    expect(last.status).toBe(429);
+    expect(Number(last.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect((await app.request('/api/health')).status).toBe(200);
+  });
+
+  it('ignores a faked X-Forwarded-For unless the proxy is trusted', async () => {
+    const app = appWith(generate);
+    const statuses: number[] = [];
+    for (let i = 0; i < 31; i++) {
+      const res = await app.request('/api/ai/query', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': `10.0.0.${i}` },
+        body: JSON.stringify({ question: 'Who?', summary }),
+      });
+      statuses.push(res.status);
+    }
+    expect(statuses.at(-1)).toBe(429); // a new fake IP per request did not reset the limit
   });
 });

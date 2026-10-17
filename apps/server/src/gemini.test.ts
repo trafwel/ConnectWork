@@ -1,6 +1,6 @@
 // ACCEPTANCE TESTS for M5 (gemini.ts).
 // These are skipped until you build that milestone. They describe exactly what
-// "done" means: when you finish it, change every `describe.skip(` below back to
+// "done" means: when you finish it, change every `describe(` below back to
 // `describe(` and run `pnpm test` — they should all pass.
 import { ApiError } from '@google/genai';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,7 @@ import { AiError, isRetryable, withFallback } from './gemini';
 
 const apiError = (status: number) => new ApiError({ message: `HTTP ${status}`, status });
 
-describe.skip('isRetryable', () => {
+describe('isRetryable', () => {
   it('retries overload, deadline, rate limit and timeouts', () => {
     for (const status of [429, 500, 503, 504]) expect(isRetryable(apiError(status))).toBe(true);
     expect(isRetryable(new Error('Request timed out'))).toBe(true);
@@ -20,7 +20,7 @@ describe.skip('isRetryable', () => {
   });
 });
 
-describe.skip('withFallback', () => {
+describe('withFallback', () => {
   const quiet = () => {};
 
   it('returns the primary result without touching the fallback', async () => {
@@ -76,5 +76,30 @@ describe.skip('withFallback', () => {
         throw apiError(504);
       }),
     ).rejects.toMatchObject({ code: 'ai_unavailable' });
+  });
+});
+
+// M5 review additions: a chain of fallbacks with an overall time budget.
+describe('withFallback chain', () => {
+  const quiet = () => {};
+  it('tries each fallback in order after retryable errors', async () => {
+    const calls: string[] = [];
+    const fail = (name: string, status: number) => async () => {
+      calls.push(name);
+      throw apiError(status);
+    };
+    const result = await withFallback(fail('primary', 503), [fail('fb1', 504), async () => (calls.push('fb2'), 'ok')], quiet);
+    expect(result).toBe('ok');
+    expect(calls).toEqual(['primary', 'fb1', 'fb2']);
+  });
+
+  it('stops the chain once the time budget is used up', async () => {
+    const fb = vi.fn(async () => 'late');
+    const slowFail = async () => {
+      await new Promise((r) => setTimeout(r, 30));
+      throw apiError(503);
+    };
+    await expect(withFallback(slowFail, [fb], quiet, 10)).rejects.toMatchObject({ code: 'ai_unavailable' });
+    expect(fb).not.toHaveBeenCalled();
   });
 });

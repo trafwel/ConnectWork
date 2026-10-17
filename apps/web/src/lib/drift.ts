@@ -1,5 +1,5 @@
 /**
- * M10 — Drift: relationships fading over time · Owner: Person A · ~20 min (+ wiring)
+ * M10 — Drift: relationships fading over time · step 1 done early (M5 review: "lost touch" answers use it); steps 3–7 are M10
  *
  * WHAT THIS ACHIEVES
  *   Close people you haven't talked to in a while visibly drift outward and
@@ -34,10 +34,14 @@
  * Guide: §17.1–17.2
  */
 import type { Person, Ring } from '@connectwork/shared';
+import { daysSince } from './dates';
 
 export const DEFAULT_THRESHOLDS: Record<Ring, number> = { 1: 90, 2: 180, 3: Infinity };
 
-export function driftLevel(_person: Person, _now: Date = new Date(), _thresholds: Record<Ring, number> = DEFAULT_THRESHOLDS): number {
-  // TODO(M10) step 1 (then steps 2–7 elsewhere)
-  return 0;
+// Step 1 (done in M5: AgentBar uses it so "who have I lost touch with?" is computed, not guessed).
+export function driftLevel(person: Person, now: Date = new Date(), thresholds: Record<Ring, number> = DEFAULT_THRESHOLDS): number {
+  const limit = thresholds[person.ring];
+  if (!person.lastContact || !Number.isFinite(limit)) return 0;
+  return Math.min(1, Math.max(0, (daysSince(person.lastContact, now) - limit) / limit));
 }
+// TODO(M10) steps 3–7: driftingIds in App, map offset and fading, card label, Settings thresholds.
