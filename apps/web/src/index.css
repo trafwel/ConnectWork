@@ -1,9 +1,14 @@
 /*
- * M0 — Global styles · done (M0 state)
+ * Global styles · M0, plus style switching (step S, Oct 17)
  *
  * WHAT THIS DOES NOW
- *   Tailwind v4 + shadcn/ui's default theme variables (light and .dark) and the
- *   Geist font. Every component reads colors from these CSS variables.
+ *   Tailwind v4 + shadcn/ui's theme variables and the Geist font. Every component
+ *   reads colors from these CSS variables, and the map reads --map-* variables
+ *   (graph/theme.ts). Two STYLES × three MODES, chosen in Settings → Appearance:
+ *     <html data-style="neutral|atlas" class="dark?">   (set by lib/appearance.ts and,
+ *     before React loads, by the tiny script in index.html — so there's no flash)
+ *   Specificity picks the palette: :root < .dark < :root[data-style=atlas] < … .dark
+ *   Every text pair was checked at ≥ 4.5:1 contrast (Atlas lowest: 4.83 error-on-paper).
  *
  * STEP T — APPLY THE ATLAS THEME (later; see apps/web/src/graph/theme.ts and guide §14)
  *   1. Replace the Geist import with IBM Plex (Google Fonts <link> in index.html):
@@ -102,6 +107,24 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* Map (graph/theme.ts). Neutral: dashed gray rings, quiet links. */
+    --map-paper: var(--background);
+    --map-ink: var(--foreground);
+    --map-ring: var(--border);
+    --map-ring-width: 1.5;
+    --map-ring-dash: 4 6;
+    --map-ring-label: var(--muted-foreground);
+    --map-link: var(--foreground);
+    --map-link-opacity: 0.35;
+    --map-link-width: 1;
+    --map-suggested: var(--primary);
+    --map-suggested-dash: 5 4;
+    --map-node-stroke: var(--background);
+    --map-node-stroke-width: 1.5;
+    --map-highlight: var(--primary);
+    --map-you: var(--foreground);
+    --map-font: inherit;
 }
 
 .dark {
@@ -136,6 +159,74 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ── Atlas: map paper, ink lines, contour-like rings, one teal accent (theme canvas pick) ── */
+:root[data-style="atlas"] {
+    --background: #edf0eb;
+    --foreground: #1d2a24;
+    --card: #f8faf7;
+    --card-foreground: #1d2a24;
+    --popover: #f8faf7;
+    --popover-foreground: #1d2a24;
+    --primary: #0f5f58;
+    --primary-foreground: #ffffff;
+    --secondary: #e3e8e2;
+    --secondary-foreground: #1d2a24;
+    --muted: #e3e8e2;
+    --muted-foreground: #56635b;
+    --accent: #e3e8e2;
+    --accent-foreground: #1d2a24;
+    --destructive: #b4441a;
+    --border: #c9d2cb;
+    --input: #aeb9b1;
+    --ring: #0f5f58;
+    --radius: 0.25rem;
+
+    --map-ring: #7f8c84;
+    --map-ring-width: 1.2;
+    --map-ring-dash: none;
+    --map-ring-label: #56635b;
+    --map-link: #1d2a24;
+    --map-link-opacity: 0.4;
+    --map-link-width: 0.9;
+    --map-suggested: #0f5f58;
+    --map-suggested-dash: 8 4 2 4;
+    --map-node-stroke: #1d2a24;
+    --map-node-stroke-width: 1;
+    --map-highlight: #0f5f58;
+    --map-you: #1d2a24;
+    /* IBM Plex if installed locally; no Google Fonts request (privacy). */
+    --map-font: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root[data-style="atlas"].dark {
+    --background: #141b17;
+    --foreground: #e3e8e2;
+    --card: #1c2520;
+    --card-foreground: #e3e8e2;
+    --popover: #1c2520;
+    --popover-foreground: #e3e8e2;
+    --primary: #5cc4b7;
+    --primary-foreground: #0b1a17;
+    --secondary: #24302a;
+    --secondary-foreground: #e3e8e2;
+    --muted: #24302a;
+    --muted-foreground: #a3b0a8;
+    --accent: #24302a;
+    --accent-foreground: #e3e8e2;
+    --destructive: #f08a62;
+    --border: #33413a;
+    --input: #4a5a51;
+    --ring: #5cc4b7;
+
+    --map-ring: #4d5c54;
+    --map-ring-label: #a3b0a8;
+    --map-link: #e3e8e2;
+    --map-suggested: #5cc4b7;
+    --map-node-stroke: #e3e8e2;
+    --map-highlight: #5cc4b7;
+    --map-you: #e3e8e2;
 }
 
 @layer base {

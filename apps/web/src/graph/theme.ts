@@ -40,29 +40,32 @@
  */
 
 /**
- * M2 neutral defaults: CSS variables from index.css, so the map follows light/dark mode.
- * (SVG presentation attributes accept var(); checked in Chrome during M2.)
+ * Step S (style switching): every value is a CSS variable from index.css, so switching
+ * Neutral ↔ Atlas or light ↔ dark restyles the map without re-rendering React.
+ * (SVG presentation attributes accept var() for colors, widths, dashes and opacity;
+ * checked in Chrome.)
  */
 export const mapTheme = {
-  // TODO(T) step 1: replace these neutral values with the Atlas tokens above.
-  paper: 'var(--background)',
-  ink: 'var(--foreground)',
-  ringStroke: 'var(--border)',
-  ringWidth: 1.5,
-  ringDash: '4 6',
-  ringLabel: 'var(--muted-foreground)',
-  link: 'var(--foreground)',
-  linkOpacity: 0.35,
-  linkWidth: 1,
-  suggestedLink: 'var(--primary)',
-  suggestedDash: '5 4',
-  nodeStroke: 'var(--background)',
-  nodeStrokeWidth: 1.5,
-  selected: 'var(--foreground)',
-  highlight: 'var(--primary)',
+  // TODO(T) step 1: the Atlas values now live in index.css (:root[data-style="atlas"]);
+  // step T can still add contour circles and the crosshair.
+  paper: 'var(--map-paper)',
+  ink: 'var(--map-ink)',
+  ringStroke: 'var(--map-ring)',
+  ringWidth: 'var(--map-ring-width)',
+  ringDash: 'var(--map-ring-dash)',
+  ringLabel: 'var(--map-ring-label)',
+  link: 'var(--map-link)',
+  linkOpacity: 'var(--map-link-opacity)',
+  linkWidth: 'var(--map-link-width)',
+  suggestedLink: 'var(--map-suggested)',
+  suggestedDash: 'var(--map-suggested-dash)',
+  nodeStroke: 'var(--map-node-stroke)',
+  nodeStrokeWidth: 'var(--map-node-stroke-width)',
+  selected: 'var(--map-ink)',
+  highlight: 'var(--map-highlight)',
   highlightDash: '4 3',
-  youFill: 'var(--foreground)',
-  label: 'var(--foreground)',
-  labelHalo: 'var(--background)',
-  font: 'inherit',
+  youFill: 'var(--map-you)',
+  label: 'var(--map-ink)',
+  labelHalo: 'var(--map-paper)',
+  font: 'var(--map-font)',
 } as const;

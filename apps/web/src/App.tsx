@@ -7,6 +7,7 @@
  *   the right, Quick add (N), CSV import, Settings and toasts. Escape closes the card.
  *   M5: "Ask Connectwork" in the top bar, the answer card over the map, the free-tier banner.
  *   M6: "Find hidden links", and the review sheet on the right for AI suggestions.
+ *   Step S: Appearance (Neutral/Atlas × System/Light/Dark) via lib/appearance.ts.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
  * WHAT IT BECOMES
@@ -24,7 +25,7 @@
           <ImportDialog />
         </Suspense>
       )}
-      <SettingsDialog /> and <Toaster position="bottom-center" /> at the end.
+      <SettingsDialog appearance={appearance} onAppearance={setAppearance} /> and <Toaster position="bottom-center" /> at the end.
  *       3. Root: <div className="flex h-screen flex-col bg-background text-foreground">.
  *   M2  ✓ done.
  *       4. Read data with useLiveQuery (dexie-react-hooks):
@@ -67,6 +68,7 @@ import { db } from '@/db/db';
 import { ensureSeeded } from '@/db/seed';
 import { RingMap } from '@/graph/RingMap';
 import { findHiddenLinks } from '@/lib/aiFlows';
+import { useAppearance } from '@/lib/appearance';
 import type { FilterContext } from '@/lib/filters';
 import { dueReminders } from '@/lib/people';
 import { useHotkey } from '@/lib/useHotkey';
@@ -80,6 +82,8 @@ export default function App() {
   const [seedError, setSeedError] = useState(false);
   const selectedId = useStore((s) => s.selectedPersonId);
   const rightPanel = useStore((s) => s.rightPanel);
+  // Step S: style + mode, applied to <html>; Settings changes it, toasts follow it.
+  const [appearance, setAppearance] = useAppearance();
   const setDialog = useStore((s) => s.setDialog);
   const clearFocus = useStore((s) => s.clearFocus);
   const importOpen = useStore((s) => s.importOpen);
@@ -155,8 +159,8 @@ export default function App() {
           <ImportDialog />
         </Suspense>
       )}
-      <SettingsDialog />
-      <Toaster position="bottom-center" />
+      <SettingsDialog appearance={appearance} onAppearance={setAppearance} />
+      <Toaster position="bottom-center" theme={appearance.dark ? 'dark' : 'light'} />
     </div>
   );
 }

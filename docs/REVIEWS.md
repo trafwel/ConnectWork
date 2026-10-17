@@ -372,3 +372,35 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m5).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m6).
+
+## Step S: style switching
+
+**Intermediary step after M6 (requested Oct 17): switch the app's look at runtime** · branch `m6-review`
+
+**What was built:** Settings → Appearance with **Style** (Neutral | Atlas, the theme-canvas pick) and **Mode** (System | Light | Dark).
+- `index.css` has one palette per style/mode, including new `--map-*` variables, and `graph/theme.ts` reads only those variables.
+- `lib/appearance.ts` sets `<html data-style class="dark">` and saves the choice per device.
+- A tiny inline script in `index.html` applies it **before React loads** (no flash).
+- The pick-one keyboard pattern moved into a shared `Segmented` control, which RingPicker now uses too.
+
+**How it was checked:** typecheck, lint, 106 tests (new: parsing saved choices, resolving System). Contrast computed for every text pair in Atlas light and dark: all ≥ 4.5:1 (lowest 4.83). In the browser:
+- Neutral → Atlas: paper background, solid ink rings, mono labels, teal accent.
+- Mode changed by keyboard only: arrows move both selection and focus, one Tab stop.
+- Atlas dark kept after a reload; Neutral dark checked.
+- RingPicker still changes a ring by keyboard.
+- **System mode follows the OS live**, in both directions, using the pane's colour-scheme emulation.
+
+| | Finding | Status |
+| --- | --- | --- |
+| Efficiency | Switching changes CSS variables only, so the map and components restyle without React re-rendering them. | ✅ |
+| Integration | Toasts read a `next-themes` provider we never added, so they ignored our mode. | **Fixed:** App passes `theme` to the Toaster. |
+| Integration | The free-tier banner had fixed amber colours (bright in dark mode). | **Fixed:** `dark:` variants. |
+| Integration | First live test: after switching the OS scheme while the page loaded, the page stayed dark. The update depended on a React state *change*, which can be a no-op. | **Fixed:** the OS listener re-applies the theme directly. Re-tested with the same sequence. |
+| Integration | RingPicker rebuilt on `Segmented`. | Verified by keyboard in a person card. |
+| Security | No Google Fonts request: Atlas uses IBM Plex only if installed, else the system mono font. `localStorage` holds only `{style, mode}`. | ✅ |
+| Security | The no-flash script is inline; a strict Content-Security-Policy (M13 deploy) would block it. | Open (waits for M13): allow it by hash. |
+| Other | Tag colours are the same in every style: the colourblind-safe palette, stored with your data. | By design. Atlas's darker variants stay a step-T decision. |
+| Other | Atlas details not yet done: contour circles, the crosshair through "You", uppercase "R1 CLOSE" labels, bundled IBM Plex. | Open (waits for theme step T). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#step-s-style-switching).

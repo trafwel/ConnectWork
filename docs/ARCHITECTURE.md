@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M6 built** — everything through Ask Connectwork, plus *Sort with AI* (after an import) and *Find hidden links*. Both go through one review sheet: the AI proposes, the user accepts. Every AI route now uses one helper (`structured()`, step R). Flags and filters (M7) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M6 + step S built** — everything through Ask Connectwork, plus *Sort with AI* and *Find hidden links* (one review sheet: the AI proposes, the user accepts; every AI route uses `structured()`), and Settings → Appearance (Neutral/Atlas × System/Light/Dark). Flags and filters (M7) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -41,7 +41,9 @@ flowchart LR
   Csv["CSV logic<br/><small>lib/csv.ts · parse, map, dedupe, plan · M4</small>"]:::built
   Rows["Stored-row schemas (zod)<br/><small>packages/shared/src/storedRows.ts · post-M4</small>"]:::built
   App["App shell<br/><small>App.tsx · M0–M3 · hotkeys N, Escape</small>"]:::built
-  Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1</small>"]:::built
+  Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1, Appearance S</small>"]:::built
+  Look["Appearance<br/><small>lib/appearance.ts + index.css palettes · Neutral/Atlas × System/Light/Dark · S</small>"]:::built
+  LocalPref[/"localStorage<br/><small>cw-appearance (display preference only)</small>"/]:::built
   Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
   Seed["Seed · reset · delete · export · import<br/><small>db/seed.ts, materialize.ts · M1</small>"]:::built
   DB[("IndexedDB<br/><small>db/db.ts · M1</small>")]:::built
@@ -73,6 +75,8 @@ flowchart LR
   Map -->|"selected, highlights, filter"| Store
   App --> Chrome
   Chrome -->|"settingsOpen, clearFocus"| Store
+  Chrome -->|"style, mode"| Look
+  Look <-->|"saved per device"| LocalPref
   Chrome -->|"reset · delete · export · import"| Seed
   Seed <-->|"export (no secrets) / import (confirmed)"| BackupFile
   Seed -->|"validate every row"| Rows
@@ -161,8 +165,9 @@ flowchart LR
 | M4 | CSV import | ✅ built ([review](REVIEWS.md#m4)) |
 | M5 | Ask Connectwork → `/api/ai/query` → Gemini | ✅ built ([review](REVIEWS.md#m5)) |
 | R, M6 | Route helper; review sheet; classify + links | ✅ built ([review](REVIEWS.md#m6)) |
-| S | Style switching (intermediary step, requested Oct 17) | ⬜ next |
-| M7–M14 | Flags/filters, weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
+| S | Style switching (intermediary step, requested Oct 17) | ✅ built ([review](REVIEWS.md#step-s-style-switching)) |
+| M7 | Flags and filter tabs | ⬜ next |
+| M8–M14 | Weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -177,3 +182,4 @@ flowchart LR
 | Oct 17 | post-M4 | Open-issues step: added the stored-row schemas that every backup row is checked against; backups carry no secrets and ask before replacing; the import dialog is lazy-loaded and has Undo. |
 | Oct 17 | M5 | Big picture: browser → server → Gemini is built. Browser: Ask Connectwork, summary + guardrails, API client. Server: rate limit, `/api/ai/query`, demo cache, Gemini helper (fallback chain, 60 s budget) and prompts are built. Status: M5 ✅, R/M6 next. |
 | Oct 17 | R + M6 | Server: every AI route goes through the route helper; classify and links are built. Browser: AI flows (sort, hidden links) and the review sheet are built; accepting writes through `actions.ts`. Status: R/M6 ✅, style switching next. |
+| Oct 17 | S | Browser: Appearance (style + mode) built; Settings sets it, `localStorage` remembers it per device, and the map's colours come from `--map-*` variables. Status: S ✅, M7 next. |

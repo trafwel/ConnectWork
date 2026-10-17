@@ -23,6 +23,7 @@ Resolved items move to the table at the bottom, with what changed.
 | M2-E5 | Main bundle is over Vite's 500 KB warning: 648 KB, because d3 is on the first screen and zod (about 77 KB) arrived with backup validation. | M14 deploy: measure. zod stays in the main bundle (M5 must validate AI replies in the browser); keep snap/calendar behind `import()` like the import dialog. |
 | M2-O5 | Filter tabs have no UI yet (highlights now come from Ask Connectwork, M5). | M7 (filter tabs). |
 | M5-I5 | "Lost touch" thresholds live in the prompt and in `lib/drift.ts`. | M10: if Settings makes them editable, send the current values with each query. |
+| S-S1 | The no-flash appearance script in `index.html` is inline; a strict CSP would block it. | M13: allow it by hash in the CSP (or move it to a tiny external file). |
 | M5-S9 | The deployed server has no login: anyone who can reach it can spend our Gemini quota (30/min per IP). | M13/M14: serve web and API from one origin behind Caddy (`TRUST_PROXY=1`), and consider a shared demo passcode or lower per-IP limits. |
 | PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 (flags) and M10 (drift): add any new drawn field or prop to `sameNode`, or that node won't update. |
 | M4-O4 | Imported "connected on" dates become last contact, so most imports look "drifting". | M10: treat imported people with no logged contact gently. |
@@ -37,6 +38,7 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Issue | Why |
 | --- | --- | --- |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
+| S-O1 | Atlas polish not done: contour circles, crosshair, uppercase ring labels, bundled IBM Plex, darker tag palette. | Theme step T. |
 | M6-O2 | No undo after accepting a sort. | The review sheet is the confirmation; each person can be changed on their card. |
 | P5-O1 | Cancelling a question stops the *browser* waiting, but the server still finishes the Gemini call (quota is spent). | Passing the client's abort through to Gemini (`c.req.raw.signal` → SDK `abortSignal`) is possible; worth it only if quota gets tight. |
 | M5-E2 | Every question sends the whole network (about 10k tokens at 154 people). | Fine on the free tier; the model needs the data. Trim only if cost matters. |

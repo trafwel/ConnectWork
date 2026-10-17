@@ -289,6 +289,7 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                   dy="0.35em"
                   textAnchor="middle"
                   fontSize={11}
+                  fontFamily={T.font}
                   fill={T.ringLabel}
                   stroke={T.paper}
                   strokeWidth={5}

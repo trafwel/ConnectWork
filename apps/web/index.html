@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Connectwork</title>
+    <!-- Step S: apply the saved style/mode BEFORE the app loads, so a reload never flashes
+         the wrong theme. Mirrors parseAppearance/applyAppearance in src/lib/appearance.ts. -->
+    <script>
+      try {
+        var a = JSON.parse(localStorage.getItem('cw-appearance') || '{}');
+        var dark = a.mode === 'dark' || (a.mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.style = a.style === 'atlas' ? 'atlas' : 'neutral';
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) {}
+    </script>
     <!--
       Step T (Atlas theme): add IBM Plex fonts here, e.g.
       <link rel="preconnect" href="https://fonts.googleapis.com" />

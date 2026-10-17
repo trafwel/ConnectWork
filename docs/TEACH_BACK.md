@@ -64,3 +64,10 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. Hidden links appear as dashed lines before you accept them. What does Dismiss have to do, and why?
 3. Step R rewrote how `/query` works. How do we know it still behaves exactly the same?
 4. Accepting a sort keeps your own tags but drops "LinkedIn". Why both?
+
+## Step S: style switching
+**Styles and modes**
+
+1. Switching to Atlas restyles the whole map without React re-rendering it. What makes that possible?
+2. Why is there a small script inside `index.html` instead of only doing this in React?
+3. Why is the style choice saved in `localStorage` and not in IndexedDB with the rest of the data?
