@@ -1,0 +1,112 @@
+# conNetWork
+
+**Let Connectwork connect your world.**
+
+Connectwork maps your personal network as rings around you — closest people in the middle, everyone else further out — and an AI agent helps you keep it alive: it sorts imported contacts, answers questions about who you know, spots people who should meet, and plans your follow-ups. Your data never leaves your browser unless you ask the agent something.
+
+Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning tools that reduce friction).
+
+> LinkedIn lists your connections. Connectwork shows how they connect to each other, and tells you who to reach out to next.
+
+---
+
+## What it does
+
+| Feature | Status |
+| --- | --- |
+| Ring map: three rings, tag clusters, level of detail, pan/zoom, keyboard access | ✅ |
+| Quick add (press `N`) and an editable person card with notes, tags, reminders, links | ✅ |
+| LinkedIn `Connections.csv` import (and any CSV), with de-duplication | ✅ |
+| Ask in plain English ("Who do I know at Microsoft?") — answers light up on the map | ✅ |
+| AI auto-sort of imported contacts into rings and tags | 🚧 M6 |
+| AI "hidden links": people you know who should know each other | 🚧 M6 |
+| Reminder flags, filters, calendar export (.ics) | 🚧 M7 |
+| Weekly review agent: plans your follow-ups, you approve, it does the work | 🚧 M8 |
+| Snap to add: photo of a business card or a club roster → people | 🚧 M9 |
+| Drift: people you haven't talked to in a while fade outward | 🚧 M10 |
+| Google Calendar sync and meeting prep | 🚧 M11 |
+
+## Privacy
+
+- **Local-first.** Everything you add lives in your browser (IndexedDB). There are no accounts and no server-side database.
+- **The AI is opt-in.** A compact summary of your network goes to the AI only when you ask something. Notes are not sent with questions.
+- **The AI proposes, you decide.** Nothing changes until you accept it.
+- **The server stores nothing.** It holds the API key, forwards requests, and never logs request contents.
+- **Demo builds use Gemini's free tier, which may use requests to improve Google's products — so they run on fictional sample data only.** Use a paid key before importing real contacts.
+
+## Quick start
+
+Requirements: Node 20+ and pnpm 10.
+
+```bash
+npm install -g pnpm@10
+git clone https://github.com/trafwel/conNetWork.git connectwork
+cd connectwork
+pnpm install
+cp .env.example .env     # add your GEMINI_API_KEY from Google AI Studio
+pnpm seed                # generate fictional demo data
+pnpm dev                 # app on http://localhost:5173, API on :8787
+```
+
+The app loads a sample network of 40 fictional people on first run. Try:
+
+1. Press **N** to add someone.
+2. **Import** → `demo/Connections.csv` (a fake LinkedIn export).
+3. Ask: *"Who do I know at Microsoft?"*, *"Who should I follow up with this week?"*, *"Who have I lost touch with?"*
+4. **Settings** → Reset demo data at any time.
+
+Without a Gemini key, everything works except the AI features, which say how to set them up.
+
+## Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | — | Gemini API key (server only, never committed) |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Main model |
+| `GEMINI_FALLBACK_MODEL` | `gemini-3.6-flash` | Tried once if the main model is overloaded, slow or rate limited |
+| `GEMINI_TIER` | `free` | `free` shows a "sample data only" banner |
+| `ALLOWED_ORIGIN` | `http://localhost:5173` | CORS origin |
+| `PORT` | `8787` | API port |
+| `DEMO_CACHE` | `off` | `record` / `replay` AI replies for offline demos |
+| `VITE_GOOGLE_CLIENT_ID` | — | Google Calendar sign-in (coming in M11) |
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Web app and API with hot reload |
+| `pnpm seed` | Regenerate `demo/` (deterministic, fictional) |
+| `pnpm test` | Unit tests (Vitest) — AI routes are tested with a mocked model |
+| `pnpm typecheck` | TypeScript across all packages |
+| `pnpm lint` | ESLint |
+| `pnpm build` | Production build of the web app |
+
+## How it's built
+
+```
+apps/web         React + Vite, Tailwind + shadcn/ui, d3-force ring map, Dexie (IndexedDB), Zustand
+apps/server      Node + Hono; Gemini via @google/genai with schema-validated JSON, retry and model fallback
+packages/shared  Domain types and zod schemas shared by both apps
+scripts/         Demo data generator
+demo/            Fictional seed network, LinkedIn-style CSV, club roster PDF, sample meetings
+docs/            Implementation guide
+```
+
+- The map pins each person to their ring with a radial force and groups them by tag; the layout settles before first paint and animates changes.
+- Every AI response is validated against a zod schema, retried once if malformed, and stripped of any person the model invented.
+- Exact lookups (company, school) are computed in code and merged with the model's answer, so long lists never drop anyone.
+
+## Docs
+
+- [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md) — step-by-step build guide, M0 to submission
+- [`SPEC.md`](SPEC.md) — exact types, schemas, endpoints and milestones
+- [`CLAUDE.md`](CLAUDE.md) — working rules for AI coding assistants on this repo
+
+## DubHacks '26 tracks
+
+Cook Smarter (title track) · DubHacks Next · MLH Commit Fellowship · MLH Best Use of Gemini API · MLH Best Use of Vultr · MLH Best Domain Name from GoDaddy Registry
+
+## Team
+
+- Luke Prasarttongosoth
+- *[teammate name]*
