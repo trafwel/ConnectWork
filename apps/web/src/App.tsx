@@ -17,7 +17,11 @@
  *       1. On mount, call ensureSeeded() (db/seed.ts) and keep a `ready` flag.
  *       2. Replace this page with the layout: <TopBar> on top, <main> below,
  *          <QuickAdd />
-      <ImportDialog />
+      {importLoaded && (
+        <Suspense fallback={null}>
+          <ImportDialog />
+        </Suspense>
+      )}
       <SettingsDialog /> and <Toaster position="bottom-center" /> at the end.
  *       3. Root: <div className="flex h-screen flex-col bg-background text-foreground">.
  *   M2  ✓ done.
@@ -42,10 +46,9 @@
  *
  * Shared file: tell your teammate before editing it. Guide: docs/IMPLEMENTATION_GUIDE.md §1.4, §4.4
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Upload } from 'lucide-react';
-import { ImportDialog } from '@/components/ImportDialog';
 import { PersonCard } from '@/components/PersonCard';
 import { QuickAdd } from '@/components/QuickAdd';
 import { SettingsDialog } from '@/components/SettingsDialog';
@@ -60,12 +63,19 @@ import { dueReminders } from '@/lib/people';
 import { useHotkey } from '@/lib/useHotkey';
 import { useStore } from '@/store/useStore';
 
+// Loaded the first time Import is opened: keeps Papa Parse and the dialog out of the main bundle (M4-E5).
+const ImportDialog = lazy(() => import('@/components/ImportDialog').then((m) => ({ default: m.ImportDialog })));
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [seedError, setSeedError] = useState(false);
   const selectedId = useStore((s) => s.selectedPersonId);
   const setDialog = useStore((s) => s.setDialog);
   const clearFocus = useStore((s) => s.clearFocus);
+  const importOpen = useStore((s) => s.importOpen);
+  // Once loaded, the dialog stays mounted so its close animation can play.
+  const [importLoaded, setImportLoaded] = useState(false);
+  if (importOpen && !importLoaded) setImportLoaded(true);
 
   // Step 8. Stable handlers, so useHotkey doesn't re-add its listener every render.
   const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
@@ -123,7 +133,11 @@ export default function App() {
         {selectedId && <PersonCard personId={selectedId} />}
       </div>
       <QuickAdd />
-      <ImportDialog />
+      {importLoaded && (
+        <Suspense fallback={null}>
+          <ImportDialog />
+        </Suspense>
+      )}
       <SettingsDialog />
       <Toaster position="bottom-center" />
     </div>

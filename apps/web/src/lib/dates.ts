@@ -37,3 +37,20 @@ export function daysSince(date: string, to: Date = new Date()): number {
   // Math.round absorbs the 23/25-hour days around daylight-saving changes.
   return Math.round((end.getTime() - from.getTime()) / DAY_MS);
 }
+
+/**
+ * "2026-10-24" → "Sat, Oct 24" (adds the year when it isn't this year). Display only:
+ * storage stays ISO. Parsed as a LOCAL date: new Date('2026-10-24') would be UTC
+ * midnight, which shows as Oct 23 west of Greenwich.
+ */
+export function formatDate(date: string, now: Date = new Date()): string {
+  const [y, m, d] = date.split('-').map(Number);
+  if (!y || !m || !d) return date;
+  const local = new Date(y, m - 1, d);
+  return local.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(y === now.getFullYear() ? {} : { year: 'numeric' }),
+  });
+}

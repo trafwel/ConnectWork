@@ -252,3 +252,52 @@ describe('applyImport', async () => {
     expect((await db.people.get(p.id))?.name).toBe('Taken');
   });
 });
+
+describe('undo', async () => {
+  const { applyImport, restorePerson, undoImport } = await import('./actions');
+
+  it('restorePerson puts back the person with links, reminders and history', async () => {
+    const a = await person('A');
+    const b = await person('B');
+    await upsertLink(a.id, b.id, { source: 'user', status: 'accepted', label: 'friends' });
+    await addReminder(a.id, '2026-10-20', 'Call');
+    await logContact(a.id, 'meeting');
+    const before = { person: await db.people.get(a.id), links: await db.links.toArray(), reminders: await db.reminders.toArray(), logs: await db.contactLogs.toArray() };
+
+    const snapshot = await deletePerson(a.id);
+    expect(await db.people.get(a.id)).toBeUndefined();
+    await restorePerson(snapshot!);
+
+    expect(await db.people.get(a.id)).toEqual(before.person);
+    expect(await db.links.toArray()).toEqual(before.links);
+    expect(await db.reminders.toArray()).toEqual(before.reminders);
+    expect(await db.contactLogs.toArray()).toEqual(before.logs);
+  });
+
+  it('restorePerson skips links to people deleted in the meantime', async () => {
+    const a = await person('A');
+    const b = await person('B');
+    await upsertLink(a.id, b.id, { source: 'user', status: 'accepted' });
+    const snapshot = await deletePerson(a.id);
+    await deletePerson(b.id);
+    await restorePerson(snapshot!);
+    expect(await db.people.get(a.id)).toBeDefined();
+    expect(await db.links.count()).toBe(0);
+  });
+
+  it('undoImport removes added people and clears only the fields the import filled', async () => {
+    const existing = await person('Abbey Chen', { company: 'Microsoft' });
+    const plan = { toAdd: [{ name: 'Ravi' }, { name: 'Ada' }], toUpdate: [{ id: existing.id, patch: { role: 'PM', school: 'UW' } }] };
+    const ids = await applyImport(plan, 'linkedin', 'LinkedIn');
+    await addReminder(ids[0]!, '2026-10-20', 'attached after import');
+
+    await undoImport(ids, plan.toUpdate);
+
+    expect(await db.people.bulkGet(ids)).toEqual([undefined, undefined]);
+    expect(await db.reminders.count()).toBe(0);
+    const after = await db.people.get(existing.id);
+    expect(after).toMatchObject({ name: 'Abbey Chen', company: 'Microsoft' });
+    expect(after).not.toHaveProperty('role');
+    expect(after).not.toHaveProperty('school');
+  });
+});

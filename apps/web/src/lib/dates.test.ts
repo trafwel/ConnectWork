@@ -17,3 +17,16 @@ describe('dates', () => {
     expect(daysSince(isoDate(addDays(now, -210)), now)).toBe(210);
   });
 });
+
+describe('formatDate', async () => {
+  const { formatDate } = await import('./dates');
+  const now = new Date(2026, 9, 17);
+  it('shows weekday, month and day, with the year only when it differs', () => {
+    expect(formatDate('2026-10-24', now)).toBe('Sat, Oct 24');
+    expect(formatDate('2025-03-01', now)).toBe('Sat, Mar 1, 2025');
+  });
+  it('uses the local calendar day (no UTC shift) and passes bad input through', () => {
+    expect(formatDate('2026-01-01', now)).toBe('Thu, Jan 1');
+    expect(formatDate('soon', now)).toBe('soon');
+  });
+});

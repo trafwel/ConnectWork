@@ -35,3 +35,10 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. When an imported row matches someone you already have, why do we only fill *empty* fields?
 3. Why does name + company only count as a match when *both* sides have a company? What's the trade-off?
 4. The preview already worked out the import plan. Why is it computed again when you click Import?
+
+## Open-issues step (after M4)
+**Undo, backup validation, contrast**
+
+1. Undo for "Delete person" restores a snapshot. Why must the snapshot include the links, reminders and history, and why are some links skipped when restoring?
+2. A backup with `ring: 99` is refused, but one with `linkedinUrl: "javascript:…"` is accepted with that link removed. Why treat them differently?
+3. Why is `new Date('2026-10-24')` the wrong way to show a date to someone in Seattle?

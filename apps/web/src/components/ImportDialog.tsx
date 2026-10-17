@@ -26,6 +26,7 @@
  *   7. Import button "Import N" (disabled when 0 or busy): plan = planImport(await db.people.toArray(), drafts);
  *      newIds = await applyImport(plan, linkedin ? 'linkedin' : 'manual', 'LinkedIn'); close; toast
  *      "Imported X people · updated Y · Z already here".
+ *   7b. (open-issues step, M4-O3) The toast has Undo → undoImport(newIds, plan.toUpdate).
  *   8. (M6) Give that toast an action { label: 'Sort with AI', onClick: () => sortWithAi(newIds) }
  *      and a longer duration (15 s) when there are new people.
  *
@@ -41,7 +42,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { applyImport } from '@/db/actions';
+import { applyImport, undoImport } from '@/db/actions';
 import { db } from '@/db/db';
 import { guessMapping, mapGenericRows, parseCsv, planImport, type ColumnMapping, type MappableField, type ParsedCsv } from '@/lib/csv';
 import { cn } from '@/lib/utils';
@@ -137,10 +138,16 @@ export function ImportDialog() {
       const fresh = planImport(await db.people.toArray(), drafts);
       const newIds = await applyImport(fresh, linkedin ? 'linkedin' : 'manual', 'LinkedIn');
       close();
+      const changed = newIds.length + fresh.toUpdate.length;
       toast.success(
         [`Imported ${plural(newIds.length, 'person', 'people')}`, fresh.toUpdate.length && `updated ${fresh.toUpdate.length}`, fresh.unchanged && `${fresh.unchanged} already here`]
           .filter(Boolean)
           .join(' · '),
+        // Undo removes the new people and clears only the fields this import filled (M4-O3).
+        // M6 puts "Sort with AI" in `action`; Undo then moves to `cancel`.
+        changed
+          ? { duration: 15_000, action: { label: 'Undo', onClick: () => void undoImport(newIds, fresh.toUpdate).then(() => toast('Import undone')) } }
+          : undefined,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Import failed');

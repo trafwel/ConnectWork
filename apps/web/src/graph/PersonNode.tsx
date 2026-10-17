@@ -115,5 +115,31 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
   );
 }
 
-/** Memoized: during pan/zoom only nodes whose props changed re-render. */
-export const PersonNode = memo(PersonNodeImpl);
+/**
+ * useLiveQuery returns NEW person objects for everyone after any write, so a plain memo
+ * would re-render every node. Compare only what a node draws (open-issues step, M3-E4).
+ * ⚠ If you draw a new person field or add a prop (M7 flags, M10 drift), add it here too,
+ *   or that node will not update.
+ */
+function sameNode(a: Props, b: Props): boolean {
+  const p = a.person;
+  const q = b.person;
+  return (
+    p.id === q.id &&
+    p.name === q.name &&
+    p.ring === q.ring &&
+    p.primaryTag === q.primaryTag &&
+    p.company === q.company &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.color === b.color &&
+    a.zoom === b.zoom &&
+    a.selected === b.selected &&
+    a.highlighted === b.highlighted &&
+    a.dimmed === b.dimmed &&
+    a.neighbor === b.neighbor &&
+    a.onSelect === b.onSelect
+  );
+}
+
+export const PersonNode = memo(PersonNodeImpl, sameNode);

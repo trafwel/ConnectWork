@@ -207,3 +207,32 @@ Questions moved to [TEACH_BACK.md](TEACH_BACK.md#m3) (still open).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m4).
+
+## Open-issues step (after M4)
+
+**Fixing the "fix now" group from [OPEN_ISSUES.md](OPEN_ISSUES.md)** · Oct 17 · branch `m4-csv-import`
+
+**What changed:** ten items fixed. See OPEN_ISSUES → Resolved for each one.
+
+**How it was checked:** typecheck, lint (0 warnings), tests (new: 5 backup tests, 3 undo tests, 2 date-format tests run in UTC, Seattle and Tokyo, 3 colour tests unskipped), production build. In the browser:
+- Initials are dark on pink and green and white on blue.
+- The import chunk isn't loaded until Import opens.
+- Import → Undo goes 154 → 40.
+- Delete John → Undo brings him back with his link and reminder, and reopens his card.
+- The reminder reads "Sun, Oct 18".
+- Settings shows the "not encrypted" hint. Choosing a backup only asks; Cancel keeps the data; a tampered file is refused with the exact row and field; a valid file replaces.
+- No console errors.
+
+### Self-review of the fixes
+| | Finding | Status |
+| --- | --- | --- |
+| Efficiency | Backup validation brings zod (about 77 KB) into the main bundle (571 → 648 KB). | Accepted: M5 needs zod in the browser anyway. Logged under M2-E5. The import dialog split saved 26 KB. |
+| Integration | `PersonNode`'s new memo comparison must learn about any new drawn field. | Logged for M7/M10 (PX-I1), with a ⚠ comment on `sameNode`. |
+| Integration | The memo fix isn't measured at runtime. | Logged (PX-I2). |
+| Security | Backups would have carried the M16 relay token. | **Fixed** and tested (PX-S1). |
+| Security | The backup schemas *clean* unsafe links instead of rejecting the file. | Deliberate: the card lets users type any text, so one odd link mustn't make a whole backup unusable. |
+| Other | Long file names broke mid-word in the import confirm. | **Fixed:** truncated, with the full name in a tooltip. |
+| Other | Undo of an import keeps new tags it created. | Won't fix (PX-O1). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m4).
