@@ -214,3 +214,41 @@ describe('upsertLink', () => {
     expect(await db.links.count()).toBe(0);
   });
 });
+
+describe('applyImport', async () => {
+  const { applyImport } = await import('./actions');
+
+  it('adds new people on ring 3 with the default tag, fills patches, creates tags, returns new ids', async () => {
+    const existing = await person('Abbey Chen', { company: 'Microsoft' });
+    const ids = await applyImport(
+      {
+        toAdd: [{ name: 'Ravi Fischer', company: 'Zillow', metAt: '2022-11-08' }, { name: 'Ada', tags: ['Chess club'], ring: 1 }],
+        toUpdate: [{ id: existing.id, patch: { role: 'Product Manager' } }],
+      },
+      'linkedin',
+      'LinkedIn',
+    );
+    expect(ids).toHaveLength(2);
+    const [ravi, ada] = await db.people.bulkGet(ids);
+    expect(ravi).toMatchObject({ ring: 3, primaryTag: 'LinkedIn', tags: ['LinkedIn'], source: 'linkedin', lastContact: '2022-11-08' });
+    expect(ada).toMatchObject({ ring: 1, primaryTag: 'Chess club' });
+    expect(await db.tags.get('Chess club')).toBeDefined();
+    expect((await db.people.get(existing.id))?.role).toBe('Product Manager');
+  });
+
+  it('is all-or-nothing: if any write fails, no imported person is kept', async () => {
+    const spy = vi.spyOn(db.tags, 'bulkPut').mockImplementationOnce(() => {
+      throw new Error('disk full');
+    });
+    await expect(applyImport({ toAdd: [{ name: 'A' }, { name: 'B', tags: ['New tag'] }], toUpdate: [] }, 'linkedin', 'LinkedIn')).rejects.toThrow('disk full');
+    spy.mockRestore();
+    expect(await db.people.count()).toBe(0);
+  });
+
+  it('always generates fresh ids, so a file cannot overwrite an existing person by id', async () => {
+    const p = await person('Taken');
+    const [newId] = await applyImport({ toAdd: [{ name: 'Impostor', id: p.id }], toUpdate: [] }, 'linkedin', 'LinkedIn');
+    expect(newId).not.toBe(p.id);
+    expect((await db.people.get(p.id))?.name).toBe('Taken');
+  });
+});

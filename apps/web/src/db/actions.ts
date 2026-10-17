@@ -1,5 +1,5 @@
 /**
- * M3 — Every write to the database · done for M3 (applyImport in M4)
+ * M3/M4 — Every write to the database · done
  *
  * WHAT THIS ACHIEVES
  *   One place that enforces the app's data rules, so no component can break them:
@@ -170,11 +170,31 @@ export async function removeLink(id: string): Promise<void> {
   await db.links.delete(id);
 }
 
+// Step 7. One transaction: a 114-person import lands completely or not at all.
 export async function applyImport(
-  _plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
-  _source: Person['source'],
-  _defaultTag: string,
+  plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
+  source: Person['source'],
+  defaultTag: string,
 ): Promise<string[]> {
-  // TODO(M4) step 7
-  return [];
+  const createdAt = new Date().toISOString();
+  const people: Person[] = plan.toAdd.map((d) => {
+    const tags = d.tags?.length ? d.tags : [defaultTag];
+    return {
+      ...d,
+      id: newId('p'),
+      name: d.name.trim(),
+      ring: d.ring ?? 3, // unsorted imports start on the outer ring; M6 sorts them
+      primaryTag: tags[0]!,
+      tags,
+      lastContact: d.lastContact ?? d.metAt, // "connected on" is the best guess we have
+      source,
+      createdAt,
+    };
+  });
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    await db.people.bulkAdd(people);
+    await db.people.bulkUpdate(plan.toUpdate.map(({ id, patch }) => ({ key: id, changes: patch })));
+    await ensureTags(people.flatMap((p) => p.tags));
+  });
+  return people.map((p) => p.id);
 }
