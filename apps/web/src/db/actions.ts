@@ -92,3 +92,34 @@ export async function upsertLink(a: string, b: string, data: Pick<Link, 'source'
 
 export const acceptLink = (id: string) => db.links.update(id, { status: 'accepted' });
 export const removeLink = (id: string) => db.links.delete(id);
+
+/** Writes an import plan in one transaction. New people land in ring 3 unless the file says otherwise. */
+export async function applyImport(
+  plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
+  source: Person['source'],
+  defaultTag: string,
+): Promise<string[]> {
+  const createdAt = new Date().toISOString();
+  const people: Person[] = plan.toAdd.map((d) => {
+    const tags = d.tags?.length ? d.tags : [defaultTag];
+    return {
+      ...d,
+      id: newId('p'),
+      name: d.name.trim(),
+      ring: d.ring ?? 3,
+      primaryTag: tags[0]!,
+      tags,
+      lastContact: d.lastContact ?? d.metAt,
+      source,
+      createdAt,
+    };
+  });
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    await db.people.bulkAdd(people);
+    for (const u of plan.toUpdate) await db.people.update(u.id, u.patch);
+    for (const name of new Set(people.flatMap((p) => p.tags))) {
+      if (!(await db.tags.get(name))) await db.tags.put({ name, color: FALLBACK_COLOR, behavior: 'none' });
+    }
+  });
+  return people.map((p) => p.id);
+}

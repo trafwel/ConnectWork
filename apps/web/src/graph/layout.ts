@@ -16,7 +16,9 @@ import { PRIMARY_TAGS } from '@/lib/colors';
 export const RING_FRACTION: Record<Ring, number> = { 1: 0.18, 2: 0.32, 3: 0.46 };
 export const NODE_RADIUS: Record<Ring, number> = { 1: 22, 2: 14, 3: 6 };
 /** Extra spacing so always-visible ring 1 labels don't collide. */
-const COLLIDE_PAD: Record<Ring, number> = { 1: 20, 2: 7, 3: 3 };
+const COLLIDE_PAD: Record<Ring, number> = { 1: 20, 2: 7, 3: 1.5 };
+/** Pull toward the tag's angle. Weaker for ring 3 so big imports spread along the outer ring instead of piling inward. */
+const SECTOR_PULL: Record<Ring, number> = { 1: 0.06, 2: 0.06, 3: 0.012 };
 /** Angle between the LinkedIn and Work sectors, kept free for ring labels. */
 export const LABEL_ANGLE = -(2 / 3) * Math.PI;
 
@@ -99,9 +101,9 @@ export function useForceLayout(
 
     simRef.current?.stop();
     const sim = forceSimulation<Node>(nodes)
-      .force('radial', forceRadial<Node>((n) => ringRadius(g, n.ring) + n.offset, g.cx, g.cy).strength(0.9))
-      .force('x', forceX<Node>((n) => target(n).x).strength(0.06))
-      .force('y', forceY<Node>((n) => target(n).y).strength(0.06))
+      .force('radial', forceRadial<Node>((n) => ringRadius(g, n.ring) + n.offset, g.cx, g.cy).strength(1))
+      .force('x', forceX<Node>((n) => target(n).x).strength((n) => SECTOR_PULL[n.ring]))
+      .force('y', forceY<Node>((n) => target(n).y).strength((n) => SECTOR_PULL[n.ring]))
       .force('collide', forceCollide<Node>((n) => NODE_RADIUS[n.ring] + COLLIDE_PAD[n.ring]))
       .force(
         'link',

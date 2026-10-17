@@ -5,8 +5,9 @@ import { TopBar } from '@/components/TopBar';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { PersonCard } from '@/components/PersonCard';
 import { QuickAdd } from '@/components/QuickAdd';
+import { ImportDialog } from '@/components/ImportDialog';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { useHotkey } from '@/lib/useHotkey';
 import { RingMap } from '@/graph/RingMap';
 import { db } from '@/db/db';
@@ -40,6 +41,9 @@ export default function App() {
     <div className="flex h-screen flex-col bg-muted/30 text-foreground">
       <TopBar>
         <span className="flex-1" />
+        <Button variant="outline" size="sm" onClick={() => setDialog('import', true)}>
+          <Upload /> Import
+        </Button>
         <Button variant="outline" size="sm" onClick={openQuickAdd}>
           <Plus /> Add <kbd className="ml-1 rounded border px-1 text-[10px] text-muted-foreground">N</kbd>
         </Button>
@@ -60,6 +64,7 @@ export default function App() {
       </div>
       <SettingsDialog />
       <QuickAdd />
+      <ImportDialog />
       <Toaster position="bottom-center" />
     </div>
   );
