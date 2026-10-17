@@ -10,6 +10,7 @@ interface UIState {
   highlightIds: Set<string>;
   rightPanel: RightPanel;
   agentAnswer: string | null;
+  agentError: boolean;
   agentBusy: boolean;
   quickAddOpen: boolean;
   importOpen: boolean;
@@ -20,7 +21,7 @@ interface UIState {
   selectPerson: (id: string | null) => void;
   setHighlights: (ids: Iterable<string>) => void;
   clearFocus: () => void;
-  setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy'>>) => void;
+  setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy' | 'agentError'>>) => void;
   setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
 }
 
@@ -31,6 +32,7 @@ export const useStore = create<UIState>((set) => ({
   highlightIds: new Set(),
   rightPanel: null,
   agentAnswer: null,
+  agentError: false,
   agentBusy: false,
   quickAddOpen: false,
   importOpen: false,
@@ -40,7 +42,8 @@ export const useStore = create<UIState>((set) => ({
   setFilter: (filter) => set({ filter }),
   selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : null }),
   setHighlights: (ids) => set({ highlightIds: new Set(ids) }),
-  clearFocus: () => set({ selectedPersonId: null, rightPanel: null, highlightIds: new Set(), agentAnswer: null }),
+  clearFocus: () =>
+    set({ selectedPersonId: null, rightPanel: null, highlightIds: new Set(), agentAnswer: null, agentError: false, filter: 'all' }),
   setAgent: (patch) => set(patch),
   setDialog: (dialog, open) =>
     set(dialog === 'quickAdd' ? { quickAddOpen: open } : dialog === 'import' ? { importOpen: open } : { settingsOpen: open }),

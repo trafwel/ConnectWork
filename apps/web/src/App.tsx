@@ -6,6 +6,9 @@ import { SettingsDialog } from '@/components/SettingsDialog';
 import { PersonCard } from '@/components/PersonCard';
 import { QuickAdd } from '@/components/QuickAdd';
 import { ImportDialog } from '@/components/ImportDialog';
+import { AgentBar } from '@/components/AgentBar';
+import { AgentAnswer } from '@/components/AgentAnswer';
+import { DemoBanner } from '@/components/DemoBanner';
 import { Button } from '@/components/ui/button';
 import { Plus, Upload } from 'lucide-react';
 import { useHotkey } from '@/lib/useHotkey';
@@ -40,7 +43,9 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col bg-muted/30 text-foreground">
       <TopBar>
-        <span className="flex-1" />
+        <div className="flex flex-1 justify-center">
+          <AgentBar />
+        </div>
         <Button variant="outline" size="sm" onClick={() => setDialog('import', true)}>
           <Upload /> Import
         </Button>
@@ -48,8 +53,10 @@ export default function App() {
           <Plus /> Add <kbd className="ml-1 rounded border px-1 text-[10px] text-muted-foreground">N</kbd>
         </Button>
       </TopBar>
+      <DemoBanner />
       <div className="flex min-h-0 flex-1">
-        <main className="min-w-0 flex-1">
+        <main className="relative min-w-0 flex-1">
+          <AgentAnswer />
           {loaded ? (
             people.length ? (
               <RingMap people={people} links={links} tags={tags} filterContext={filterContext} />
