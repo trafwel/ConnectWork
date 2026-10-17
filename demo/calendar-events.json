@@ -1,0 +1,37 @@
+[
+  {
+    "id": "demo_evt_1",
+    "title": "Coffee with John",
+    "dayOffset": 0,
+    "hour": 15,
+    "minute": 30,
+    "durationMin": 45,
+    "attendeeEmails": [
+      "john.park@example.com"
+    ]
+  },
+  {
+    "id": "demo_evt_2",
+    "title": "Resume review",
+    "dayOffset": 1,
+    "hour": 11,
+    "minute": 0,
+    "durationMin": 30,
+    "attendeeEmails": [
+      "abbey.chen@example.com"
+    ]
+  },
+  {
+    "id": "demo_evt_3",
+    "title": "Data Science Club officers sync",
+    "dayOffset": 1,
+    "hour": 18,
+    "minute": 0,
+    "durationMin": 60,
+    "attendeeEmails": [
+      "leo.fischer@example.com",
+      "ethan.zhou@example.com",
+      "kai.larsen@example.com"
+    ]
+  }
+]

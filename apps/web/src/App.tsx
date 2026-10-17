@@ -1,27 +1,37 @@
 import { useEffect, useState } from 'react';
-
-type Health = { ok: boolean; model: string; tier: string; cache: string };
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Toaster } from '@/components/ui/sonner';
+import { TopBar } from '@/components/TopBar';
+import { SettingsDialog } from '@/components/SettingsDialog';
+import { db } from '@/db/db';
+import { ensureSeeded } from '@/db/seed';
 
 export default function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState(false);
-
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json() as Promise<Health>)
-      .then(setHealth)
-      .catch(() => setError(true));
+    ensureSeeded().then(() => setReady(true));
   }, []);
 
+  const counts = useLiveQuery(async () => ({
+    people: await db.people.count(),
+    links: await db.links.count(),
+    reminders: await db.reminders.count(),
+  }));
+
   return (
-    <main className="flex h-screen items-center justify-center bg-slate-50 text-slate-900">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold">Connectwork</h1>
-        <p className="mt-2 text-slate-600">Let Connectwork connect your world.</p>
-        <p className="mt-6 text-sm" aria-live="polite">
-          {error ? 'Server unreachable' : health ? `Server ok · ${health.model} · ${health.tier} tier` : 'Checking server…'}
-        </p>
-      </div>
-    </main>
+    <div className="flex h-screen flex-col bg-muted/30 text-foreground">
+      <TopBar />
+      <main className="flex flex-1 items-center justify-center">
+        {!ready || !counts ? (
+          <p className="text-muted-foreground">Loading…</p>
+        ) : (
+          <p className="text-muted-foreground" data-testid="counts">
+            {counts.people} people · {counts.links} links · {counts.reminders} reminders
+          </p>
+        )}
+      </main>
+      <SettingsDialog />
+      <Toaster position="bottom-center" />
+    </div>
   );
 }

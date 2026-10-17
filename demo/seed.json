@@ -1,0 +1,724 @@
+{
+  "people": [
+    {
+      "id": "p_abbey",
+      "name": "Abbey Chen",
+      "ring": 2,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Microsoft",
+      "role": "Product Manager",
+      "school": "University of Washington",
+      "email": "abbey.chen@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/abbey-chen-demo",
+      "metDaysAgo": 490,
+      "lastContactDaysAgo": 40,
+      "notes": "Met on the Azure onboarding project. UW class of 2024. Offered to review my resume."
+    },
+    {
+      "id": "p_john",
+      "name": "John Park",
+      "ring": 2,
+      "primaryTag": "School",
+      "tags": [
+        "School",
+        "follow-up"
+      ],
+      "company": "University of Washington",
+      "role": "CS student, former Microsoft intern (summer 2025)",
+      "school": "University of Washington",
+      "email": "john.park@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/john-park-demo",
+      "metDaysAgo": 760,
+      "lastContactDaysAgo": 210,
+      "notes": "Lab partner in CSE 332. Interned at Microsoft summer 2025. Said to ping him after the career fair."
+    },
+    {
+      "id": "p_01",
+      "name": "Aisha Larsen",
+      "ring": 1,
+      "primaryTag": "Family",
+      "tags": [
+        "Family"
+      ],
+      "school": "Seattle University",
+      "email": "aisha.larsen@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/aisha-larsen-demo",
+      "metDaysAgo": 419,
+      "lastContactDaysAgo": 150
+    },
+    {
+      "id": "p_02",
+      "name": "Priya Alvarez",
+      "ring": 1,
+      "primaryTag": "Family",
+      "tags": [
+        "Family"
+      ],
+      "email": "priya.alvarez@example.com",
+      "metDaysAgo": 906,
+      "lastContactDaysAgo": 120
+    },
+    {
+      "id": "p_03",
+      "name": "Maya Varga",
+      "ring": 1,
+      "primaryTag": "Family",
+      "tags": [
+        "Family"
+      ],
+      "school": "University of British Columbia",
+      "metDaysAgo": 546,
+      "lastContactDaysAgo": 43
+    },
+    {
+      "id": "p_04",
+      "name": "Tara Yamada",
+      "ring": 1,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "email": "tara.yamada@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/tara-yamada-demo",
+      "metDaysAgo": 270,
+      "lastContactDaysAgo": 27
+    },
+    {
+      "id": "p_05",
+      "name": "Theo Xu",
+      "ring": 1,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "email": "theo.xu@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/theo-xu-demo",
+      "metDaysAgo": 540,
+      "lastContactDaysAgo": 40
+    },
+    {
+      "id": "p_06",
+      "name": "Yuna Xu",
+      "ring": 1,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "email": "yuna.xu@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/yuna-xu-demo",
+      "metDaysAgo": 625,
+      "lastContactDaysAgo": 31
+    },
+    {
+      "id": "p_07",
+      "name": "Nora Larsen",
+      "ring": 1,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "email": "nora.larsen@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/nora-larsen-demo",
+      "metDaysAgo": 390,
+      "lastContactDaysAgo": 42
+    },
+    {
+      "id": "p_08",
+      "name": "Samuel Alvarez",
+      "ring": 1,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Google",
+      "role": "Program Manager",
+      "email": "samuel.alvarez@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/samuel-alvarez-demo",
+      "metDaysAgo": 927,
+      "lastContactDaysAgo": 30
+    },
+    {
+      "id": "p_09",
+      "name": "Omar Choi",
+      "ring": 2,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Northfin",
+      "role": "Program Manager",
+      "school": "Seattle University",
+      "email": "omar.choi@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/omar-choi-demo",
+      "metDaysAgo": 410,
+      "lastContactDaysAgo": 260
+    },
+    {
+      "id": "p_10",
+      "name": "Hana Choi",
+      "ring": 2,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Zillow",
+      "role": "Product Manager",
+      "email": "hana.choi@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/hana-choi-demo",
+      "metDaysAgo": 211,
+      "lastContactDaysAgo": 300
+    },
+    {
+      "id": "p_11",
+      "name": "Lena Hughes",
+      "ring": 2,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Zillow",
+      "role": "Data Scientist",
+      "linkedinUrl": "https://www.linkedin.com/in/lena-hughes-demo",
+      "metDaysAgo": 677,
+      "lastContactDaysAgo": 15
+    },
+    {
+      "id": "p_12",
+      "name": "Aisha Hughes",
+      "ring": 2,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Evergreen Health",
+      "role": "Data Scientist",
+      "school": "University of British Columbia",
+      "email": "aisha.hughes@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/aisha-hughes-demo",
+      "metDaysAgo": 621,
+      "lastContactDaysAgo": 120
+    },
+    {
+      "id": "p_13",
+      "name": "Owen Kowalski",
+      "ring": 2,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "University of British Columbia",
+      "email": "owen.kowalski@example.com",
+      "metDaysAgo": 177,
+      "lastContactDaysAgo": 87
+    },
+    {
+      "id": "p_14",
+      "name": "Mateo Moreau",
+      "ring": 2,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "Seattle University",
+      "linkedinUrl": "https://www.linkedin.com/in/mateo-moreau-demo",
+      "metDaysAgo": 669,
+      "lastContactDaysAgo": 40
+    },
+    {
+      "id": "p_15",
+      "name": "Tara Bennett",
+      "ring": 2,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "University of British Columbia",
+      "email": "tara.bennett@example.com",
+      "metDaysAgo": 667,
+      "lastContactDaysAgo": 39
+    },
+    {
+      "id": "p_16",
+      "name": "Elena Usman",
+      "ring": 2,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "University of Washington",
+      "metDaysAgo": 212,
+      "lastContactDaysAgo": 54
+    },
+    {
+      "id": "p_17",
+      "name": "Leo Fischer",
+      "ring": 2,
+      "primaryTag": "Clubs",
+      "tags": [
+        "Clubs"
+      ],
+      "school": "University of Washington",
+      "email": "leo.fischer@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/leo-fischer-demo",
+      "metDaysAgo": 234,
+      "lastContactDaysAgo": 86
+    },
+    {
+      "id": "p_18",
+      "name": "Ethan Zhou",
+      "ring": 2,
+      "primaryTag": "Clubs",
+      "tags": [
+        "Clubs"
+      ],
+      "school": "Seattle University",
+      "email": "ethan.zhou@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/ethan-zhou-demo",
+      "metDaysAgo": 805,
+      "lastContactDaysAgo": 33
+    },
+    {
+      "id": "p_19",
+      "name": "Mei Jensen",
+      "ring": 2,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "metDaysAgo": 310,
+      "lastContactDaysAgo": 23
+    },
+    {
+      "id": "p_20",
+      "name": "Mateo Novak",
+      "ring": 2,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "school": "University of Washington",
+      "email": "mateo.novak@example.com",
+      "metDaysAgo": 180,
+      "lastContactDaysAgo": 138
+    },
+    {
+      "id": "p_21",
+      "name": "Nina Yamada",
+      "ring": 3,
+      "primaryTag": "Work",
+      "tags": [
+        "Work",
+        "intro"
+      ],
+      "company": "Expedia Group",
+      "role": "Engineering Manager",
+      "school": "University of British Columbia",
+      "email": "nina.yamada@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/nina-yamada-demo",
+      "metDaysAgo": 736,
+      "lastContactDaysAgo": 295
+    },
+    {
+      "id": "p_22",
+      "name": "Lucas Gupta",
+      "ring": 3,
+      "primaryTag": "Work",
+      "tags": [
+        "Work",
+        "intro"
+      ],
+      "company": "Zillow",
+      "role": "Research Scientist",
+      "school": "University of Washington",
+      "email": "lucas.gupta@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/lucas-gupta-demo",
+      "metDaysAgo": 994,
+      "lastContactDaysAgo": 248
+    },
+    {
+      "id": "p_23",
+      "name": "Kenji Dubois",
+      "ring": 3,
+      "primaryTag": "Work",
+      "tags": [
+        "Work",
+        "intro"
+      ],
+      "company": "Brightloop Labs",
+      "role": "Software Engineer",
+      "linkedinUrl": "https://www.linkedin.com/in/kenji-dubois-demo",
+      "metDaysAgo": 426,
+      "lastContactDaysAgo": 231
+    },
+    {
+      "id": "p_24",
+      "name": "Nina Walsh",
+      "ring": 3,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Microsoft",
+      "role": "Solutions Architect",
+      "school": "University of British Columbia",
+      "email": "nina.walsh@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/nina-walsh-demo",
+      "metDaysAgo": 380,
+      "lastContactDaysAgo": 235
+    },
+    {
+      "id": "p_25",
+      "name": "Owen Alvarez",
+      "ring": 3,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Microsoft",
+      "role": "Research Scientist",
+      "email": "owen.alvarez@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/owen-alvarez-demo",
+      "metDaysAgo": 986,
+      "lastContactDaysAgo": 196
+    },
+    {
+      "id": "p_26",
+      "name": "Hana Jensen",
+      "ring": 3,
+      "primaryTag": "Work",
+      "tags": [
+        "Work"
+      ],
+      "company": "Tableau",
+      "role": "Solutions Architect",
+      "school": "Seattle University",
+      "email": "hana.jensen@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/hana-jensen-demo",
+      "metDaysAgo": 558,
+      "lastContactDaysAgo": 308
+    },
+    {
+      "id": "p_27",
+      "name": "Ruby Quinn",
+      "ring": 3,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "University of British Columbia",
+      "metDaysAgo": 976,
+      "lastContactDaysAgo": 319
+    },
+    {
+      "id": "p_28",
+      "name": "Nora Zhou",
+      "ring": 3,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "University of Washington",
+      "metDaysAgo": 328,
+      "lastContactDaysAgo": 194
+    },
+    {
+      "id": "p_29",
+      "name": "Felix Okafor",
+      "ring": 3,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "University of British Columbia",
+      "metDaysAgo": 360,
+      "lastContactDaysAgo": 170
+    },
+    {
+      "id": "p_30",
+      "name": "Mateo Jensen",
+      "ring": 3,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "Seattle University",
+      "email": "mateo.jensen@example.com",
+      "metDaysAgo": 328,
+      "lastContactDaysAgo": 66
+    },
+    {
+      "id": "p_31",
+      "name": "Yuna Esposito",
+      "ring": 3,
+      "primaryTag": "School",
+      "tags": [
+        "School"
+      ],
+      "role": "Student",
+      "school": "Seattle University",
+      "metDaysAgo": 987,
+      "lastContactDaysAgo": 303
+    },
+    {
+      "id": "p_32",
+      "name": "Kai Larsen",
+      "ring": 3,
+      "primaryTag": "Clubs",
+      "tags": [
+        "Clubs"
+      ],
+      "school": "University of Washington",
+      "email": "kai.larsen@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/kai-larsen-demo",
+      "metDaysAgo": 1090,
+      "lastContactDaysAgo": 292
+    },
+    {
+      "id": "p_33",
+      "name": "Sofia Petrov",
+      "ring": 3,
+      "primaryTag": "Clubs",
+      "tags": [
+        "Clubs"
+      ],
+      "school": "University of British Columbia",
+      "metDaysAgo": 911,
+      "lastContactDaysAgo": 371
+    },
+    {
+      "id": "p_34",
+      "name": "Jonah Nguyen",
+      "ring": 3,
+      "primaryTag": "Clubs",
+      "tags": [
+        "Clubs"
+      ],
+      "school": "University of Washington",
+      "email": "jonah.nguyen@example.com",
+      "linkedinUrl": "https://www.linkedin.com/in/jonah-nguyen-demo",
+      "metDaysAgo": 607,
+      "lastContactDaysAgo": 180
+    },
+    {
+      "id": "p_35",
+      "name": "Marcus Zhou",
+      "ring": 3,
+      "primaryTag": "Clubs",
+      "tags": [
+        "Clubs"
+      ],
+      "school": "Seattle University",
+      "email": "marcus.zhou@example.com",
+      "metDaysAgo": 834,
+      "lastContactDaysAgo": 290
+    },
+    {
+      "id": "p_36",
+      "name": "Samuel Quinn",
+      "ring": 3,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "school": "Seattle University",
+      "linkedinUrl": "https://www.linkedin.com/in/samuel-quinn-demo",
+      "metDaysAgo": 978,
+      "lastContactDaysAgo": 141
+    },
+    {
+      "id": "p_37",
+      "name": "Sofia Yamada",
+      "ring": 3,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "linkedinUrl": "https://www.linkedin.com/in/sofia-yamada-demo",
+      "metDaysAgo": 396,
+      "lastContactDaysAgo": 157
+    },
+    {
+      "id": "p_38",
+      "name": "Ivy Haddad",
+      "ring": 3,
+      "primaryTag": "Friends",
+      "tags": [
+        "Friends"
+      ],
+      "metDaysAgo": 236,
+      "lastContactDaysAgo": 193
+    }
+  ],
+  "links": [
+    {
+      "id": "l_01",
+      "fromId": "p_02",
+      "toId": "p_03"
+    },
+    {
+      "id": "l_02",
+      "fromId": "p_01",
+      "toId": "p_03"
+    },
+    {
+      "id": "l_03",
+      "fromId": "p_04",
+      "toId": "p_05"
+    },
+    {
+      "id": "l_04",
+      "fromId": "p_05",
+      "toId": "p_06"
+    },
+    {
+      "id": "l_05",
+      "fromId": "p_07",
+      "toId": "p_19"
+    },
+    {
+      "id": "l_06",
+      "fromId": "p_19",
+      "toId": "p_20"
+    },
+    {
+      "id": "l_07",
+      "fromId": "p_20",
+      "toId": "p_36"
+    },
+    {
+      "id": "l_08",
+      "fromId": "p_37",
+      "toId": "p_38"
+    },
+    {
+      "id": "l_09",
+      "fromId": "p_08",
+      "toId": "p_abbey",
+      "label": "worked together"
+    },
+    {
+      "id": "l_10",
+      "fromId": "p_08",
+      "toId": "p_09",
+      "label": "worked together"
+    },
+    {
+      "id": "l_11",
+      "fromId": "p_10",
+      "toId": "p_11",
+      "label": "worked together"
+    },
+    {
+      "id": "l_12",
+      "fromId": "p_11",
+      "toId": "p_12",
+      "label": "worked together"
+    },
+    {
+      "id": "l_13",
+      "fromId": "p_12",
+      "toId": "p_21",
+      "label": "worked together"
+    },
+    {
+      "id": "l_14",
+      "fromId": "p_21",
+      "toId": "p_22",
+      "label": "worked together"
+    },
+    {
+      "id": "l_15",
+      "fromId": "p_24",
+      "toId": "p_25",
+      "label": "worked together"
+    },
+    {
+      "id": "l_16",
+      "fromId": "p_25",
+      "toId": "p_26",
+      "label": "worked together"
+    },
+    {
+      "id": "l_17",
+      "fromId": "p_13",
+      "toId": "p_14"
+    },
+    {
+      "id": "l_18",
+      "fromId": "p_14",
+      "toId": "p_15"
+    },
+    {
+      "id": "l_19",
+      "fromId": "p_16",
+      "toId": "p_27"
+    },
+    {
+      "id": "l_20",
+      "fromId": "p_27",
+      "toId": "p_28"
+    },
+    {
+      "id": "l_21",
+      "fromId": "p_29",
+      "toId": "p_30"
+    },
+    {
+      "id": "l_22",
+      "fromId": "p_30",
+      "toId": "p_31"
+    },
+    {
+      "id": "l_23",
+      "fromId": "p_31",
+      "toId": "p_john"
+    },
+    {
+      "id": "l_24",
+      "fromId": "p_17",
+      "toId": "p_18"
+    },
+    {
+      "id": "l_25",
+      "fromId": "p_18",
+      "toId": "p_32"
+    }
+  ],
+  "reminders": [
+    {
+      "id": "r_john",
+      "personId": "p_john",
+      "dueInDays": 1,
+      "note": "Follow up after the career fair"
+    },
+    {
+      "id": "r_01",
+      "personId": "p_11",
+      "dueInDays": -3,
+      "note": "Send the article we talked about"
+    },
+    {
+      "id": "r_02",
+      "personId": "p_03",
+      "dueInDays": -1,
+      "note": "Birthday dinner plans"
+    },
+    {
+      "id": "r_03",
+      "personId": "p_08",
+      "dueInDays": 5,
+      "note": "Ask about the referral"
+    }
+  ]
+}
