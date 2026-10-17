@@ -42,6 +42,7 @@
  *   - Quick add, card edits, reminders, links and delete all persist after reload, and
  *     adding the follow-up tag creates a 7-day reminder.
  *
+ * Tests: db/actions.test.ts runs every rule above against an in-memory IndexedDB (fake-indexeddb).
  * Guide: §7.1
  */
 import type { Link, Person, Reminder, Ring } from '@connectwork/shared';

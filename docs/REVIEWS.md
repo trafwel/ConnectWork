@@ -139,7 +139,7 @@ Decision still open: **O5**. Should Import ask for confirmation, or auto-export 
 | --- | --- | --- |
 | I1 | Opening the card narrows the map. | **Verified:** centring waits for the layout at the new width (built in M2), and the selected person lands at (0, 0). |
 | I2 | Escape had two owners (the map in M2, and now global). | **Fixed:** one global `useHotkey('Escape')`. Inside a field, the first Escape cancels the edit instead of closing the card. |
-| I3 | The write functions in `actions.ts` have no unit tests: IndexedDB doesn't exist in Node. | Open, **team decision:** adding `fake-indexeddb` (dev only) would let us test every rule. The stack rule says ask first. Verified in the browser meanwhile. |
+| I3 | The write functions in `actions.ts` had no unit tests: IndexedDB doesn't exist in Node. | **Fixed (team approved):** `fake-indexeddb` as a dev dependency; `db/actions.test.ts` has **18 tests** covering every rule, including a rollback test. Mutation-checked: removing the transaction from `updatePerson` makes that test fail. SPEC.md §3 and §10.5 updated. |
 | I4 | `applyImport` is still a stub. | Expected: M4. |
 | I5 | Testing lesson: in the hidden browser pane, screenshots can show a stale frame and Base UI's focus waits for an animation frame. | Noted: read state with scripts between steps, don't trust a single screenshot. |
 
