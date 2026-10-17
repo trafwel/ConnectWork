@@ -46,6 +46,9 @@ Connectwork is a single-screen web app. The user sits at the center of a **ring 
 | F14 | P2 | Accessible list view + colorblind-safe palette | A |
 | F15 | P2 | Notes per person | A |
 | F16 | P3 | Month calendar view (cut first) | A |
+| F17 | P1 | VEYZL audit on every PR + governance log (side track) | either |
+| F18 | P1 | Photon 2.0 texting agent via browser relay (side track) | B |
+| F19 | P2 | Backboard conversation memory for the agent (MLH) | B |
 
 ### Out of scope — do not build
 
@@ -759,8 +762,17 @@ Build in order. After each milestone: `pnpm typecheck && pnpm test && pnpm build
 | M12 | Demo hardening | `DEMO_CACHE=record` run of all scripted actions; `replay` mode verified; client-side cache fallback verified with server stopped. |
 | M13 | Deploy | Live at the domain over HTTPS; Google sign-in works from the domain. |
 | M14 | Month view (F16) | Only if time remains. |
+| M15 | VEYZL (F17) | GitHub App installed; every later milestone merged via PR with a VEYZL result; `docs/AI_GOVERNANCE.md` findings log has entries. Set up BEFORE M6. |
+| M16 | Texting agent (F18) | Live on iMessage via spectrum-ts; texts relayed over SSE to the open tab, answered from IndexedDB; allow-listed senders only; replies signed "— Connectwork (AI)"; tab closed → polite message. |
+| M17 | Agent memory (F19) | Backboard stores only the agent conversation; pronouns resolve across texts; fails soft when off. |
 
 ---
+
+## 15a. Side tracks (M15–M17)
+
+- **Relay architecture (M16).** The server never holds the network. `apps/server/src/photon/agent.ts` (spectrum-ts loop) parses each allowed text into an `AgentIntent` (Gemini, `INTENT_SYSTEM`), then `photon/relay.ts` forwards a `RelayRequest` over Server-Sent Events (`GET /api/relay/stream`, token-protected) to the open tab; the tab (`web/lib/relayClient.ts`) answers from IndexedDB and `POST /api/relay/reply`s a `RelayReply`. `POST /api/relay/notify` lets the tab text the owner (weekly digest). Contracts in `packages/shared/src/schemas.ts`.
+- **Backboard (M17).** One assistant, one thread per sender; stores only the agent conversation; recall before parsing, save after replying; 5 s timeouts, fail soft.
+- **VEYZL (M15).** GitHub App audits each PR; findings and changes logged in `docs/AI_GOVERNANCE.md`; optional `@veyzl/sdk` wrapper (`apps/server/src/veyzl.ts`) only with demo data.
 
 ## 16. Human-only setup (Claude must not do these)
 
@@ -772,6 +784,7 @@ These need accounts, credentials, payments or personal identity. Claude should s
 4. Register the domain via GoDaddy Registry and set DNS.
 5. Devpost draft and final submission; MLH Commit Fellowship supplemental form.
 6. Switch to the Gemini paid tier (billing) before any real contacts are imported.
+7. VEYZL account + GitHub App; Photon 2.0 beta project + iMessage line; Backboard API key + assistant.
 
 ---
 

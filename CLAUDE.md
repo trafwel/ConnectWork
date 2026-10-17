@@ -25,6 +25,9 @@ Files for M6–M14 already exist as scaffolds: a header comment (WHAT THIS ACHIE
 - **Secrets:** never commit `.env`, keys or tokens. Never expose `GEMINI_API_KEY` to the web bundle. Keep the Google OAuth access token in memory only.
 - **Stack is fixed** (SPEC.md §3). Ask before adding a dependency that is not listed there.
 - **Out of scope stays out** (SPEC.md §2): no accounts, cloud sync, scraping, Outlook, Muse, payments.
+- **Texting agent boundary (M16):** the server relays texts to the open tab; it must never store or cache the network. Only `AGENT_ALLOWED_SENDERS` get replies; never log message text.
+- **Backboard boundary (M17):** only the agent conversation goes to Backboard — never people, notes or links.
+- **VEYZL (M15):** from M6 on, land every milestone through a pull request and record the VEYZL result (template in `.github/`).
 - **Accessibility is a feature:** every map interaction must have a keyboard and list-view equivalent; color is never the only signal.
 
 ## Things only the human can do

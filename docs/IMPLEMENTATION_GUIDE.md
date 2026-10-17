@@ -10,7 +10,8 @@ The complete, step-by-step guide for building Connectwork for DubHacks '26: from
 | Built: scaffold → AI query (M0–M5) | 4–9 |
 | What live Gemini testing taught us | 10 |
 | To build (M6–M14, plus the theme) | 11–21 |
-| Submission | 22 |
+| Side tracks: VEYZL, Photon texting agent, Backboard (M15–M17) | 22–24 |
+| Submission | 25 |
 
 Related documents:
 
@@ -87,6 +88,11 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | `DEMO_CACHE` | `off` | `record` / `replay` AI replies for the demo (section 19) |
 | `VITE_API_BASE` | `/api` | Web → API base path |
 | `VITE_GOOGLE_CLIENT_ID` | — | Google Calendar sign-in (section 18) |
+| `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET` | — | Photon texting agent (section 23) |
+| `AGENT_ALLOWED_SENDERS` | — | Comma-separated sender ids allowed to text the agent; everyone else is ignored |
+| `RELAY_TOKEN` | — | Shared secret between the server and the browser tab that answers texts |
+| `BACKBOARD_API_KEY`, `BACKBOARD_ASSISTANT_ID` | — | Conversation memory for the texting agent (section 24) |
+| `VEYZL_API_KEY` | — | Optional VEYZL live-audit SDK (section 22; demo data only) |
 
 ### 1.4 Map of the code
 
@@ -124,8 +130,11 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 2. **Google OAuth client** (M11) — Google Cloud Console → enable *Google Calendar API* → OAuth consent screen (External, Testing) → add both our Google accounts as test users → Credentials → OAuth client ID (Web) → Authorized JavaScript origins `http://localhost:5173` and later `https://<domain>` → `.env` `VITE_GOOGLE_CLIENT_ID=…`. An "unverified app" warning is expected; only listed test users (max 100) can sign in.
 3. **Vultr VM** (M13) — claim MLH credits; small Ubuntu 24.04 VM; add your SSH key.
 4. **Domain** (M13) — register via GoDaddy Registry (MLH prize); `A` record → VM IP.
-5. **Devpost draft by 9:30 PM** — both members + Discords. Tracks: Cook Smarter (title), DubHacks Next, MLH Commit Fellowship (+ its supplemental form), MLH Best Use of Gemini, MLH Vultr, MLH GoDaddy domain, SpaceXAI raffle; CloudForce/SideShift only after reading their criteria in the Hacker Guide.
-6. **GitHub** — the repo is public. Add your teammate as a collaborator (Settings → Collaborators). Never paste keys into issues, commits or the README.
+5. **Devpost draft by 9:30 PM** — both members + Discords. Tracks: Cook Smarter (title), DubHacks Next, MLH Commit Fellowship (+ its supplemental form), MLH Best Use of Gemini, MLH Vultr, MLH GoDaddy domain, MLH Best Use of Backboard; sponsored side tracks (max 3, we use 2): **Best Use of VEYZL** and **Photon 2.0 Messaging Agent**.
+6. **VEYZL** (M15, do it NOW) — free account at veyzl.ai, project for `trafwel/conNetWork`, install the GitHub App. From then on, every milestone lands through a pull request so it's audited. Details: [`docs/AI_GOVERNANCE.md`](AI_GOVERNANCE.md).
+7. **Photon 2.0** (M16) — beta at photon.co/beta (free): project + managed iMessage line; `SPECTRUM_PROJECT_ID` / `SPECTRUM_PROJECT_SECRET` from dashboard Settings. Put your own sender id in `AGENT_ALLOWED_SENDERS`.
+8. **Backboard** (M17, optional) — API key + one assistant; `BACKBOARD_API_KEY`, `BACKBOARD_ASSISTANT_ID`.
+9. **GitHub** — the repo is public. Add your teammate as a collaborator (Settings → Collaborators). Never paste keys into issues, commits or the README.
 
 ---
 
@@ -139,6 +148,7 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | M3 | Quick add + person card | — | — | done |
 | M4 | CSV import | — | — | done |
 | M5 | AI query (live-tested) | — | — | done |
+| M15 | **VEYZL: connect + audit every PR** | either | 15 min setup, then per PR | **do first** — before M6 |
 | R | Route refactor | B | 20 min | before M6 |
 | M6 | AI auto-sort + hidden links | B | 2 h | R |
 | M7 | Reminder flags, filter tabs, .ics | A | 1.5 h | — |
@@ -151,8 +161,10 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | M12 | Demo hardening | B | 1 h | all AI features |
 | M13 | Deploy | A | 1 h | VM + domain |
 | M14 | Month view | A | 1 h | only if time |
+| M16 | Photon texting agent | B (+A UI) | 3 h | R, M6 (reuses query flow); Photon beta |
+| M17 | Backboard agent memory | B | 45 min | M16 |
 
-In parallel: **A** does M7 → T → M10 → M13 → M14; **B** does R → M6 → M8 → M9 → M11 → M12.
+In parallel: **A** does M7 → T → M10 → M13 → M14; **B** does R → M6 → M8 → M16 → M17 → M9 → M11 → M12. M15 (VEYZL) is set up first by either of us and then runs on every PR. If time gets short, M16 (Photon) beats M9/M11 for prize value — it's a sponsored track with a concrete "live on a Photon channel" bar.
 
 ---
 
@@ -180,6 +192,9 @@ Workflow for each file: read the header → implement the steps top to bottom �
 | M12 | `lib/offlineCache.ts` | The scripted demo works even with no Wi-Fi or an overloaded Gemini |
 | M13 | `deploy/Caddyfile`, `deploy/connectwork.service` | Live at our domain over HTTPS |
 | M14 | `components/CalendarMonth.tsx` | A month view of reminders and meetings (stretch) |
+| M15 | `docs/AI_GOVERNANCE.md`, `.github/pull_request_template.md`, `apps/server/src/veyzl.ts` | Every PR audited by VEYZL, with a log showing how findings changed what we shipped |
+| M16 | `server/photon/agent.ts`, `photon/relay.ts`, `photon/intent.ts`, `web/lib/relayClient.ts`, `components/AgentConnection.tsx` | Text Connectwork from iMessage; your open tab answers from local data |
+| M17 | `apps/server/src/backboard.ts` | The texting agent remembers the conversation ("her" = the person you just mentioned) |
 
 The built M0–M5 files carry the same header (with **HOW IT WAS BUILT** instead of STEPS, and no TODOs), so the whole codebase reads the same way: open any file and its top comment says what it achieves, how it fits and how it works.
 
@@ -953,7 +968,76 @@ DNS `A` record → VM IP; add `https://<domain>` to the OAuth client's origins. 
 
 ---
 
-## 22. Before submitting
+## 22. M15 — VEYZL: audit every PR (do first) · side track "Best Use of VEYZL"
+
+> **You'll achieve:** proof that our AI app is safe enough to ship — every pull request is audited against EU AI Act, NIST AI RMF and ISO/IEC 42001 controls, and a findings log shows exactly what each finding changed. **Files:** `docs/AI_GOVERNANCE.md`, `.github/pull_request_template.md`, `apps/server/src/veyzl.ts` (optional).
+
+**What VEYZL is.** A GitHub App: on each PR it detects what our AI system does, selects the controls that apply, runs targeted checks, and posts a **VEYZL Audit** status check with findings and fix guidance. Free plan: 1 AI system, advisory only (doesn't block merges) — enough for the track. Startup plan ($5/mo) can block merges via branch protection.
+
+**Steps**
+
+1. Set up now (15 min): account → project for the repo → install the GitHub App → copy the detected system profile into `docs/AI_GOVERNANCE.md`.
+2. Change how we merge: every milestone from here on is a **pull request** (the template asks for the VEYZL result), not a direct push to `main`.
+3. For each finding: fix it in the same PR (or the next), add a row to the findings log (date, PR, control, finding, what we changed, status). Findings we choose not to fix get a row with the reason.
+4. Likely findings and our ready answers are in the "Safeguards already built in" table (human oversight, validation, data minimization, no body logging, allow-listed texting). Expect transparency findings for the texting agent — replies are already signed "— Connectwork (AI)".
+5. Optional runtime evidence: `apps/server/src/veyzl.ts` wraps the Gemini client with `@veyzl/sdk` when `VEYZL_API_KEY` is set. It sends prompts/responses to VEYZL — **demo data only**.
+6. Demo/Devpost: one before/after screenshot of the VEYZL check and one sentence: "VEYZL flagged X, so we shipped Y."
+
+**Done when:** at least three PRs have VEYZL results in their description and the findings log has at least one "what we changed" row.
+
+---
+
+## 23. M16 — Photon texting agent · side track "Build a Messaging Agent using Photon 2.0"
+
+> **You'll achieve:** Connectwork lives where people already talk. Text the agent's iMessage line — "who do I know at Stripe?", "met Sarah Kim from Stripe at DubHacks", "remind me to follow up with John Friday", "had coffee with Abbey", "what's due?" — and it answers and updates your map. Your open Connectwork tab does the work, so your network never leaves your browser. **Scaffolds:** `apps/server/src/photon/agent.ts`, `photon/relay.ts`, `photon/intent.ts`, `apps/web/src/lib/relayClient.ts`, `components/AgentConnection.tsx`.
+
+**How it works**
+
+```
+iPhone ──iMessage──▶ Photon ──▶ server: photon/agent.ts (spectrum-ts message loop)
+                                   │ allow-list → Backboard recall (M17) → parseIntent (Gemini)
+                                   ▼
+                         photon/relay.ts ──SSE──▶ your open Connectwork tab (lib/relayClient.ts)
+                                                     answers from IndexedDB, highlights the map
+                         photon/relay.ts ◀─POST /api/relay/reply── reply text
+iPhone ◀──iMessage── Photon ◀── "…\n— Connectwork (AI)"
+```
+
+**Why a relay?** Our promise is that the network lives only in your browser. The server never holds it, so it forwards each text to the open tab and texts back whatever the tab answers. Tab closed → "Open Connectwork on your laptop and I'll check your network." (Fine for the demo: the laptop is on stage.)
+
+**Photon facts we rely on** (photon.codes/docs): the SDK is `spectrum-ts` (`npm install spectrum-ts`, TypeScript ≥ 5); `Spectrum({ projectId, projectSecret, providers: [imessage.config()] })`; incoming messages via `for await (const [space, message] of app.messages)`; text in `message.content.text` when `message.content.type === 'text'`; sender in `message.sender?.id`; reply with `space.send(...)`. A `terminal` provider lets you test from the terminal. Beta: photon.co/beta (free); credentials under dashboard Settings.
+
+**Steps (follow the file headers for detail)**
+
+1. Accounts (§2 item 7) and `.env`: `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `AGENT_ALLOWED_SENDERS`, `RELAY_TOKEN` (any long random string).
+2. `photon/relay.ts`: SSE stream + reply + notify endpoints, token-protected; `ask()` resolves with the browser's reply or `null`. Tests included in the header.
+3. `photon/intent.ts`: Gemini parses each text into an `AgentIntent` (prompt `INTENT_SYSTEM` is already written), with date guardrails and a safe fallback to `query`.
+4. `photon/agent.ts`: the spectrum-ts loop — allow-list, intent, relay, reply signed "— Connectwork (AI)", never logs message text. Start it from `index.ts` only when credentials exist.
+5. `web/lib/relayClient.ts`: subscribe with `EventSource`, answer each intent by reusing existing flows (query = AgentBar logic; add_person = `findMatch` + `addPerson`; remind = `addReminder`; log_contact = `logContact`; digest = `weeklyCandidates`), highlight the people, post the reply.
+6. `components/AgentConnection.tsx`: Settings section to paste the token, connection status, auto-connect on load; a "Texting · on" pill in the top bar.
+7. Weekly digest: a "Text me this" button in WeeklyReview (M8) → `notifyOwner()` → the agent texts you.
+
+**Demo moment:** phone on the document camera, laptop on screen. Text "met Sarah Kim from Stripe at DubHacks" → the node appears on the map; text "who do I know at Microsoft?" → the map highlights them and the phone gets the answer.
+
+**Done when:** live on iMessage (the track requires at least one Photon channel); the five example texts work with the tab open; strangers get no reply; the tab-closed message works.
+
+---
+
+## 24. M17 — Backboard memory for the texting agent (optional) · MLH "Best Use of Backboard"
+
+> **You'll achieve:** the texting agent remembers the conversation — "met Sarah Kim from Stripe" then "remind me to follow up with **her** Friday" creates a reminder for Sarah. **Scaffold:** `apps/server/src/backboard.ts`.
+
+**Privacy boundary:** Backboard stores only the text conversation with the agent. The network itself (people, notes, links) never goes to Backboard. Off unless `BACKBOARD_API_KEY` is set; demo data only.
+
+**Facts we rely on** (docs.backboard.io): JavaScript SDK `backboard-sdk`; memory is kept per **assistant** (reuse one `assistant_id`); conversations are **threads** (one per sender); memory modes per call: `Auto` (save + retrieve), `Readonly`, `off`.
+
+**Steps:** install the SDK → `recall(senderId)` (Readonly, ≤ ~1,000 chars of recent context) before parsing → `save(senderId, text, reply)` (Auto) after replying → 5 s timeouts, fail soft (memory must never break the agent) → show `backboard: true` in `/api/health` → live check the "her" example.
+
+**Done when:** pronouns resolve across texts, and with Backboard off everything still works.
+
+---
+
+## 25. Before submitting
 
 ### Test checklist (on the live URL, incognito)
 
@@ -964,6 +1048,8 @@ DNS `A` record → VM IP; add `https://<domain>` to the OAuth client's origins. 
 - [ ] Find hidden links → Abbey ↔ John
 - [ ] Review my week → Approve all → reminders + drafts
 - [ ] Snap `roster.pdf` → 8 people
+- [ ] Text the agent from a phone: query, add, remind, log contact, digest; a stranger's number gets no reply
+- [ ] At least three PRs show VEYZL results; findings log filled in
 - [ ] Meeting strip → prep card → Log this meeting
 - [ ] Filters, Due panel, .ics download
 - [ ] List view; full keyboard path
@@ -976,5 +1062,7 @@ DNS `A` record → VM IP; add `https://<domain>` to the OAuth client's origins. 
 - [ ] 2-minute demo video: import → sort → ask → hidden link → meeting prep → weekly review
 - [ ] Devpost final by **Sun 10:00 AM**, live URL on our domain
 - [ ] MLH Commit Fellowship supplemental form
+- [ ] VEYZL track: link `docs/AI_GOVERNANCE.md` and the before/after audit screenshot
+- [ ] Photon track: confirm the agent is live on iMessage at judging time
 - [ ] No secrets in git: `git log -p | grep -iE "AIza|api_key="` finds nothing real
 - [ ] Gemini switched to paid tier before anyone imports real contacts

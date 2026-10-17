@@ -37,4 +37,13 @@ export const env = {
   allowedOrigin: process.env.ALLOWED_ORIGIN ?? 'http://localhost:5173',
   port: Number(process.env.PORT ?? 8787),
   demoCache: (process.env.DEMO_CACHE ?? 'off') as 'off' | 'record' | 'replay',
+  // Side tracks — each feature stays off until its variables are set.
+  photonProjectId: process.env.SPECTRUM_PROJECT_ID ?? '',
+  photonProjectSecret: process.env.SPECTRUM_PROJECT_SECRET ?? '',
+  /** Only these sender ids may talk to the agent; strangers texting the number are ignored. */
+  agentAllowedSenders: (process.env.AGENT_ALLOWED_SENDERS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+  relayToken: process.env.RELAY_TOKEN ?? '',
+  backboardApiKey: process.env.BACKBOARD_API_KEY ?? '',
+  backboardAssistantId: process.env.BACKBOARD_ASSISTANT_ID ?? '',
+  veyzlApiKey: process.env.VEYZL_API_KEY ?? '',
 };

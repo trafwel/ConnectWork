@@ -25,6 +25,9 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 | Snap to add: photo of a business card or a club roster → people | 🚧 M9 |
 | Drift: people you haven't talked to in a while fade outward | 🚧 M10 |
 | Google Calendar sync and meeting prep | 🚧 M11 |
+| Text Connectwork from iMessage (Photon 2.0) — your open tab answers from local data | 🚧 M16 |
+| The texting agent remembers the conversation (Backboard) | 🚧 M17 |
+| Every pull request audited by VEYZL (EU AI Act, NIST AI RMF, ISO/IEC 42001) — see [AI governance](docs/AI_GOVERNANCE.md) | 🚧 M15 |
 
 ## Privacy
 
@@ -32,6 +35,7 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 - **The AI is opt-in.** A compact summary of your network goes to the AI only when you ask something. Notes are not sent with questions.
 - **The AI proposes, you decide.** Nothing changes until you accept it.
 - **The server stores nothing.** It holds the API key, forwards requests, and never logs request contents.
+- **The texting agent asks your browser.** Texts are relayed to your open Connectwork tab, which answers from local data; only allow-listed numbers get replies. Optional Backboard memory stores the text conversation, never your network.
 - **Demo builds use Gemini's free tier, which may use requests to improve Google's products — so they run on fictional sample data only.** Use a paid key before importing real contacts.
 
 ## Quick start
@@ -69,6 +73,10 @@ Without a Gemini key, everything works except the AI features, which say how to 
 | `PORT` | `8787` | API port |
 | `DEMO_CACHE` | `off` | `record` / `replay` AI replies for offline demos |
 | `VITE_GOOGLE_CLIENT_ID` | — | Google Calendar sign-in (coming in M11) |
+| `SPECTRUM_PROJECT_ID` / `SPECTRUM_PROJECT_SECRET` | — | Photon texting agent (M16) |
+| `AGENT_ALLOWED_SENDERS` / `RELAY_TOKEN` | — | Who may text the agent; the secret linking the server and your open tab |
+| `BACKBOARD_API_KEY` / `BACKBOARD_ASSISTANT_ID` | — | Agent conversation memory (M17) |
+| `VEYZL_API_KEY` | — | Optional VEYZL live-audit SDK (demo data only) |
 
 ## Scripts
 
@@ -100,11 +108,12 @@ docs/            Implementation guide
 
 - [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md) — step-by-step build guide, M0 to submission
 - [`SPEC.md`](SPEC.md) — exact types, schemas, endpoints and milestones
+- [`docs/AI_GOVERNANCE.md`](docs/AI_GOVERNANCE.md) — VEYZL audits, safeguards, and how findings changed what we shipped
 - [`CLAUDE.md`](CLAUDE.md) — working rules for AI coding assistants on this repo
 
 ## DubHacks '26 tracks
 
-Cook Smarter (title track) · DubHacks Next · MLH Commit Fellowship · MLH Best Use of Gemini API · MLH Best Use of Vultr · MLH Best Domain Name from GoDaddy Registry
+Cook Smarter (title track) · Best Use of VEYZL · Photon 2.0 Messaging Agent · DubHacks Next · MLH Commit Fellowship · MLH Best Use of Gemini API · MLH Best Use of Backboard · MLH Best Use of Vultr · MLH Best Domain Name from GoDaddy Registry
 
 ## Team
 

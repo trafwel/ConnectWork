@@ -214,3 +214,54 @@ export const MeetingBriefResponse = z.object({
   ),
 });
 export type MeetingBriefResponse = z.infer<typeof MeetingBriefResponse>;
+
+// ---------------------------------------------------------------------------
+// M16 — Texting agent (Photon) contracts. Texts arrive on the server, which
+// relays them to the user's open Connectwork tab; the tab answers from its
+// local data. The network never leaves the browser.
+// ---------------------------------------------------------------------------
+
+/** What the user meant by a text. Parsed by Gemini on the server (INTENT_SYSTEM). */
+export const AgentIntent = z.object({
+  intent: z.enum(['query', 'add_person', 'remind', 'log_contact', 'digest', 'help', 'other']),
+  /** For 'query': the question in plain English ("Who do I know at Stripe?"). */
+  question: z.string().max(500).optional(),
+  /** For 'add_person': who they met. */
+  person: z
+    .object({
+      name: z.string().max(120),
+      company: z.string().max(120).optional(),
+      role: z.string().max(120).optional(),
+      school: z.string().max(120).optional(),
+      note: z.string().max(500).optional(),
+    })
+    .optional(),
+  /** For 'remind' and 'log_contact': who, and when (YYYY-MM-DD, resolved from "Friday"). */
+  target: z
+    .object({
+      personName: z.string().max(120),
+      dueDate: z.string().optional(),
+      note: z.string().max(300).optional(),
+    })
+    .optional(),
+});
+export type AgentIntent = z.infer<typeof AgentIntent>;
+
+/** Server → browser over the relay stream (Server-Sent Events). */
+export const RelayRequest = z.object({
+  id: z.string(),
+  /** Channel the text came from, e.g. 'imessage', 'sms', 'whatsapp'. */
+  platform: z.string(),
+  text: z.string().max(2000),
+  intent: AgentIntent,
+  receivedAt: z.string(),
+});
+export type RelayRequest = z.infer<typeof RelayRequest>;
+
+/** Browser → server: the reply to text back, plus who it was about (for the map). */
+export const RelayReply = z.object({
+  id: z.string(),
+  text: z.string().min(1).max(1200),
+  personIds: z.array(z.string()).max(50).default([]),
+});
+export type RelayReply = z.infer<typeof RelayReply>;
