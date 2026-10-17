@@ -1,5 +1,5 @@
 /**
- * M3 — Single-key shortcuts · ~15 min
+ * M3 — Single-key shortcuts · done
  *
  * WHAT THIS ACHIEVES
  *   Shortcuts like N for Quick add that never fire while you're typing in a field or
@@ -16,6 +16,24 @@
  * Guide: §7.2
  */
 
-export function useHotkey(_key: string, _handler: () => void): void {
-  // TODO(M3) steps 1–3
+import { useEffect } from 'react';
+
+function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
+}
+
+/** Calls `handler` when `key` is pressed alone, outside text fields and dialogs. Pass a stable handler. */
+export function useHotkey(key: string, handler: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // Cmd+N etc. belong to the browser
+      if (isTyping(e.target) || document.querySelector('[role="dialog"]')) return;
+      if (e.key.toLowerCase() !== key.toLowerCase()) return;
+      e.preventDefault();
+      handler();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [key, handler]);
 }

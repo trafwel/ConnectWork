@@ -1,5 +1,5 @@
 /**
- * M3 — Every write to the database · Owner: Person B · ~1 h (applyImport in M4)
+ * M3 — Every write to the database · done for M3 (applyImport in M4)
  *
  * WHAT THIS ACHIEVES
  *   One place that enforces the app's data rules, so no component can break them:
@@ -45,56 +45,128 @@
  * Guide: §7.1
  */
 import type { Link, Person, Reminder, Ring } from '@connectwork/shared';
+import { FALLBACK_COLOR } from '@/lib/colors';
+import { addDays, isoDate, today } from '@/lib/dates';
+import { newId } from '@/lib/ids';
+import { db } from './db';
 
-export async function addPerson(_input: { name: string; ring: Ring; primaryTag: string } & Partial<Person>): Promise<Person> {
-  // TODO(M3) step 1
-  throw new Error('TODO(M3): addPerson is not implemented yet');
+const inDays = (days: number) => isoDate(addDays(new Date(), days));
+
+/** Creates a tag for every name not in db.tags yet (one bulkGet, not one get per name). */
+async function ensureTags(names: Iterable<string>): Promise<void> {
+  const unique = [...new Set(names)];
+  const existing = await db.tags.bulkGet(unique);
+  const missing = unique.filter((_, i) => !existing[i]);
+  if (missing.length) await db.tags.bulkPut(missing.map((name) => ({ name, color: FALLBACK_COLOR, behavior: 'none' as const })));
 }
 
-export async function updatePerson(_id: string, _patch: Partial<Omit<Person, 'id'>>): Promise<void> {
-  // TODO(M3) step 2
+// Step 1. Defaults first, then the caller's fields, then what callers may not choose.
+export async function addPerson(input: { name: string; ring: Ring; primaryTag: string } & Partial<Person>): Promise<Person> {
+  const person: Person = {
+    tags: [input.primaryTag],
+    source: 'manual',
+    lastContact: today(),
+    ...input,
+    id: input.id ?? newId('p'),
+    name: input.name.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  if (!person.name) throw new Error('A name is required');
+  if (!person.tags.includes(person.primaryTag)) person.tags = [person.primaryTag, ...person.tags];
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    await db.people.add(person);
+    await ensureTags(person.tags);
+  });
+  return person;
 }
 
-export async function deletePerson(_id: string): Promise<void> {
-  // TODO(M3) step 3
+// Step 2. One transaction: the person, any new tags, and a follow-up reminder land together.
+export async function updatePerson(id: string, patch: Partial<Omit<Person, 'id'>>): Promise<void> {
+  await db.transaction('rw', [db.people, db.tags, db.reminders], async () => {
+    const before = await db.people.get(id);
+    if (!before) return;
+    const next: Person = { ...before, ...patch, id };
+    next.name = next.name.trim() || before.name; // a blank name would leave an empty card title
+    if (!next.tags.includes(next.primaryTag)) next.tags = [next.primaryTag, ...next.tags];
+    await db.people.put(next);
+    await ensureTags(next.tags);
+
+    // Gaining a follow-up tag schedules a reminder in a week, unless one is already open.
+    const followUpTags = new Set((await db.tags.filter((t) => t.behavior === 'follow-up').toArray()).map((t) => t.name));
+    const gained = next.tags.some((t) => followUpTags.has(t) && !before.tags.includes(t));
+    if (gained) {
+      const open = await db.reminders.where('personId').equals(id).filter((r) => !r.done).count();
+      if (!open) await addReminder(id, inDays(7), 'Follow up');
+    }
+  });
 }
 
-export async function logContact(_personId: string, _kind: 'meeting' | 'message' | 'other' = 'other', _note?: string): Promise<void> {
-  // TODO(M3) step 4
+// Step 3. Nothing may point at a deleted person.
+export async function deletePerson(id: string): Promise<void> {
+  await db.transaction('rw', [db.people, db.links, db.reminders, db.contactLogs], async () => {
+    await db.people.delete(id);
+    await db.links.where('fromId').equals(id).or('toId').equals(id).delete();
+    await db.reminders.where('personId').equals(id).delete();
+    await db.contactLogs.where('personId').equals(id).delete();
+  });
 }
 
-export async function addReminder(_personId: string, _dueDate: string, _note: string): Promise<Reminder> {
-  // TODO(M3) step 5
-  throw new Error('TODO(M3): addReminder is not implemented yet');
+// Step 4. Always both: drift (M10) reads lastContact, history reads the logs.
+export async function logContact(personId: string, kind: 'meeting' | 'message' | 'other' = 'other', note?: string): Promise<void> {
+  const date = today();
+  await db.transaction('rw', [db.people, db.contactLogs], async () => {
+    if (!(await db.people.get(personId))) return; // no orphan logs for a deleted person
+    await db.contactLogs.add({ id: newId('c'), personId, date, kind, note });
+    await db.people.update(personId, { lastContact: date });
+  });
 }
 
-export async function setReminderDone(_id: string, _done: boolean): Promise<void> {
-  // TODO(M3) step 5
+// Step 5.
+export async function addReminder(personId: string, dueDate: string, note: string): Promise<Reminder> {
+  const reminder: Reminder = { id: newId('r'), personId, dueDate, note: note.trim() || 'Follow up', done: false };
+  await db.reminders.add(reminder);
+  return reminder;
 }
 
-export async function snoozeReminder(_id: string, _days = 7): Promise<void> {
-  // TODO(M3) step 5
+export async function setReminderDone(id: string, done: boolean): Promise<void> {
+  await db.reminders.update(id, { done });
 }
 
-export async function deleteReminder(_id: string): Promise<void> {
-  // TODO(M3) step 5
+export async function snoozeReminder(id: string, days = 7): Promise<void> {
+  await db.reminders.update(id, { dueDate: inDays(days) });
 }
 
+export async function deleteReminder(id: string): Promise<void> {
+  await db.reminders.delete(id);
+}
+
+// Step 6. Undirected: one row per pair, smaller id first, so "does A–B exist?" is one lookup.
 export function normalizeLink(a: string, b: string): [string, string] {
-  // TODO(M3) step 6
-  return [a, b];
+  return a < b ? [a, b] : [b, a];
 }
 
-export async function upsertLink(_a: string, _b: string, _data: Pick<Link, 'source' | 'status'> & { label?: string }): Promise<void> {
-  // TODO(M3) step 6
+export async function upsertLink(a: string, b: string, data: Pick<Link, 'source' | 'status'> & { label?: string }): Promise<void> {
+  const [fromId, toId] = normalizeLink(a, b);
+  if (fromId === toId) return;
+  await db.transaction('rw', [db.people, db.links], async () => {
+    const [from, to] = await db.people.bulkGet([fromId, toId]);
+    if (!from || !to) return; // a stale id (e.g. from an old AI answer) must not create a dangling link
+    const existing = await db.links.where('fromId').equals(fromId).filter((l) => l.toId === toId).first();
+    if (!existing) {
+      await db.links.add({ id: newId('l'), fromId, toId, ...data });
+      return;
+    }
+    if (existing.status === 'accepted' && data.status === 'suggested') return; // never downgrade
+    await db.links.update(existing.id, { ...data, label: data.label ?? existing.label });
+  });
 }
 
-export async function acceptLink(_id: string): Promise<void> {
-  // TODO(M3) step 6
+export async function acceptLink(id: string): Promise<void> {
+  await db.links.update(id, { status: 'accepted' });
 }
 
-export async function removeLink(_id: string): Promise<void> {
-  // TODO(M3) step 6
+export async function removeLink(id: string): Promise<void> {
+  await db.links.delete(id);
 }
 
 export async function applyImport(

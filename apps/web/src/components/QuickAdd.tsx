@@ -1,5 +1,5 @@
 /**
- * M3 — Quick add (press N) · Owner: Person A · ~40 min
+ * M3 — Quick add (press N) · done
  *
  * WHAT THIS ACHIEVES
  *   Adding a person takes under 10 seconds: name, ring, tag, Enter. Details come
@@ -25,7 +25,80 @@
  * Guide: §7.2
  */
 
+import { useRef, useState, type FormEvent } from 'react';
+import { toast } from 'sonner';
+import type { Ring } from '@connectwork/shared';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { addPerson } from '@/db/actions';
+import { useStore } from '@/store/useStore';
+import { RingPicker } from './RingPicker';
+import { TagSelect } from './TagSelect';
+
 export function QuickAdd() {
-  // TODO(M3) steps 1–4
-  return null;
+  const open = useStore((s) => s.quickAddOpen);
+  const setDialog = useStore((s) => s.setDialog);
+  const selectPerson = useStore((s) => s.selectPerson);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState('');
+  const [ring, setRing] = useState<Ring>(2);
+  const [tag, setTag] = useState('Friends');
+  const [saving, setSaving] = useState(false);
+
+  const close = () => {
+    setDialog('quickAdd', false);
+    setName('');
+    setRing(2);
+    setTag('Friends');
+  };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || saving) return; // a fast double Enter must not add the person twice
+    setSaving(true);
+    try {
+      const person = await addPerson({ name, ring, primaryTag: tag });
+      close();
+      toast.success(`Added ${person.name}`, { action: { label: 'Open card', onClick: () => selectPerson(person.id) } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not add that person');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (o ? setDialog('quickAdd', true) : close())}>
+      {/* Base UI ignores autoFocus; initialFocus is how the Name field gets focus on open. */}
+      <DialogContent className="sm:max-w-md" initialFocus={nameRef}>
+        <DialogHeader>
+          <DialogTitle>Add someone</DialogTitle>
+          <DialogDescription>Name, ring and a tag. Add the rest later from their card.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="qa-name">Name</Label>
+            <Input id="qa-name" ref={nameRef} value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="e.g. Jordan Lee" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Ring</Label>
+            <RingPicker value={ring} onChange={setRing} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qa-tag">Tag</Label>
+            <div>
+              <TagSelect id="qa-tag" value={tag} onChange={setTag} />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={!name.trim() || saving}>
+              Add · Enter
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
