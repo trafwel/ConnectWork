@@ -20,20 +20,12 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { canonicalJson } from '@connectwork/shared';
 
 export type CacheMode = 'off' | 'record' | 'replay';
 
-/** Stable JSON: object keys sorted so equal bodies give equal cache keys. */
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
+// Shared with the browser (M12) so both compute identical cache keys.
+export { canonicalJson };
 
 export function cacheKey(route: string, body: unknown): string {
   return createHash('sha256').update(`${route}\n${canonicalJson(body)}`).digest('hex');

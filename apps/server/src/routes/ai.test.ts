@@ -104,3 +104,69 @@ describe('canonicalJson', () => {
     expect(canonicalJson({ b: 1, a: [1, { d: 2, c: 3 }] })).toBe(canonicalJson({ a: [1, { c: 3, d: 2 }], b: 1 }));
   });
 });
+
+describe('POST /api/ai/classify (M6)', () => {
+  const body = {
+    people: [
+      { id: 'p_1', name: 'Ada Lovelace', company: 'Analytical Engines' },
+      { id: 'p_2', name: 'Grace Hopper', company: 'Navy' },
+    ],
+    tags: ['Work', 'School', 'Friends'],
+  };
+  const postClassify = (app: ReturnType<typeof createApp>, b: unknown) =>
+    app.request('/api/ai/classify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+
+  it('drops unknown people and tags, and never returns ring 1', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        items: [
+          { id: 'p_1', ring: 1, primaryTag: 'Work', tags: ['Work', 'Secret'], reason: 'same company' },
+          { id: 'p_2', ring: 3, primaryTag: 'Military', tags: [], reason: 'navy' },
+          { id: 'p_ghost', ring: 2, primaryTag: 'Work', tags: [], reason: 'invented' },
+          { id: 'p_1', ring: 3, primaryTag: 'School', tags: [], reason: 'duplicate' },
+        ],
+      }),
+    );
+    const res = await postClassify(appWith(generate), body);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ items: [{ id: 'p_1', ring: 2, primaryTag: 'Work', tags: ['Work'], reason: 'same company' }] });
+    expect(generate.mock.calls[0]![0].thinking).toBe('low');
+  });
+
+  it('rejects more than 150 people per call', async () => {
+    const many = Array.from({ length: 151 }, (_, i) => ({ id: `p_${i}`, name: `P ${i}` }));
+    const res = await postClassify(appWith(vi.fn<Generate>()), { people: many, tags: ['Work'] });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/ai/links (M6)', () => {
+  const postLinks = (app: ReturnType<typeof createApp>, b: unknown) =>
+    app.request('/api/ai/links', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+
+  it('keeps only new links between real, different people', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        links: [
+          { fromId: 'p_abbey', toId: 'p_john', label: 'both UW, both Microsoft', confidence: 0.85 },
+          { fromId: 'p_john', toId: 'p_abbey', label: 'duplicate pair', confidence: 0.8 },
+          { fromId: 'p_abbey', toId: 'p_abbey', label: 'self', confidence: 0.9 },
+          { fromId: 'p_abbey', toId: 'p_ghost', label: 'invented', confidence: 0.9 },
+        ],
+      }),
+    );
+    const res = await postLinks(appWith(generate), { summary });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ links: [{ fromId: 'p_abbey', toId: 'p_john', label: 'both UW, both Microsoft', confidence: 0.85 }] });
+    expect(generate.mock.calls[0]![0].thinking).toBe('medium');
+  });
+
+  it('drops pairs that are already linked', async () => {
+    const linked = summary.replace('L|p_abbey|p_01|same team', 'L|p_john|p_abbey|already');
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({ links: [{ fromId: 'p_abbey', toId: 'p_john', label: 'both UW', confidence: 0.9 }] }),
+    );
+    const res = await postLinks(appWith(generate), { summary: linked });
+    expect(await res.json()).toEqual({ links: [] });
+  });
+});
