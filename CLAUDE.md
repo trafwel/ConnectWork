@@ -12,13 +12,23 @@ Connectwork is a local-first web app that maps a user's personal network as ring
 4. When a milestone is done, report: what works, what you verified and how, what you skipped.
 5. The Devpost draft is due **Saturday 10:30 PM PT**. Around 9:00 PM, stop and remind the human, whatever milestone you're on.
 
-## Who writes the code
+## How we build: one milestone at a time, explained (team rule, Oct 17)
 
-The team writes the code themselves. Only help when asked, and only with what's asked (explain, review, debug, answer questions). Don't implement milestones, open PRs or "keep going" on your own.
+1. **Claude implements ONE milestone (M#) per round** — never two, never "keep going".
+2. **Explain the thinking while building, not just the result.** For each file: what problem it solves, the options considered, why this approach, and the concept behind it (e.g. "why IndexedDB instead of localStorage", "why memoize this promise"). Plain language first, then the code.
+3. **Self-review after every milestone (before the teach-back), written up for the team:**
+   - **Efficiency** — wasted work, extra renders, N+1 database calls, things computed twice, oversized payloads.
+   - **Integration** — does it work with every piece it touches (store, database, server, other milestones' files, the architecture graph)? Run the app and check, don't assume.
+   - **Security & privacy** — data leaving the browser, secrets, injection (prompt, HTML, CSV), unsafe input, logging of personal data.
+   - **Other flaws** — edge cases, accessibility, error handling, things the tests don't cover.
+   Fix what can be fixed in the same milestone; list the rest as known issues with a reason.
+4. **Teach-back check before moving on.** At the end of the milestone, summarize the key concepts and ask the team 2–4 short questions to confirm they understand them. Do NOT start the next milestone until the team says they understand and asks to continue. If an answer shows a gap, explain that concept again (differently) first.
+5. **Update the architecture graph** (`docs/ARCHITECTURE.md`) at the end of every milestone: mark what is now built, add new parts and connections, and add a changelog line. The graph must always match the code on the branch.
+6. Each milestone lands as its own branch + pull request (so VEYZL audits it); merging and pushing only when the team says so.
 
 ## Scaffold files
 
-Files for M1–M17 already exist as scaffolds (M0 is built): a header comment (WHAT THIS ACHIEVES, HOW IT FITS, STEPS, DONE WHEN) and `TODO(M#) n:` markers where each step goes. Follow the header's steps in order, delete each TODO as you finish it, and keep the existing function signatures. `pnpm todo` lists what's left.
+Files for M1–M17 already exist as scaffolds (M0 is built). When implementing one, follow its header steps: a header comment (WHAT THIS ACHIEVES, HOW IT FITS, STEPS, DONE WHEN) and `TODO(M#) n:` markers where each step goes. Follow the header's steps in order, delete each TODO as you finish it, and keep the existing function signatures. `pnpm todo` lists what's left.
 
 ## Hard rules
 

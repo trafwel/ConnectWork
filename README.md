@@ -106,6 +106,7 @@ docs/            Implementation guide
 
 ## Docs
 
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — living architecture graph: what's built and what's planned
 - [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md) — step-by-step build guide, M0 to submission
 - [`SPEC.md`](SPEC.md) — exact types, schemas, endpoints and milestones
 - [`docs/AI_GOVERNANCE.md`](docs/AI_GOVERNANCE.md) — VEYZL audits, safeguards, and how findings changed what we shipped
