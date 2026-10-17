@@ -50,6 +50,7 @@ export function aiRoutes(deps: { generate: Generate | null; cache: DemoCache }) 
       const today = new Date().toISOString().slice(0, 10);
       const result = await callStructured(deps.generate, {
         system: QUERY_SYSTEM,
+        thinking: 'low',
         parts: [{ text: `Today is ${today}.\n\nNetwork:\n${body.summary}\n\nQuestion: ${body.question}` }],
         schema: QueryResponse,
       });
@@ -60,7 +61,11 @@ export function aiRoutes(deps: { generate: Generate | null; cache: DemoCache }) 
       c.header('x-cache', 'miss');
       return c.json(response);
     } catch (err) {
-      if (err instanceof AiError) return c.json({ error: err.code, message: MESSAGES[err.code] }, STATUS[err.code]);
+      if (err instanceof AiError) {
+        // Code and SDK message only: never the request body (personal data).
+        console.warn(`AI ${err.code} on ${c.req.path}: ${err.message.slice(0, 300)}`);
+        return c.json({ error: err.code, message: MESSAGES[err.code] }, STATUS[err.code]);
+      }
       throw err;
     }
   });

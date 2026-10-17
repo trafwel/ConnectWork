@@ -36,6 +36,7 @@ describe('POST /api/ai/query', () => {
 
     const call = generate.mock.calls[0]![0];
     expect(call.system).toContain('network assistant');
+    expect(call.thinking).toBe('low');
     expect(JSON.stringify(call.parts)).toContain('Who do I know at Microsoft?');
     expect(call.jsonSchema).toMatchObject({ type: 'object' });
     expect(call.jsonSchema).not.toHaveProperty('$schema');

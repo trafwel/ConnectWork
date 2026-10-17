@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { db } from '@/db/db';
 import { askQuery } from '@/lib/api';
 import { buildSummary } from '@/lib/graphSummary';
+import { exactMatches } from '@/lib/exactMatch';
 import { useStore } from '@/store/useStore';
 
 /** Plain-English questions about the network; the answer highlights people on the map. */
@@ -32,7 +33,8 @@ export function AgentBar() {
     }
     // The server already drops unknown ids; check again against what is in this browser now.
     const known = new Set(people.map((p) => p.id));
-    const ids = result.data.personIds.filter((id) => known.has(id));
+    // Union with exact company/school matches so a long list never loses anyone.
+    const ids = [...new Set([...result.data.personIds.filter((id) => known.has(id)), ...exactMatches(q, people)])];
     setAgent({ agentBusy: false, agentAnswer: result.data.answer, agentError: false });
     setHighlights(ids);
     if (result.data.filterHint !== 'none') setFilter(result.data.filterHint);
