@@ -39,6 +39,30 @@
  * Guide: §14
  */
 
+/**
+ * M2 neutral defaults: CSS variables from index.css, so the map follows light/dark mode.
+ * (SVG presentation attributes accept var(); checked in Chrome during M2.)
+ */
 export const mapTheme = {
-  // TODO(T) step 1
+  // TODO(T) step 1: replace these neutral values with the Atlas tokens above.
+  paper: 'var(--background)',
+  ink: 'var(--foreground)',
+  ringStroke: 'var(--border)',
+  ringWidth: 1.5,
+  ringDash: '4 6',
+  ringLabel: 'var(--muted-foreground)',
+  link: 'var(--foreground)',
+  linkOpacity: 0.35,
+  linkWidth: 1,
+  suggestedLink: 'var(--primary)',
+  suggestedDash: '5 4',
+  nodeStroke: 'var(--background)',
+  nodeStrokeWidth: 1.5,
+  selected: 'var(--foreground)',
+  highlight: 'var(--primary)',
+  highlightDash: '4 3',
+  youFill: 'var(--foreground)',
+  label: 'var(--foreground)',
+  labelHalo: 'var(--background)',
+  font: 'inherit',
 } as const;

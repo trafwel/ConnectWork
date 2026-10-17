@@ -1,5 +1,5 @@
 /**
- * M2 — Filter matching · ~10 min (used by FilterTabs in M7 and ListView in M10)
+ * M2 — Filter matching · done (used by FilterTabs in M7 and ListView in M10)
  *
  * WHAT THIS ACHIEVES
  *   One rule for "does this person match the current view", shared by the map and
@@ -21,7 +21,9 @@ export interface FilterContext {
   driftingIds: Set<string>;
 }
 
-export function matchesFilter(_p: Person, _filter: Filter, _ctx: FilterContext): boolean {
-  // TODO(M2) steps 1–3
-  return true;
+export function matchesFilter(p: Person, filter: Filter, ctx: FilterContext): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'due') return ctx.dueIds.has(p.id);
+  if (filter === 'drifting') return ctx.driftingIds.has(p.id);
+  return p.primaryTag === filter || p.tags.includes(filter); // any other value is a tag name
 }

@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M1 built** — the demo network is seeded into IndexedDB on first load, the screen shows a live people count, and Settings can export, import, reset or delete the data. The map and everything after it are scaffolds. Self-reviews: [REVIEWS.md](REVIEWS.md).
+**Current state: M2 built** — the demo network is seeded into IndexedDB on first load and drawn as the ring map (pan, zoom, click to select and centre, dimming by filter or highlight); Settings can export, import, reset or delete the data. The person card (M3) and everything after it are scaffolds. Self-reviews: [REVIEWS.md](REVIEWS.md).
 
 ### 1. The big picture
 
@@ -37,7 +37,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   Demo[/"demo/seed.json<br/><small>loaded on demand · M1</small>"/]:::built
-  App["App shell<br/><small>App.tsx · M0–M1</small>"]:::built
+  App["App shell<br/><small>App.tsx · M0–M2</small>"]:::built
   Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1</small>"]:::built
   Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
   Seed["Seed · reset · delete · export · import<br/><small>db/seed.ts, materialize.ts · M1</small>"]:::built
@@ -47,7 +47,7 @@ flowchart LR
 
   subgraph UI["Screens and panels"]
     direction TB
-    Map["Ring map · M2"]:::planned
+    Map["Ring map<br/><small>graph/RingMap, PersonNode, LinkLine · M2</small>"]:::built
     Card["Person card · quick add · M3"]:::planned
     Import["CSV import · M4"]:::planned
     Ask["Ask Connectwork · M5"]:::planned
@@ -56,20 +56,26 @@ flowchart LR
     Snap["Snap to add · M9"]:::planned
   end
 
+  Layout["Ring layout<br/><small>graph/layout.ts · d3-force, settled before paint · M2</small>"]:::built
+  Helpers["Pure helpers<br/><small>lib/filters.ts, people.ts, colors.ts · M1–M2</small>"]:::built
   Api["lib/api.ts → server · M5"]:::planned
   Relay["Texting relay client · M16"]:::planned
 
   App -->|"ensureSeeded() on mount"| Seed
-  App -->|"people count: useLiveQuery"| DB
+  App -->|"people, links, tags, reminders: useLiveQuery"| DB
+  App -->|"props + filterContext"| Map
+  Map -->|"positions"| Layout
+  Map -->|"matchesFilter, tagColor, initials"| Helpers
+  Map -->|"selected, highlights, filter"| Store
   App --> Chrome
   Chrome -->|"settingsOpen, clearFocus"| Store
   Chrome -->|"reset · delete · export · import"| Seed
   Seed <-->|"export / import (validated)"| BackupFile
   Demo -->|"dynamic import()"| Seed
   Seed -->|"one transaction per action"| DB
-  UI -.->|"select: useStore"| Store
-  UI -.->|"read: useLiveQuery"| DB
-  UI -.->|"write"| Actions
+  Card -.->|"select: useStore"| Store
+  Card -.->|"read: useLiveQuery"| DB
+  Card -.->|"write"| Actions
   Actions -.-> DB
   Ask -.-> Api
   Review -.-> Api
@@ -126,8 +132,8 @@ flowchart LR
 | --- | --- | --- |
 | M0 | App shell ↔ `/api/health` | ✅ built |
 | M1 | IndexedDB, seeding, UI state, settings | ✅ built ([review](REVIEWS.md#m1)) |
-| M2 | Ring map | ⬜ next |
-| M3 | Every write (`actions.ts`), person card, quick add | ⬜ |
+| M2 | Ring map | ✅ built ([review](REVIEWS.md#m2)) |
+| M3 | Every write (`actions.ts`), person card, quick add | ⬜ next |
 | M4 | CSV import | ⬜ |
 | M5 | Ask Connectwork → `/api/ai/query` → Gemini | ⬜ |
 | R, M6 | Route helper; review sheet; classify + links | ⬜ |
@@ -140,3 +146,4 @@ flowchart LR
 | --- | --- | --- |
 | Oct 17 | — | First version, as three diagrams (big picture, browser, server): M0 built (App ↔ health); everything else planned. |
 | Oct 17 | M1 | Browser diagram: demo file, App, top bar + Settings, UI state, seed module and IndexedDB are built; added the backup file and the real arrows (seed on mount, live count, Settings → seed → one transaction per action). Status: M1 ✅, M2 next. |
+| Oct 17 | M2 | Browser diagram: ring map built, with its layout (d3-force) and pure helpers as new boxes; App now feeds the map from four live queries; the map reads selection, highlights and filter from the store. Planned UI arrows now start from the person card (M3). Status: M2 ✅, M3 next. |
