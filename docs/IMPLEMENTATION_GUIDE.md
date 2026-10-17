@@ -1,6 +1,15 @@
 # Connectwork — Team Implementation Guide
 
-A step-by-step guide for the two of us to finish the DubHacks '26 build. It picks up where the code is now (M0–M5 done) and walks through every remaining milestone with the files to touch, the code to write, how to test it, and what "done" looks like.
+A step-by-step guide for the two of us to build Connectwork for DubHacks '26, from an empty folder to a submitted, deployed app. Every milestone lists the commands to run, the files to create or change, the key code, how to test it, and what "done" looks like.
+
+**Status:** M0–M5 are built and committed (sections 4–9 explain how, so either of us can change that code confidently). M6–M14 are still to do (sections 10–19).
+
+| Part | Sections |
+| --- | --- |
+| Setup and ways of working | 0–3 |
+| Built: scaffold → AI query (M0–M5) | 4–9 |
+| To build: refactor, AI flows, calendar, polish, deploy (M6–M14) | 10–19 |
+| Submission | 20 |
 
 - **Product intent:** the design doc — https://claude.ai/code/artifact/86190765-bb34-4ca1-904e-e58a6bf48a11
 - **Exact contracts (types, schemas, endpoints):** [`SPEC.md`](../SPEC.md). If this guide and SPEC.md disagree, SPEC.md wins.
@@ -90,6 +99,7 @@ Open http://localhost:5173. You should see the ring map with 40 sample people. T
 
 | # | Milestone | Owner | Est. | Depends on |
 | --- | --- | --- | --- | --- |
+| M0–M5 | Scaffold, data, map, card, import, AI query | — | done | — |
 | M6 | AI auto-sort + hidden links | B | 2 h | M5 |
 | M7 | Reminder flags, filter tabs, .ics export | A | 1.5 h | — |
 | — | **Devpost draft** | either | 15 min | — |
@@ -105,7 +115,375 @@ A and B can run in parallel: A does M7 → M10 → M13 while B does M6 → M8 �
 
 ---
 
-## 4. Shared refactor before M6 (Person B, 20 minutes)
+## 4. M0 — Scaffold the monorepo (done · reference: commit `M0`)
+
+**Goal:** one repo with three packages — shared types, a Hono API server and a Vite React web app — where `pnpm dev` serves the app on :5173 and `/api/health` answers through Vite's proxy.
+
+### 4.1 Workspace root
+
+```bash
+mkdir connectwork && cd connectwork
+git init -b main
+mkdir -p packages/shared/src apps/server/src apps/web/src demo scripts docs
+```
+
+Create these files at the root:
+
+- **`package.json`** — private, `"type": "module"`, scripts:
+  ```json
+  {
+    "dev": "pnpm --parallel --filter @connectwork/server --filter @connectwork/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint .",
+    "seed": "tsx scripts/make-demo-data.ts"
+  }
+  ```
+  plus `"pnpm": { "onlyBuiltDependencies": ["esbuild"] }` — pnpm 10 blocks install scripts by default and Vite/tsx need esbuild's.
+- **`pnpm-workspace.yaml`** — `packages: [packages/*, apps/*]`.
+- **`tsconfig.base.json`** — `target ES2022`, `module ESNext`, `moduleResolution Bundler`, `strict`, `noUncheckedIndexedAccess`, `isolatedModules`, `verbatimModuleSyntax`, `resolveJsonModule`, `skipLibCheck`. Every package's `tsconfig.json` extends it.
+- **`.gitignore`** — `node_modules/`, `dist/`, `.env`, `.env.local`, `.DS_Store`, `coverage/`.
+- **`.env.example`** — every variable from SPEC.md §14.1 with safe defaults (`GEMINI_MODEL=gemini-3.8-flash`, `GEMINI_TIER=free`, `ALLOWED_ORIGIN=http://localhost:5173`, `PORT=8787`, `DEMO_CACHE=off`, `VITE_API_BASE=/api`). Never commit `.env`.
+- **`vitest.config.ts`** — includes `packages/*/src/**/*.test.ts`, `apps/*/src/**/*.test.ts`, `scripts/**/*.test.ts`; alias `@` → `apps/web/src` so web tests can import with `@/…`.
+- **`eslint.config.js`** — flat config: `@eslint/js` recommended + `typescript-eslint` recommended + `eslint-plugin-react-hooks` for `apps/web/src`; ignore `dist`, `node_modules`, `apps/web/src/components/ui/**` (generated).
+
+Root dev tools:
+
+```bash
+pnpm add -w -D typescript@~6.0.3 vitest tsx eslint @eslint/js typescript-eslint eslint-plugin-react-hooks prettier @types/node
+```
+
+> TypeScript stays on 6.0.x: typescript-eslint supports `<6.1`. TS 7 also removed `baseUrl`, so don't use it in any tsconfig.
+
+### 4.2 Shared package — `packages/shared`
+
+- `package.json`: name `@connectwork/shared`, `"type": "module"`, `"main"`/`"types"`/`"exports"` all pointing at `./src/index.ts` (both apps consume the TypeScript source directly — no build step), scripts `typecheck` and `build` = `tsc --noEmit`.
+- `src/types.ts`: the domain types from SPEC.md §5 (`Ring`, `Tag`, `Person`, `Link`, `Reminder`, `Meeting`, `ContactLog`).
+- `src/index.ts`: `export type * from './types';` (schemas get added in M5).
+- Add it to both apps: `pnpm --filter @connectwork/web add '@connectwork/shared@workspace:*'` (same for server). **Quote the spec** — zsh treats `*` as a glob.
+
+### 4.3 Server — `apps/server`
+
+```bash
+pnpm --filter @connectwork/server add hono @hono/node-server zod
+```
+
+- `package.json` scripts: `dev` = `tsx watch src/index.ts`, `start` = `tsx src/index.ts`, `typecheck`/`build` = `tsc --noEmit`. (We run with tsx in production too; no compile step to manage.)
+- `src/env.ts` — loads the repo-root `.env` with Node's built-in loader and exposes typed config:
+  ```ts
+  try { process.loadEnvFile(fileURLToPath(new URL('../../../.env', import.meta.url))); } catch { /* no .env */ }
+  export const env = {
+    geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+    geminiModel: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
+    geminiTier: (process.env.GEMINI_TIER ?? 'free') as 'free' | 'paid',
+    allowedOrigin: process.env.ALLOWED_ORIGIN ?? 'http://localhost:5173',
+    port: Number(process.env.PORT ?? 8787),
+    demoCache: (process.env.DEMO_CACHE ?? 'off') as 'off' | 'record' | 'replay',
+  };
+  ```
+- `src/app.ts` — a Hono app with, in order: `cors({ origin: env.allowedOrigin })`, `bodyLimit({ maxSize: 10 MB })`, a logging middleware that prints **method, path, status, latency and cache hit/miss only — never bodies** (they hold personal data), `GET /api/health` → `{ ok, model, tier, cache }`, and an `onError` that returns `{ error: 'internal', message }` with status 500.
+- `src/index.ts` — `serve({ fetch: app.fetch, port: env.port })`.
+
+### 4.4 Web app — `apps/web`
+
+```bash
+pnpm --filter @connectwork/web add react react-dom
+pnpm --filter @connectwork/web add -D vite @vitejs/plugin-react tailwindcss @tailwindcss/vite @types/react @types/react-dom
+```
+
+- `vite.config.ts`: plugins `react()` and `tailwindcss()`; alias `@` → `src`; dev server port 5173 with `proxy: { '/api': 'http://localhost:8787' }` (so the browser never needs CORS in dev).
+- `tsconfig.json`: extends base, `lib: [ES2022, DOM, DOM.Iterable]`, `jsx: react-jsx`, `types: [vite/client]`, `paths: { "@/*": ["./src/*"] }`.
+- `index.html`, `src/main.tsx` (StrictMode + `createRoot`), `src/index.css` (`@import "tailwindcss";`), and a temporary `src/App.tsx` that fetches `/api/health` and prints "Server ok · model · tier".
+- **shadcn/ui** (run inside `apps/web`):
+  ```bash
+  CI=1 pnpm dlx shadcn@latest init --yes --defaults < /dev/null
+  CI=1 pnpm dlx shadcn@latest add dialog input label select textarea badge sonner tooltip toggle-group --yes < /dev/null
+  ```
+  Current shadcn generates **Base UI** primitives (not Radix) and imports `cn` from the `cn` package (published by shadcn's org). Both are fine. Base UI difference that bites: dialogs take `initialFocus={ref}` instead of honouring `autoFocus`, and triggers use a `render` prop instead of `asChild`.
+
+### 4.5 Check and commit
+
+```bash
+pnpm install
+pnpm dev                                   # then in another terminal:
+curl -s localhost:5173/api/health          # {"ok":true,"model":"gemini-3.8-flash",...}
+pnpm typecheck && pnpm lint && pnpm test && pnpm build
+git add -A && git commit -m "M0: scaffold"
+```
+
+**Done when:** the page shows "Server ok" and all four checks pass.
+
+---
+
+## 5. M1 — Local database, demo data and seeding (done · reference: commit `M1`)
+
+**Goal:** all user data lives in the browser (IndexedDB via Dexie). First load fills it with a realistic fake network; Settings can export, import, reset or delete it.
+
+### 5.1 Demo data generator — `scripts/make-demo-data.ts`
+
+```bash
+pnpm add -w -D pdf-lib
+```
+
+Rules for the script (see the file for the full version):
+
+1. **Deterministic**: a seeded RNG (mulberry32 with a fixed seed) so `pnpm seed` always produces the same files and the demo never surprises us.
+2. **Fictional people only**: names built from first/last name lists, emails at `example.com`, LinkedIn URLs ending `-demo`.
+3. **Dates as offsets** (`metDaysAgo`, `lastContactDaysAgo`, `dueInDays`, `dayOffset`), turned into real dates when the app loads. A fixed date would make the demo go stale overnight.
+4. **The story pair**, hard-coded: **Abbey Chen** (ring 2, Work, Microsoft PM, UW, contacted 40 days ago) and **John Park** (ring 2, School, UW, interned at Microsoft, contacted 210 days ago → drifting, reminder due tomorrow). They are deliberately **not linked**, so M6's link finder discovers them.
+5. Shape: 40 people (8 ring 1, 14 ring 2, 18 ring 3), ~25 links inside tag clusters (stored with `fromId < toId`), 4 reminders (John's due tomorrow, two overdue, one next week), 4 drifting ring-1/2 people, 3 people tagged `intro`.
+
+Outputs in `demo/`: `seed.json`, `Connections.csv` (120 rows with LinkedIn's real header and its "Notes:" preamble; 6 rows overlap the seed to exercise dedupe), `calendar-events.json` (3 meetings, one with John, one with Abbey), `roster.pdf` (8 fake club officers, for M9).
+
+```bash
+pnpm seed      # demo/: seed.json (40 people, 25 links, 4 reminders), Connections.csv (120 rows), …
+```
+
+### 5.2 Dexie schema — `apps/web/src/db/db.ts`
+
+```bash
+pnpm --filter @connectwork/web add dexie dexie-react-hooks nanoid zustand
+```
+
+Tables and indexes exactly as SPEC.md §6 (`people`, `links`, `reminders`, `tags`, `meetings`, `contactLogs`, `meta`). Export `TABLES` as a const list so export/clear code loops over every table.
+
+### 5.3 Seeding — `db/materialize.ts` + `db/seed.ts`
+
+- `materialize.ts` holds the pure function `materializeSeed(file, now)` that converts offsets to dates. Keep it free of Dexie imports so Vitest can run it in Node.
+- `seed.ts`:
+  - `ensureSeeded()` — if `meta.seeded` is missing, write default tags + seed in one transaction and set `meta.seeded = true`. Memoize the promise: React StrictMode runs effects twice in dev and would otherwise seed twice.
+  - `resetDemoData()` — clear all tables, seed again.
+  - `deleteEverything()` — clear all tables, re-add default tags, **keep `meta.seeded = true`** so the demo doesn't come back on reload.
+  - `exportAll()` → a JSON Blob `{ app: 'connectwork', version: 1, exportedAt, data: {table: rows} }`; `importBackup(file)` validates `app === 'connectwork'` then replaces everything.
+
+### 5.4 Helpers
+
+- `lib/ids.ts` — `newId('p')` → `p_<nanoid(10)>`. Person ids always start with `p_` (the AI summary relies on it being stable, not on the prefix).
+- `lib/dates.ts` — `isoDate(d)` (local calendar date, not UTC — `toISOString()` would shift the date west of Greenwich), `today()`, `addDays`, `daysSince(date, now)`.
+- `lib/colors.ts` — `DEFAULT_TAGS` (Okabe-Ito palette, SPEC.md §7.6), `PRIMARY_TAGS`, `tagColor(tags, name)`.
+
+### 5.5 UI shell
+
+- `store/useStore.ts` (Zustand): view, filter, selectedPersonId, highlightIds, rightPanel, agent answer/busy/error, dialog open flags. **Data never goes in the store** — components read Dexie with `useLiveQuery`, which re-renders automatically when the table changes.
+- `components/TopBar.tsx` (title, children slot, settings button) and `components/SettingsDialog.tsx` (Export, Import backup, Reset demo data, Delete everything with a two-step confirm).
+- `App.tsx` calls `ensureSeeded()` on mount and renders `<Toaster />` from sonner.
+
+### 5.6 Tests and checks
+
+- `lib/dates.test.ts`: formatting, `daysSince` across times of day.
+- `db/seed.test.ts`: John's `lastContact` and reminder date land where expected for a fixed `now`; Abbey and John are not linked; every link has `fromId < toId`.
+- In the browser: first load shows 40 people; reload keeps them; **Delete everything** → reload shows 0; **Reset demo data** brings 40 back.
+
+**Done when:** all of the above pass. Commit `M1`.
+
+---
+
+## 6. M2 — The ring map (done · reference: commit `M2`)
+
+**Goal:** people drawn on three rings around "You", grouped by tag, with level of detail, pan/zoom, keyboard access, and a click that opens a card.
+
+```bash
+pnpm --filter @connectwork/web add d3-force d3-zoom d3-selection framer-motion
+pnpm --filter @connectwork/web add -D @types/d3-force @types/d3-zoom @types/d3-selection
+```
+
+### 6.1 Layout — `graph/layout.ts`
+
+Constants: `RING_FRACTION = {1: 0.18, 2: 0.32, 3: 0.46}` of `min(width, height)`; node radius `{1: 22, 2: 14, 3: 6}`; collision padding `{1: 20, 2: 7, 3: 1.5}` (ring 1 needs room for its always-visible name); sector pull `{1: 0.06, 2: 0.06, 3: 0.012}`.
+
+`sectorAngle(tag)` gives each primary tag a direction (Work at the top, then School, Friends, Family, Clubs, LinkedIn clockwise), so same-tag people cluster.
+
+`useForceLayout(people, links, width, height, offsetFor)`:
+
+```ts
+const sim = forceSimulation(nodes)
+  .force('radial', forceRadial((n) => ringRadius(g, n.ring) + n.offset, g.cx, g.cy).strength(1))
+  .force('x', forceX((n) => target(n).x).strength((n) => SECTOR_PULL[n.ring]))
+  .force('y', forceY((n) => target(n).y).strength((n) => SECTOR_PULL[n.ring]))
+  .force('collide', forceCollide((n) => NODE_RADIUS[n.ring] + COLLIDE_PAD[n.ring]))
+  .force('link', forceLink(linkData).id((n) => n.id).strength(0.02))
+  .alphaDecay(0.05)
+  .alpha(previous.size ? 0.3 : 1)
+  .stop();
+sim.tick(Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay())));   // settle synchronously
+setPositions(new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }])));
+```
+
+Three decisions worth knowing:
+
+1. **Synchronous settling.** We tick the simulation to rest inside the effect instead of animating it frame by frame. The map is stable on first paint, and it works in background tabs (browsers pause animation frames there; our first version showed an empty map in a hidden tab).
+2. **Keep previous positions.** Existing nodes reuse their old `x/y` and the sim restarts at `alpha 0.3`, so adding one person nudges the map instead of reshuffling it. Node moves animate with a CSS `transform` transition (450 ms) on each node.
+3. **Weak ring-3 pull.** With a strong pull, 114 imported LinkedIn contacts piled into one blob that spilled across ring 2. Weak pull lets them spread along the outer ring.
+
+`offsetFor(p)` (default 0) pushes a person outward; M10 uses it for drift.
+
+### 6.2 Rendering — `graph/RingMap.tsx`, `PersonNode.tsx`, `LinkLine.tsx`
+
+- Measure the container with `getBoundingClientRect()` on mount **and** a `ResizeObserver` (the observer alone reports nothing in a hidden tab).
+- SVG layers, back to front: dashed ring circles with labels (placed at the angle between the LinkedIn and Work sectors so they don't collide with nodes), links, the "You" node, people sorted ring 3 → 1 so close people draw on top.
+- Level of detail (SPEC.md §7.3): ring 1 shows initials and name; ring 2 shows the name on hover/focus or zoom ≥ 1.3; ring 3 shows it at zoom ≥ 2.2 or when selected/highlighted.
+- Links: accepted = solid slate at 35% opacity; suggested = dashed in the primary color.
+- Selection = a dark 3 px ring; highlight = a 2.5 px ring; when anything is highlighted, everyone else drops to 15% opacity.
+- Pan/zoom: `d3-zoom` on the `<svg>` (scale 0.5–3, double-click zoom off), transform applied to an inner `<g>`. A **Reset view** button appears whenever the view is not the identity.
+- Clicking empty map space clears selection; clicking a node calls `selectPerson(id)` (with `stopPropagation`).
+- Accessibility: each node is a focusable `<g role="button" tabIndex={0}>` with `aria-label="Name, ring N, Tag, Company"`; Enter/Space selects; a dashed focus ring shows on `:focus-visible`; a color legend sits bottom-left.
+
+### 6.3 Check
+
+Seed renders in three rings, clustered by tag, no overlapping ring-1 names; scroll zooms; drag pans; clicking a node opens a simple card. Commit `M2`.
+
+---
+
+## 7. M3 — Quick add and the person card (done · reference: commit `M3`)
+
+### 7.1 Data actions — `db/actions.ts`
+
+Every write in the app goes through this file:
+
+| Function | What it does |
+| --- | --- |
+| `addPerson({name, ring, primaryTag, …})` | new id, `tags: [primaryTag]`, `source: 'manual'`, `lastContact: today` |
+| `updatePerson(id, patch)` | keeps `primaryTag` inside `tags`; creates unknown tags (gray); adding a `follow-up`-behavior tag creates a 7-day reminder if none is open |
+| `deletePerson(id)` | also deletes their links, reminders and contact logs |
+| `logContact(id, kind)` | writes a `ContactLog` **and** sets `lastContact` (always both) |
+| `addReminder`, `setReminderDone`, `snoozeReminder`, `deleteReminder` | reminder CRUD |
+| `upsertLink(a, b, {source, status, label})` | normalizes `fromId < toId`; never downgrades accepted → suggested |
+| `acceptLink`, `removeLink` | link review |
+| `applyImport(plan, source, defaultTag)` | added in M4 |
+
+### 7.2 Quick add — `components/QuickAdd.tsx`, `RingPicker.tsx`, `TagSelect.tsx`, `lib/useHotkey.ts`
+
+- `useHotkey('n', open)` ignores keys while typing in inputs or when any dialog is open.
+- Dialog with **Name** (focused via `initialFocus={nameRef}` — Base UI ignores `autoFocus`), **Ring** (a `radiogroup` of three buttons with arrow-key support, default 2) and **Tag** (native `<select>`, default Friends). Enter submits; the toast has an **Open card** action.
+- The top bar gets an **+ Add `N`** button.
+
+### 7.3 Person card — `components/PersonCard.tsx` (+ `PersonReminders.tsx`, `PersonLinks.tsx`)
+
+- Right panel, 26 rem wide. Name is an inline input; fields Company, Role, School, Email, LinkedIn save **on blur or Enter** (a local draft, so typing doesn't write on every keystroke). Key the body by `person.id` so drafts reset when you switch people.
+- Ring picker, primary tag select, extra tag chips (× to remove, input with a `<datalist>` of existing tags to add), notes textarea (saves on blur), **Log contact today**, reminders list (checkbox done, date, note, delete; add form defaulting to +7 days), "Connected to" list (suggested links show Accept/Reject), **Delete person** with a confirm step.
+
+### 7.4 Check
+
+`N` → type a name → Enter adds a node in under 10 seconds; edit a field, reload, it's still there; adding the `follow-up` tag creates a reminder due in 7 days; delete removes the node and closes the card. Commit `M3`.
+
+---
+
+## 8. M4 — CSV import (done · reference: commit `M4`)
+
+```bash
+pnpm --filter @connectwork/web add papaparse
+pnpm --filter @connectwork/web add -D @types/papaparse
+```
+
+### 8.1 Pure import logic — `lib/csv.ts`
+
+| Function | Behavior |
+| --- | --- |
+| `parseCsv(text)` | strips a BOM (`﻿`), finds the line starting with `First Name,` (case-insensitive) and parses from there with Papa Parse (`header: true`). Found → `{kind: 'linkedin', drafts, skippedRows}`; not found → `{kind: 'generic', headers, rows}` |
+| `parseLinkedInDate('15 Oct 2024')` | → `'2024-10-15'`; anything else → `undefined` |
+| `guessMapping(headers)` | regex guesses for name/company/role/school/email/tags/ring columns |
+| `mapGenericRows(rows, mapping)` | rows → drafts; tags split on `;`; ring kept only if 1–3 |
+| `normalizeLinkedInUrl(url)` | lowercase, strip protocol, `www.`, query, hash, trailing slash |
+| `findMatch(existing, draft)` | URL → name + company → email |
+| `planImport(existing, drafts)` | `{toAdd, toUpdate, unchanged}`; updates **only fill empty fields** (never overwrite user edits); duplicates inside one file collapse |
+
+Columns are looked up by name, case-insensitively, never by position.
+
+### 8.2 Writing — `applyImport` in `db/actions.ts`
+
+New people get ring 3 (unless the file says otherwise), `primaryTag` = first tag or `LinkedIn`, `lastContact = metAt`, and the given `source`. Everything is written in one transaction; the function returns the new ids (M6 sorts exactly those).
+
+### 8.3 Dialog — `components/ImportDialog.tsx`
+
+Drop zone or file picker (CSV only, read with `file.text()` — **nothing is uploaded**), a column-mapping grid for generic files, a live count ("120 people found in your LinkedIn export"), and an **Import N** button. The result toast reads "Imported 114 people · 6 already here".
+
+### 8.4 Tests — `lib/csv.test.ts` (18 tests across the suite after M4)
+
+Real demo file parses to 120 drafts; notes lines skipped; headers matched in any order and case; nameless rows skipped; generic mapping; URL normalization; dedupe order; fill-empty-only; in-file duplicates; **re-importing the same file adds nothing**.
+
+### 8.5 Check
+
+Import `demo/Connections.csv` → 114 new people in the outer ring (6 already existed); import it again → count unchanged. Commit `M4`.
+
+---
+
+## 9. M5 — AI query with Gemini (done · reference: commit `M5`)
+
+**Goal:** type "Who do I know at Microsoft?" and the answer appears with the right people highlighted.
+
+```bash
+pnpm --filter @connectwork/server add @google/genai
+```
+
+### 9.1 Contract — `packages/shared/src/schemas.ts`
+
+```ts
+export const QueryRequest = z.object({ question: z.string().trim().min(1).max(500), summary: z.string().max(400_000) });
+export const QueryResponse = z.object({
+  answer: z.string().max(400),
+  personIds: z.array(z.string()).max(50),
+  filterHint: z.enum(['none', 'due', 'drifting']).default('none'),
+});
+export const ApiErrorBody = z.object({
+  error: z.enum(['bad_request', 'no_api_key', 'rate_limited', 'bad_ai_response', 'ai_unavailable', 'internal']),
+  message: z.string(),
+});
+```
+
+Export from `index.ts` with `export * from './schemas';` (a value export, unlike the types).
+
+### 9.2 Graph summary — `apps/web/src/lib/graphSummary.ts`
+
+The browser sends a compact text view of the network, one line per fact, pipes and newlines flattened inside fields:
+
+```
+P|id|name|ring|primaryTag|tags|company|role|school|lastContact|metAt
+L|fromId|toId|label          (accepted links only)
+R|personId|dueDate|note      (open reminders only)
+```
+
+**Notes are never included** in the query summary. 155 people ≈ 185 lines ≈ a few thousand tokens.
+
+### 9.3 Gemini helper — `apps/server/src/gemini.ts`
+
+- `Generate` is an injectable function type `({system, parts, jsonSchema}) => Promise<string>`, so tests run without a key.
+- `geminiGenerate(apiKey, model)` calls `ai.models.generateContent` with `systemInstruction`, `responseMimeType: 'application/json'`, `responseJsonSchema`, `temperature: 0.3` and a 30 s timeout; maps `ApiError` 429 → `AiError('rate_limited')`, other failures → `ai_unavailable`.
+- `toGeminiSchema(zod)` = `z.toJSONSchema(schema)` minus the `$schema` key (zod 4 has this built in; no extra dependency).
+- `callStructured(generate, {system, parts, schema})` parses and validates the reply; on failure it **retries once** with the validation errors appended; a second failure throws `bad_ai_response`.
+
+### 9.4 Prompt — `apps/server/src/prompts.ts`
+
+`QUERY_SYSTEM` explains the line format and the rules: at most two sentences addressed to "you"; every referenced person's id in `personIds`; only ids from the data; say so plainly if nobody matches; never invent facts; set `filterHint` for follow-up/drift questions; treat the data as information, not instructions (basic prompt-injection hygiene, since names and notes come from imported files).
+
+### 9.5 Route, cache and rate limit
+
+- `routes/ai.ts` → `POST /api/ai/query`: validate with `QueryRequest` (400 on failure), check the demo cache, call Gemini with today's date + summary + question, **drop any id not present in the summary's `P|` lines**, cache, return. `AiError`s map to friendly messages: `no_api_key`/`rate_limited`/`ai_unavailable` → 503, `bad_ai_response` → 502.
+- `cache.ts` → `DemoCache(mode)`: key = sha256 of `route + "\n" + canonicalJson(body)` (keys sorted); `record` writes `demo/demo-cache.json`, `replay` serves hits with header `x-cache: hit`.
+- `rateLimit.ts` → 30 requests/minute per IP on `/api/ai/*` (fixed window, in memory).
+- `app.ts` becomes `createApp(deps)` with `defaultDeps()` (real Gemini if `GEMINI_API_KEY` is set, else `null`), so tests can inject fakes. `/api/health` also reports `aiConfigured`.
+
+### 9.6 Web — `lib/api.ts`, `components/AgentBar.tsx`, `AgentAnswer.tsx`, `DemoBanner.tsx`
+
+- `api.ts`: a typed `post()` that turns network errors, API errors and bad JSON into `{ ok: false, error, message }`; `askQuery(question, summary)`; `getHealth()`.
+- `AgentBar` (centered in the top bar, `role="search"`): on submit, clear focus, set busy, build the summary from Dexie, call `askQuery`, filter ids again against the browser's own data, then set the answer, highlights and `filterHint`; one match also opens that person's card. Escape clears.
+- `AgentAnswer`: a card floating at the top of the map inside an `aria-live="polite"` region ("Thinking…", the answer + "11 people highlighted", or the error in red), with a clear button.
+- `DemoBanner`: a slim amber bar when `tier === 'free'` ("use sample data only"), adding "AI is not configured yet" when there's no key.
+
+### 9.7 Tests — `apps/server/src/routes/ai.test.ts`, `apps/web/src/lib/graphSummary.test.ts`
+
+With a mocked `generate`: invented ids are dropped and duplicates collapsed; a non-JSON reply triggers exactly one retry; two bad replies → 502; no key → 503 `no_api_key`; Gemini 429 → 503 "busy"; bad request → 400; record then replay serves from cache without calling Gemini. Summary tests: notes excluded, pipes escaped, only accepted links and open reminders included. **29 tests total after M5.**
+
+### 9.8 Check
+
+- Without a key: asking shows "The AI is not set up yet…" and the banner explains why.
+- With a key (`.env` → restart `pnpm dev`): "Who do I know at Microsoft?" → a one-line answer, exactly the Microsoft people highlighted, everyone else dimmed. Try "Who should I follow up with?" → the **Due** filter hint applies.
+
+Commit `M5`.
+
+---
+
+## 10. Shared refactor before M6 (Person B, 20 minutes)
 
 Every new AI endpoint repeats the same steps as `/query`: validate the request, check the cache, call Gemini with a schema, drop unknown ids, cache the reply, map errors. Pull that into one helper so each new route is ~15 lines.
 
@@ -181,11 +559,11 @@ Commit: `Refactor: shared structured AI route helper`.
 
 ---
 
-## 5. M6 — AI auto-sort + hidden links (Person B)
+## 11. M6 — AI auto-sort + hidden links (Person B)
 
 **Goal:** after an import, one click sorts everyone into rings and tags; a "Find hidden links" button discovers connections like Abbey ↔ John. Both show a review sheet before anything is written.
 
-### 5.1 Schemas — `packages/shared/src/schemas.ts`
+### 11.1 Schemas — `packages/shared/src/schemas.ts`
 
 ```ts
 const RingZ = z.union([z.literal(1), z.literal(2), z.literal(3)]);
@@ -217,7 +595,7 @@ export const LinksResponse = z.object({
 
 Export the inferred types too (`export type ClassifyRequest = z.infer<…>`).
 
-### 5.2 Prompts — `apps/server/src/prompts.ts`
+### 11.2 Prompts — `apps/server/src/prompts.ts`
 
 Add `CLASSIFY_SYSTEM` and `LINKS_SYSTEM`. Key rules to include word for word:
 
@@ -226,7 +604,7 @@ Add `CLASSIFY_SYSTEM` and `LINKS_SYSTEM`. Key rules to include word for word:
 
 Reuse the `DATA_FORMAT` text block already in the file.
 
-### 5.3 Routes — `apps/server/src/routes/ai.ts`
+### 11.3 Routes — `apps/server/src/routes/ai.ts`
 
 ```ts
 structured(routes, deps, {
@@ -254,7 +632,7 @@ Note the classify post-step forces ring 1 → 2 even if the model ignores the ru
 
 **Tests** (`routes/ai.test.ts`): one test per route with a mocked `generate` that returns a bad id, a ring-1 item and an unknown tag; assert they're dropped or corrected.
 
-### 5.4 Generic review sheet — `apps/web/src/components/ReviewSheet.tsx`
+### 11.4 Generic review sheet — `apps/web/src/components/ReviewSheet.tsx`
 
 One component used by M6, M8 and M9. It's a right-hand panel listing proposals with a checkbox each, plus **Accept selected** / **Accept all** / **Dismiss**.
 
@@ -270,7 +648,7 @@ One component used by M6, M8 and M9. It's a right-hand panel listing proposals w
 3. Rows: checkbox (checked by default), title, small grey detail, and hovering a row calls `setHighlights(item.personIds)` so the map shows who it's about.
 4. Accept calls `payload.onAccept(selectedIds)`, then toasts "Applied N changes" and closes.
 
-### 5.5 Auto-sort flow — `ImportDialog.tsx` and a new `lib/aiFlows.ts`
+### 11.5 Auto-sort flow — `ImportDialog.tsx` and a new `lib/aiFlows.ts`
 
 1. `applyImport` already returns the new person ids. After import, show the toast with an action: `{ label: 'Sort with AI', onClick: () => sortWithAi(newIds) }`.
 2. In `lib/aiFlows.ts`:
@@ -300,13 +678,13 @@ One component used by M6, M8 and M9. It's a right-hand panel listing proposals w
    ```
 3. Add a **"About you"** textarea to `SettingsDialog.tsx` that saves to `db.meta` key `userContext` ("UW CS junior, interning at Amazon"). It makes sorting much better.
 
-### 5.6 Hidden links flow
+### 11.6 Hidden links flow
 
 1. Add a **"Find hidden links"** button (lucide `Waypoints` icon) to the top bar.
 2. Flow in `lib/aiFlows.ts`: build the summary with `buildSummary`, call `/links`, drop `confidence < 0.5`, write each as `upsertLink(a, b, { source: 'ai', status: 'suggested', label })` (already in `db/actions.ts`) so dashed lines appear immediately, then open a ReviewSheet "N possible connections"; Accept → `acceptLink`, unchecked ones → `removeLink`.
 3. Person card "Connected to" already shows suggested links with Accept/Reject.
 
-### 5.7 Test it
+### 11.7 Test it
 
 - Import `demo/Connections.csv` → "Sort with AI" → review sheet lists ~114 rows with reasons → Accept all → the gray band thins out into colored clusters.
 - "Find hidden links" → Abbey Chen ↔ John Park appears with an evidence label (both UW, Microsoft). If not, check the John/Abbey rows in the summary and tighten `LINKS_SYSTEM`.
@@ -316,9 +694,9 @@ One component used by M6, M8 and M9. It's a right-hand panel listing proposals w
 
 ---
 
-## 6. M7 — Reminder flags, filter tabs, .ics export (Person A)
+## 12. M7 — Reminder flags, filter tabs, .ics export (Person A)
 
-### 6.1 Flags on nodes — `graph/PersonNode.tsx`, `graph/RingMap.tsx`
+### 12.1 Flags on nodes — `graph/PersonNode.tsx`, `graph/RingMap.tsx`
 
 1. In `App.tsx`, compute and pass two sets to `RingMap`: `dueIds` (already in `filterContext`) and `overdueIds` (use `isOverdue` from `lib/people.ts`).
 2. `PersonNode` gets `flag: 'none' | 'due' | 'overdue'`. Draw a small flag at the node's top-right:
@@ -339,17 +717,17 @@ One component used by M6, M8 and M9. It's a right-hand panel listing proposals w
    Put `className="cw-pulse"` on the main `<circle>` when `flag !== 'none'`. Respecting reduced motion is part of our accessibility story.
 4. Add "follow-up due" / "overdue" to the node's `aria-label`.
 
-### 6.2 Filter tabs — `components/FilterTabs.tsx` (left rail)
+### 12.2 Filter tabs — `components/FilterTabs.tsx` (left rail)
 
 1. Vertical list of real `<button>`s with `aria-pressed`: **All**, **Work**, **School**, **Friends**, **Family**, **Clubs**, **Due** (with count badge), **Drifting** (count badge; wire in M10).
 2. Clicking sets `useStore.setFilter(...)` and clears AI highlights (highlights override filters in `RingMap`).
 3. Layout in `App.tsx`: `<nav className="w-44 shrink-0 border-r bg-background p-2">` to the left of `<main>`. The map already fades non-matching nodes without moving them.
 
-### 6.3 Reminders panel — `components/RemindersPanel.tsx`
+### 12.3 Reminders panel — `components/RemindersPanel.tsx`
 
-When filter is **Due**, show the panel on the right: reminders due within 7 days and overdue, sorted by date, each with **Done**, **Snooze 1 week** (`snoozeReminder` exists in `db/actions.ts`), **Add to calendar** (6.4) and clicking the name selects the person.
+When filter is **Due**, show the panel on the right: reminders due within 7 days and overdue, sorted by date, each with **Done**, **Snooze 1 week** (`snoozeReminder` exists in `db/actions.ts`), **Add to calendar** (12.4) and clicking the name selects the person.
 
-### 6.4 .ics export — `lib/ics.ts`
+### 12.4 .ics export — `lib/ics.ts`
 
 ```bash
 pnpm --filter @connectwork/web add ics
@@ -388,11 +766,11 @@ export function downloadIcs(filename: string, text: string) {
 
 ---
 
-## 7. M8 — Weekly review agent (Person B)
+## 13. M8 — Weekly review agent (Person B)
 
 This is our Cook Smarter centerpiece: one button, the agent plans, you approve, it does the work.
 
-### 7.1 Candidates, computed in the browser — `lib/weeklyCandidates.ts`
+### 13.1 Candidates, computed in the browser — `lib/weeklyCandidates.ts`
 
 The model shouldn't hunt through the whole network; we hand it a shortlist.
 
@@ -413,13 +791,13 @@ export function weeklyCandidates(people, links, reminders, now = new Date()): Ca
 
 Unit-test it with the seed data: John Park must appear as both `follow_up` and `reconnect`.
 
-### 7.2 Schema, prompt, route
+### 13.2 Schema, prompt, route
 
 - `WeeklyReviewRequest = { summary, candidates: Candidate[] (as JSON), today }`.
 - `WeeklyReviewResponse` exactly as SPEC.md §9.4 (headline, ≤6 actions with `kind`, `personIds`, `title`, `why`, optional `draftMessage`, `reminderDate`).
 - `WEEKLY_SYSTEM`: "Pick at most 5–6 highest-value actions from the candidates only. Drafts are short (under 80 words), warm, specific, mention shared context, no emojis, in the user's voice. Never invent events or facts." `post` drops actions whose `personIds` aren't in the summary.
 
-### 7.3 UI — `components/WeeklyReview.tsx`
+### 13.3 UI — `components/WeeklyReview.tsx`
 
 1. **Review my week** button in the top bar (primary style). Opens the right panel with a loading state ("Looking at your week…").
 2. Shows the `headline`, then one card per action: title, why, and if there's a draft, an editable `<textarea>` with **Copy**.
@@ -435,9 +813,9 @@ Unit-test it with the seed data: John Park must appear as both `follow_up` and `
 
 ---
 
-## 8. M9 — Snap to add (Person B)
+## 14. M9 — Snap to add (Person B)
 
-### 8.1 Client — `components/SnapDialog.tsx`
+### 14.1 Client — `components/SnapDialog.tsx`
 
 1. **Snap** button in the top bar opens a dialog with a file input: `accept="image/*,application/pdf"` and `capture="environment"` so phones open the camera.
 2. Downscale images before sending (keeps requests small and fast):
@@ -456,14 +834,14 @@ Unit-test it with the seed data: John Park must appear as both `follow_up` and `
    PDFs: send as-is if ≤ 8 MB, otherwise show an error.
 3. Show a thumbnail preview and "Reading…" while waiting.
 
-### 8.2 Server
+### 14.2 Server
 
 - `ExtractRequest = { file: { mimeType: enum('image/jpeg','image/png','image/webp','application/pdf'), dataBase64: string }, tags: string[] }`; `ExtractResponse` per SPEC.md §9.4.
 - Route parts: `[{ inlineData: { mimeType, data: dataBase64 } }, { text: EXTRACT_INSTRUCTION + allowed tags }]`.
 - `EXTRACT_SYSTEM`: "Extract every person visible. A business card is one person; a roster or attendee list is every row. Copy text exactly. Leave unknown fields empty. Never guess emails."
 - Don't cache-record real photos: skip `deps.cache.set` for this route unless `DEMO_CACHE=record` and the request came from `demo/roster.pdf` (simplest: only record when the base64 matches the demo file's hash).
 
-### 8.3 Review and save
+### 14.3 Review and save
 
 Dedupe each extracted person with `findMatch` from `lib/csv.ts`; existing matches show as "already in your network" (unchecked). Accept → `applyImport({ toAdd, toUpdate: [] }, 'snap', tag)` where the tag is the suggested one if valid, otherwise `Clubs` for multi-person files and `Work` for one business card. Set `lastContact: today` (you just met them).
 
@@ -471,9 +849,9 @@ Dedupe each extracted person with `findMatch` from `lib/csv.ts`; existing matche
 
 ---
 
-## 9. M10 — Drift + accessible list view (Person A)
+## 15. M10 — Drift + accessible list view (Person A)
 
-### 9.1 `lib/drift.ts` (+ `drift.test.ts`)
+### 15.1 `lib/drift.ts` (+ `drift.test.ts`)
 
 ```ts
 export const DEFAULT_THRESHOLDS: Record<Ring, number> = { 1: 90, 2: 180, 3: Infinity };
@@ -488,7 +866,7 @@ export function driftLevel(p: Person, now = new Date(), t = DEFAULT_THRESHOLDS):
 
 Tests: no `lastContact` → 0; exactly at threshold → 0; 2× threshold → 1; ring 3 → always 0.
 
-### 9.2 Wire it into the map
+### 15.2 Wire it into the map
 
 1. In `App.tsx`, compute `driftingIds` (driftLevel > 0) and pass it in `filterContext` (the placeholder `new Set()` is already there).
 2. Pass `offsetFor={(p) => driftLevel(p) * 0.06 * Math.min(width, height)}` to `RingMap`. The layout hook already supports `offsetFor`. Easiest: pass a function of `p` and let `RingMap` multiply by its own `base`.
@@ -496,7 +874,7 @@ Tests: no `lastContact` → 0; exactly at threshold → 0; 2× threshold → 1; 
 4. Person card shows "Last contact 7 months ago · drifting" in orange-red when drifting.
 5. Settings: two number inputs for ring 1 and ring 2 thresholds, stored in `db.meta` key `driftThresholds`.
 
-### 9.3 List view — `components/ListView.tsx`
+### 15.3 List view — `components/ListView.tsx`
 
 1. **Map / List** toggle in the top bar (`useStore.setView`).
 2. A real `<table>` with `<caption className="sr-only">`, columns: Name, Ring, Tag, Company, Last contact, Next reminder. Sortable headers are `<button>`s inside `<th>` with `aria-sort`.
@@ -507,11 +885,11 @@ Tests: no `lastContact` → 0; exactly at threshold → 0; 2× threshold → 1; 
 
 ---
 
-## 10. M11 — Google Calendar sync + meeting prep (Person B, UI with A)
+## 16. M11 — Google Calendar sync + meeting prep (Person B, UI with A)
 
 Needs `VITE_GOOGLE_CLIENT_ID` (§2.2).
 
-### 10.1 Sign-in — `lib/googleCalendar.ts`
+### 16.1 Sign-in — `lib/googleCalendar.ts`
 
 1. Add to `apps/web/index.html`: `<script src="https://accounts.google.com/gsi/client" async defer></script>`, and `pnpm --filter @connectwork/web add -D @types/google.accounts`.
 2. Token client (token in memory only, never IndexedDB or localStorage):
@@ -531,7 +909,7 @@ Needs `VITE_GOOGLE_CLIENT_ID` (§2.2).
    ```
 3. A `gcal(path, init)` helper adds `Authorization: Bearer ${token}`; on 401 set `token = null` and toast "Reconnect Google Calendar".
 
-### 10.2 Read meetings
+### 16.2 Read meetings
 
 ```
 GET https://www.googleapis.com/calendar/v3/calendars/primary/events
@@ -540,7 +918,7 @@ GET https://www.googleapis.com/calendar/v3/calendars/primary/events
 
 Map each event to `Meeting`: match `attendees[].email` (lowercased) to `person.email`, falling back to `displayName` = `person.name`. Save with `db.meetings.bulkPut`. Without a connection, load `demo/calendar-events.json` (offsets from today, like the seed) and label the strip "Sample meetings".
 
-### 10.3 Write reminders as events
+### 16.3 Write reminders as events
 
 ```
 POST https://www.googleapis.com/calendar/v3/calendars/primary/events
@@ -549,7 +927,7 @@ POST https://www.googleapis.com/calendar/v3/calendars/primary/events
 
 Save the returned `id` into `reminder.calendarEventId`. When connected, "Add to calendar" uses this instead of .ics.
 
-### 10.4 Meeting strip + prep card
+### 16.4 Meeting strip + prep card
 
 1. `components/MeetingStrip.tsx` under the top bar: horizontal chips of today/tomorrow meetings: time, title, matched people's initials.
 2. Click → highlight attendees + open `components/MeetingPrepCard.tsx` in the right panel.
@@ -560,7 +938,7 @@ Save the returned `id` into `reminder.calendarEventId`. When connected, "Add to 
 
 ---
 
-## 11. M12 — Demo hardening (Person B)
+## 17. M12 — Demo hardening (Person B)
 
 1. **Record:** set `DEMO_CACHE=record` in `.env`, restart, run every scripted demo action once (each question we'll ask, sort, links, weekly review, snap the roster PDF, meeting brief). Check `demo/demo-cache.json` grows.
 2. **Replay:** set `DEMO_CACHE=replay`, restart. Repeat the actions; the server log shows `cache=hit` and Gemini isn't called.
@@ -580,7 +958,7 @@ Save the returned `id` into `reminder.calendarEventId`. When connected, "Add to 
 
 ---
 
-## 12. M13 — Deploy (Person A)
+## 18. M13 — Deploy (Person A)
 
 1. **Build locally:** `pnpm build` → `apps/web/dist`.
 2. **On the VM:**
@@ -621,13 +999,13 @@ Save the returned `id` into `reminder.calendarEventId`. When connected, "Add to 
 
 ---
 
-## 13. M14 — Month view (Person A, only if everything else is done)
+## 19. M14 — Month view (Person A, only if everything else is done)
 
 `components/CalendarMonth.tsx`: a 7-column CSS grid for the current month; each day cell lists reminders and meetings for that date; clicking a day highlights those people. Opened from a **Calendar** filter tab.
 
 ---
 
-## 14. Before submitting
+## 20. Before submitting
 
 ### Test checklist (run on the live URL)
 
