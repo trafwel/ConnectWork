@@ -1,5 +1,5 @@
 /**
- * M1 — Browser database (IndexedDB via Dexie) · Owner: Person B · ~15 min
+ * M1 — Browser database (IndexedDB via Dexie) · done
  *
  * WHAT THIS ACHIEVES
  *   All user data lives here, in the user's own browser: no accounts, no server
@@ -44,7 +44,17 @@ export class ConnectworkDB extends Dexie {
 
   constructor() {
     super('connectwork');
-    // TODO(M1) step 2: this.version(1).stores({ … })
+    // Primary key first, then only the fields we query by. Other fields are stored but not indexed.
+    // Changing the schema later = add version(2) with an upgrade(), never edit version 1.
+    this.version(1).stores({
+      people: 'id, name, ring, primaryTag, company, email, linkedinUrl, lastContact',
+      links: 'id, fromId, toId, status',
+      reminders: 'id, personId, dueDate, done',
+      tags: 'name',
+      meetings: 'id, start',
+      contactLogs: 'id, personId, date',
+      meta: 'key',
+    });
   }
 }
 

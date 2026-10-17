@@ -1,5 +1,5 @@
 /**
- * M1 — UI state (Zustand) · Owner: Person A · ~30 min (extended by later milestones)
+ * M1 — UI state (Zustand) · done for M1 (extended by later milestones)
  *
  * WHAT THIS ACHIEVES
  *   One small store for what the UI is doing — which person is selected, what is
@@ -33,6 +33,7 @@
  *
  * Shared file: tell your teammate before editing it. Guide: §5.5
  */
+import { create } from 'zustand';
 
 export type Filter = 'all' | 'due' | 'drifting' | (string & {});
 export type RightPanel = null | 'person' | 'weekly' | 'review' | 'meeting';
@@ -59,8 +60,32 @@ export interface UIState {
   setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
 }
 
-/** Placeholder hook until step 1: returns the field you select from an empty initial state. */
-export function useStore<T>(_selector: (state: UIState) => T): T {
-  // TODO(M1) steps 1–2: replace this whole function with the Zustand store.
-  throw new Error('TODO(M1): useStore is not implemented yet');
-}
+// What clearFocus() resets. Kept in one place so the initial state and "clear" can't drift apart.
+const noFocus = {
+  selectedPersonId: null,
+  highlightIds: new Set<string>(),
+  rightPanel: null,
+  agentAnswer: null,
+  agentError: false,
+  filter: 'all',
+} satisfies Partial<UIState>;
+
+const DIALOG_FLAG = { quickAdd: 'quickAddOpen', import: 'importOpen', settings: 'settingsOpen' } as const;
+
+export const useStore = create<UIState>((set) => ({
+  view: 'map',
+  ...noFocus,
+  agentBusy: false,
+  quickAddOpen: false,
+  importOpen: false,
+  settingsOpen: false,
+
+  setView: (view) => set({ view }),
+  setFilter: (filter) => set({ filter }),
+  selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : null }),
+  // A new Set every time: Zustand compares by reference, so mutating the old Set would not re-render.
+  setHighlights: (ids) => set({ highlightIds: new Set(ids) }),
+  clearFocus: () => set({ ...noFocus, highlightIds: new Set<string>() }),
+  setAgent: (patch) => set(patch),
+  setDialog: (dialog, open) => set({ [DIALOG_FLAG[dialog]]: open }),
+}));

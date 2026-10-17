@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, daysSince, isoDate } from './dates';
 
-describe.skip('dates', () => {
+describe('dates', () => {
   it('formats local dates as YYYY-MM-DD', () => {
     expect(isoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
   });

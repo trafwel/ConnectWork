@@ -1,5 +1,5 @@
 /**
- * M1 — Settings: your data · Owner: Person A · ~40 min (more settings in M6, M7, M10, M16)
+ * M1 — Settings: your data · done for M1 (more settings in M6, M7, M10, M16)
  *
  * WHAT THIS ACHIEVES
  *   Users stay in control of their data: export a backup, import one, reset the
@@ -32,7 +32,137 @@
  * Guide: §5.5
  */
 
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { deleteEverything, exportAll, importBackup, resetDemoData } from '@/db/seed';
+import { today } from '@/lib/dates';
+import { useStore } from '@/store/useStore';
+
+function download(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  // Revoking in the same tick can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 export function SettingsDialog() {
-  // TODO(M1) steps 1–4
-  return null;
+  const open = useStore((s) => s.settingsOpen);
+  const setDialog = useStore((s) => s.setDialog);
+  const clearFocus = useStore((s) => s.clearFocus);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const close = () => {
+    setConfirmDelete(false);
+    setDialog('settings', false);
+  };
+
+  /** Runs one data action at a time: buttons disable while it runs, and errors become a toast. */
+  const run = async (action: () => Promise<string>) => {
+    setBusy(true);
+    try {
+      toast.success(await action());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (o ? setDialog('settings', true) : close())}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>Your data lives only in this browser. Export it to keep a copy.</DialogDescription>
+        </DialogHeader>
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Your data</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  download(await exportAll(), `connectwork-backup-${today()}.json`);
+                  return 'Backup downloaded';
+                })
+              }
+            >
+              Export backup
+            </Button>
+            <Button variant="outline" disabled={busy} onClick={() => fileRef.current?.click()}>
+              Import backup
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = ''; // so choosing the same file again still fires onChange
+                if (!file) return;
+                void run(async () => {
+                  await importBackup(file);
+                  clearFocus();
+                  return 'Backup restored';
+                });
+              }}
+            />
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  await resetDemoData();
+                  clearFocus();
+                  return 'Demo data restored';
+                })
+              }
+            >
+              Reset demo data
+            </Button>
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Danger zone</h3>
+          {confirmDelete ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm">Delete every person, link and reminder?</span>
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await deleteEverything();
+                    clearFocus();
+                    close();
+                    return 'Everything deleted';
+                  })
+                }
+              >
+                Yes, delete
+              </Button>
+              <Button variant="ghost" disabled={busy} onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}>
+              Delete everything
+            </Button>
+          )}
+        </section>
+      </DialogContent>
+    </Dialog>
+  );
 }

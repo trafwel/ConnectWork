@@ -1,5 +1,5 @@
 /**
- * M1 — Top bar · Owner: Person A · ~15 min
+ * M1 — Top bar · done (theme step T adds the subtitle)
  *
  * WHAT THIS ACHIEVES
  *   The app's header: the name, a slot for the agent box and action buttons
@@ -16,8 +16,19 @@
  * Guide: §5.5
  */
 import type { ReactNode } from 'react';
+import { Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useStore } from '@/store/useStore';
 
-export function TopBar(_props: { children?: ReactNode }) {
-  // TODO(M1) steps 1–4
-  return null;
+export function TopBar({ children }: { children?: ReactNode }) {
+  const setDialog = useStore((s) => s.setDialog);
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
+      <span className="text-lg font-semibold tracking-tight">Connectwork</span>
+      <div className="flex flex-1 items-center gap-2">{children}</div>
+      <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => setDialog('settings', true)}>
+        <Settings />
+      </Button>
+    </header>
+  );
 }

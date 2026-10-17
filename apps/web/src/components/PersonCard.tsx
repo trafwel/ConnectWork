@@ -21,6 +21,9 @@
  *      LOCAL draft (useState) and saves on blur or Enter — not on every keystroke:
  *        onBlur={() => draft !== value && updatePerson(id, { [field]: draft.trim() || undefined })}
  *        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+ *      SECURITY (M1 review): if you ever render email/LinkedIn as a clickable <a href>, allow
+ *      only https:/mailto: — an imported backup or CSV can contain "javascript:…" URLs, and
+ *      React escapes text but does NOT block javascript: in href.
  *   4. Ring: <RingPicker>; Tag: color dot + <TagSelect>; both save immediately.
  *   5. More tags: chips for tags other than the primary, each with a "×" button
  *      (aria-label "Remove tag X"); an "Add tag" input with a <datalist> of existing tag names.

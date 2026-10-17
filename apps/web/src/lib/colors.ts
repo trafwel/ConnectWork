@@ -1,5 +1,5 @@
 /**
- * M1 — Tags and colors · ~15 min (restyled in theme step T)
+ * M1 — Tags and colors · done (restyled in theme step T)
  *
  * WHAT THIS ACHIEVES
  *   Default tags with colors that stay distinguishable for the common types of
@@ -35,13 +35,26 @@
  */
 import type { Tag } from '@connectwork/shared';
 
-export const DEFAULT_TAGS: Tag[] = []; // TODO(M1) step 1
-export const PRIMARY_TAGS: string[] = []; // TODO(M1) step 2
+// Okabe-Ito: designed to stay distinguishable for the common kinds of color blindness.
+export const DEFAULT_TAGS: Tag[] = [
+  { name: 'Work', color: '#0072B2', behavior: 'none' },
+  { name: 'School', color: '#E69F00', behavior: 'none' },
+  { name: 'Friends', color: '#009E73', behavior: 'none' },
+  { name: 'Family', color: '#CC79A7', behavior: 'none' },
+  { name: 'Clubs', color: '#56B4E9', behavior: 'none' },
+  { name: 'LinkedIn', color: '#8C8C8C', behavior: 'none' },
+  { name: 'follow-up', color: '#D55E00', behavior: 'follow-up' },
+  { name: 'intro', color: '#F0E442', behavior: 'intro' },
+];
+
+/** Tags that can be a person's primary (color-defining) tag. */
+export const PRIMARY_TAGS = ['Work', 'School', 'Friends', 'Family', 'Clubs', 'LinkedIn'];
+
+/** Color for tags the user invents. */
 export const FALLBACK_COLOR = '#8C8C8C';
 
-export function tagColor(_tags: Tag[] | undefined, _name: string): string {
-  // TODO(M1) step 3
-  return FALLBACK_COLOR;
+export function tagColor(tags: Tag[] | undefined, name: string): string {
+  return tags?.find((t) => t.name === name)?.color ?? FALLBACK_COLOR;
 }
 
 export function contrastRatio(_a: string, _b: string): number {

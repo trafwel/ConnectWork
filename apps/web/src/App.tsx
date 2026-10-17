@@ -1,9 +1,10 @@
 /**
- * App shell · M0 state (grows in every milestone)
+ * App shell · M1 state (grows in every milestone)
  *
- * WHAT THIS DOES NOW (M0)
- *   Proves the whole stack runs: the web app calls GET /api/health through Vite's
- *   proxy and shows "Server ok · <model> · <tier> tier".
+ * WHAT THIS DOES NOW (M1)
+ *   Seeds the demo into IndexedDB on first load and shows the layout: top bar,
+ *   a live people count in the middle, Settings (backup/reset/delete) and toasts.
+ *   The M0 health check moved into a small status line under the count.
  *
  * WHAT IT BECOMES
  *   The single screen of Connectwork: a top bar (agent question box, Find hidden
@@ -11,7 +12,8 @@
  *   panel (person card, review sheet, weekly review, meeting prep).
  *
  * STEPS — add these as you build each milestone
- *   M1  1. On mount, call ensureSeeded() (db/seed.ts) and keep a `ready` flag.
+ *   M1  ✓ done.
+ *       1. On mount, call ensureSeeded() (db/seed.ts) and keep a `ready` flag.
  *       2. Replace this page with the layout: <TopBar> on top, <main> below,
  *          <SettingsDialog /> and <Toaster position="bottom-center" /> at the end.
  *       3. Root: <div className="flex h-screen flex-col bg-background text-foreground">.
@@ -35,29 +37,55 @@
  * Shared file: tell your teammate before editing it. Guide: docs/IMPLEMENTATION_GUIDE.md §1.4, §4.4
  */
 import { useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { SettingsDialog } from '@/components/SettingsDialog';
+import { TopBar } from '@/components/TopBar';
+import { Toaster } from '@/components/ui/sonner';
+import { db } from '@/db/db';
+import { ensureSeeded } from '@/db/seed';
 
 type Health = { ok: boolean; model: string; tier: string; cache: string };
 
 export default function App() {
+  const [ready, setReady] = useState(false);
+  const [seedError, setSeedError] = useState(false);
   const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState(false);
+  const [serverDown, setServerDown] = useState(false);
 
   useEffect(() => {
+    ensureSeeded()
+      .then(() => setReady(true))
+      .catch(() => setSeedError(true)); // e.g. private browsing with IndexedDB disabled
     fetch('/api/health')
       .then((r) => r.json() as Promise<Health>)
       .then(setHealth)
-      .catch(() => setError(true));
+      .catch(() => setServerDown(true));
   }, []);
 
+  // Re-runs automatically whenever the people table changes (reset, delete, import).
+  // Shown only once seeding finished, so the first visit never flashes "0 people".
+  const count = useLiveQuery(() => db.people.count(), []);
+  const peopleCount = ready ? count : undefined;
+
   return (
-    <main className="flex h-screen items-center justify-center bg-slate-50 text-slate-900">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold">Connectwork</h1>
-        <p className="mt-2 text-slate-600">Let Connectwork connect your world.</p>
-        <p className="mt-6 text-sm" aria-live="polite">
-          {error ? 'Server unreachable' : health ? `Server ok · ${health.model} · ${health.tier} tier` : 'Checking server…'}
-        </p>
-      </div>
-    </main>
+    <div className="flex h-screen flex-col bg-background text-foreground">
+      <TopBar />
+      <main className="flex min-w-0 flex-1 items-center justify-center">
+        <div className="text-center" aria-live="polite">
+          <p className="text-2xl font-semibold">
+            {seedError
+              ? 'This browser blocked local storage'
+              : peopleCount === undefined
+                ? 'Loading…'
+                : `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} in your network`}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {serverDown ? 'Server unreachable' : health ? `Server ok · ${health.model} · ${health.tier} tier` : 'Checking server…'}
+          </p>
+        </div>
+      </main>
+      <SettingsDialog />
+      <Toaster position="bottom-center" />
+    </div>
   );
 }
