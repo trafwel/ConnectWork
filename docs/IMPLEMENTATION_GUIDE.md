@@ -20,6 +20,7 @@ Related documents:
 - **Repo:** https://github.com/trafwel/conNetWork
 - **Exact contracts** (types, schemas, endpoints): [`SPEC.md`](../SPEC.md). If this guide and SPEC.md disagree, SPEC.md wins.
 - **Architecture graph** (updated after every milestone): [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- **Gemini, explained** (read before M8–M11): [`GEMINI.md`](GEMINI.md)
 - **Rules for Claude Code** — one milestone at a time, explained, self-reviewed, with a teach-back check: [`CLAUDE.md`](../CLAUDE.md)
 - **Design doc** (product intent) and **theme mockups** (four directions on one canvas) live in Luke's Claude account — ask Luke to share them; the links don't open for anyone else until shared.
 
