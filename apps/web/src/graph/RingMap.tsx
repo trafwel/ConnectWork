@@ -27,6 +27,9 @@ function useSize<T extends HTMLElement>() {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Measure immediately; ResizeObserver only reports on rendered frames.
+    const rect = el.getBoundingClientRect();
+    setSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry!.contentRect;
       setSize({ width: Math.round(width), height: Math.round(height) });

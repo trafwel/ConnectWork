@@ -23,13 +23,16 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
 
   return (
     <g
-      transform={`translate(${x},${y})`}
       role="button"
       tabIndex={0}
       aria-label={`${person.name}, ring ${person.ring}, ${person.primaryTag}${person.company ? `, ${person.company}` : ''}`}
       aria-pressed={selected}
       className="cursor-pointer outline-none [&:focus-visible>circle.focus]:opacity-100"
-      style={{ opacity: dimmed ? 0.15 : 1, transition: 'opacity 200ms' }}
+      style={{
+        opacity: dimmed ? 0.15 : 1,
+        transform: `translate(${x}px, ${y}px)`,
+        transition: 'opacity 200ms, transform 450ms ease-out',
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(person.id);

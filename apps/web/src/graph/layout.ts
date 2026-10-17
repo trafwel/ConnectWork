@@ -110,23 +110,15 @@ export function useForceLayout(
           .strength(0.02),
       )
       .alphaDecay(0.05)
-      .alpha(previous.size ? 0.3 : 1);
+      .alpha(previous.size ? 0.3 : 1)
+      .stop();
 
-    let frame = 0;
-    const publish = () => {
-      frame = 0;
-      setPositions(new Map(nodes.map((n) => [n.id, { x: n.x ?? g.cx, y: n.y ?? g.cy }])));
-    };
-    sim.on('tick', () => {
-      if (!frame) frame = requestAnimationFrame(publish);
-    });
-    sim.on('end', publish);
+    // Settle synchronously: the map appears stable on first paint, and it
+    // does not depend on animation frames (paused in background tabs).
+    // Nodes animate between layouts with a CSS transition instead.
+    sim.tick(Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay())));
     simRef.current = sim;
-
-    return () => {
-      sim.stop();
-      if (frame) cancelAnimationFrame(frame);
-    };
+    setPositions(new Map(nodes.map((n) => [n.id, { x: n.x ?? g.cx, y: n.y ?? g.cy }])));
   }, [people, links, width, height]);
 
   return positions;

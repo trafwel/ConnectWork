@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Toaster } from '@/components/ui/sonner';
 import { TopBar } from '@/components/TopBar';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { PersonCard } from '@/components/PersonCard';
+import { QuickAdd } from '@/components/QuickAdd';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useHotkey } from '@/lib/useHotkey';
 import { RingMap } from '@/graph/RingMap';
 import { db } from '@/db/db';
 import { ensureSeeded } from '@/db/seed';
@@ -21,6 +25,9 @@ export default function App() {
   const tags = useLiveQuery(() => db.tags.toArray());
   const reminders = useLiveQuery(() => db.reminders.toArray());
   const selectedId = useStore((s) => s.selectedPersonId);
+  const setDialog = useStore((s) => s.setDialog);
+  const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
+  useHotkey('n', openQuickAdd);
 
   const filterContext = useMemo(
     () => ({ dueIds: new Set(dueReminders(reminders ?? []).map((r) => r.personId)), driftingIds: new Set<string>() }),
@@ -31,7 +38,12 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-muted/30 text-foreground">
-      <TopBar />
+      <TopBar>
+        <span className="flex-1" />
+        <Button variant="outline" size="sm" onClick={openQuickAdd}>
+          <Plus /> Add <kbd className="ml-1 rounded border px-1 text-[10px] text-muted-foreground">N</kbd>
+        </Button>
+      </TopBar>
       <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1">
           {loaded ? (
@@ -47,6 +59,7 @@ export default function App() {
         {selectedId && <PersonCard personId={selectedId} />}
       </div>
       <SettingsDialog />
+      <QuickAdd />
       <Toaster position="bottom-center" />
     </div>
   );
