@@ -46,6 +46,8 @@ export interface ReviewItem {
 }
 export interface ReviewPayload {
   heading: string;
+  /** Extra context shown under the heading, e.g. who got no suggestion (M6-O1). */
+  note?: string;
   items: ReviewItem[];
   onAccept: (ids: string[]) => Promise<void>;
   /** Undo anything shown before the decision (e.g. dashed suggested links). Dismiss must change nothing. */

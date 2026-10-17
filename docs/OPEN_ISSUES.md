@@ -12,9 +12,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Fix now
 | ID | Issue | Plan |
 | --- | --- | --- |
-| M6-O1 | The model can silently skip people in a sort (2 of 114 live); the user isn't told. | Review heading/detail: "N people had no suggestion and stay unsorted". |
-| M6-I8 | After a sort, re-tagged ring-3 people stay in the old band instead of moving to their new sector. | When many people change ring or tag, restart the layout "hot" (alpha 1) so they travel. |
-| M6-I9 | Hovering a review row wipes the Ask Connectwork highlights. | Remember the highlights on enter and restore them on leave. |
+| — | Nothing open. The post-M6 step fixed all three (see Resolved). | — |
 
 ## Waits for a milestone
 | ID | Issue | Milestone |
@@ -58,6 +56,9 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Issue | How |
 | --- | --- | --- |
 | M5-S7 | `.env` (holds the Gemini key) was readable by every user account on the Mac. | The team ran `chmod 600 .env` (now `-rw-------`); the server still reads the key. |
+| M6-O1 | A sort could silently skip people. | Post-M6 step: the review says "N people had no suggestion and stay unsorted: …" (checked with a stubbed reply). |
+| M6-I8 | Re-tagged ring-3 people stayed in the old band after a sort. | Post-M6 step: anyone whose ring or tag changed is placed fresh at their new sector; many changes restart the layout hot. Live: 111 sorted Work people, mean angle −92° (sector −90°), all within 60°. |
+| M6-I9 | Hovering a review row wiped the Ask Connectwork highlights. | Post-M6 step: highlights are remembered on enter and restored on leave (checked). |
 | M5-O2 | The answer sentence could miscount while the highlights were right. | Post-M5 step: when code changes the model's list, the card adds "· list checked against your data". Checked in the browser with a stubbed reply. |
 | M5-O3 | A slow question couldn't be cancelled. | Post-M5 step: an AbortController per question; the card's Cancel, Escape, or a new question cancel it, and late replies are ignored. Checked: nothing appeared 12 s after Cancel; a second question replaced the first. |
 | M3-S2 | Text bypassing `maxLength` would reach AI summaries. | CSV path: M4. Summary: M5 caps every field in `buildSummary`; the server caps question (500) and summary (400k). |

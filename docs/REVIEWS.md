@@ -404,3 +404,25 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m6).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#step-s-style-switching).
+
+## Open-issues step (after M6)
+
+**Fixing M6-O1, M6-I8, M6-I9** · Oct 17 · branch `m6-review`
+
+**What changed:**
+- **Skipped people are named.** The review says who had no suggestion.
+- **Sorted people move to their sector.** People whose ring or tag changes are placed fresh at their new spot; many changes at once restart the layout hot.
+- **Hover no longer wipes highlights.** Hovering a review row restores the previous highlights on leave.
+
+**How it was checked:** typecheck, lint, tests. In the browser:
+- Live sort of 114 people → Accept all: the 111 ring-3 Work people now sit around the Work sector (mean −92°, all within 60° of −90°). Before, they stayed in the upper-left band.
+- An Abbey highlight survived hovering and leaving a row.
+- A stubbed reply skipping one person showed "1 person had no suggestion and stays unsorted: Zoe Xu" (the wording was fixed for the singular).
+
+| | Finding | Status |
+| --- | --- | --- |
+| Integration | Changing *one* person's ring or tag now also places them fresh at their new spot (a glide, not a nudge). | Intended: clearer than a small shuffle. The M2 "median 2.3 px" stability for everyone *else* still holds. |
+| Testing lesson | `performance.getEntriesByType('resource')` lists every hot-reloaded version of a module; the first match can be a stale copy with its own store. | Use the **last** match (it bit once here). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m6).

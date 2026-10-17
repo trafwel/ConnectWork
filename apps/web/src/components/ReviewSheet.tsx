@@ -40,7 +40,7 @@
  * Guide: §12.4
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,17 @@ function Sheet({ payload }: { payload: ReviewPayload }) {
   // Step 3b
   const [checked, setChecked] = useState(() => new Set(payload.items.filter((i) => i.checked !== false).map((i) => i.id)));
   const [busy, setBusy] = useState(false);
+  // M6-I9: hovering a row shows its people; leaving restores what was highlighted before
+  // (e.g. an Ask Connectwork answer) instead of clearing it.
+  const before = useRef<Set<string> | null>(null);
+  const show = (ids: string[]) => {
+    before.current ??= new Set(useStore.getState().highlightIds);
+    setHighlights(ids);
+  };
+  const restore = () => {
+    setHighlights(before.current ?? []);
+    before.current = null;
+  };
 
   const toggle = (id: string) =>
     setChecked((prev) => {
@@ -95,6 +106,7 @@ function Sheet({ payload }: { payload: ReviewPayload }) {
           <p className="text-sm text-muted-foreground">
             {checked.size} selected · nothing is saved until you accept
           </p>
+          {payload.note && <p className="mt-1 text-sm text-muted-foreground">{payload.note}</p>}
         </div>
         <Button variant="ghost" size="icon" aria-label="Dismiss suggestions" disabled={busy} onClick={dismiss}>
           <X />
@@ -105,10 +117,10 @@ function Sheet({ payload }: { payload: ReviewPayload }) {
           <li
             key={item.id}
             // Step 3d: hover or keyboard focus shows who the suggestion is about
-            onMouseEnter={() => setHighlights(item.personIds)}
-            onMouseLeave={() => setHighlights([])}
-            onFocus={() => setHighlights(item.personIds)}
-            onBlur={() => setHighlights([])}
+            onMouseEnter={() => show(item.personIds)}
+            onMouseLeave={restore}
+            onFocus={() => show(item.personIds)}
+            onBlur={restore}
           >
             <label className="flex cursor-pointer items-start gap-2 rounded-md p-2 text-sm hover:bg-muted">
               <input type="checkbox" className="mt-0.5" checked={checked.has(item.id)} onChange={() => toggle(item.id)} />

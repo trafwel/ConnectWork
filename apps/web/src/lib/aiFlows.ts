@@ -112,8 +112,15 @@ export function sortWithAi(personIds: string[]): Promise<void> {
     }
 
     const byId = new Map(people.map((p) => [p.id, p]));
+    // M6-O1: the model can silently skip people; say who, so nobody wonders why they're still gray.
+    const suggested = new Set(items.map((it) => it.id));
+    const skipped = people.filter((p) => !suggested.has(p.id)).map((p) => p.name);
+    const note = skipped.length
+      ? `${skipped.length === 1 ? '1 person had no suggestion and stays' : `${skipped.length} people had no suggestion and stay`} unsorted: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? ', …' : ''}`
+      : undefined;
     useStore.getState().openReview({
       heading: `Sort ${items.length} ${items.length === 1 ? 'person' : 'people'}`,
+      note,
       items: items.map((it) => ({
         id: it.id,
         title: `${byId.get(it.id)?.name ?? it.id} → ring ${it.ring}, ${it.primaryTag}`,

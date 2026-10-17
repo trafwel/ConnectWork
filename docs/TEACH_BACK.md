@@ -71,3 +71,9 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 1. Switching to Atlas restyles the whole map without React re-rendering it. What makes that possible?
 2. Why is there a small script inside `index.html` instead of only doing this in React?
 3. Why is the style choice saved in `localStorage` and not in IndexedDB with the rest of the data?
+
+## Open-issues step (after M6)
+**Sector moves and highlights**
+
+1. After a sort, why didn't the re-tagged people move to the Work sector at first, and what makes them move now?
+2. Hovering a review row used to wipe your Ask Connectwork highlights. What does the row remember, and when does it give it back?

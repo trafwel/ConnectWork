@@ -22,6 +22,7 @@
  *      (unknown tags use the last sector).
  *   3. useForceLayout: keep the last nodes in a ref (Map id → node) so existing people keep
  *      their x/y; NEW people start at their target spot with a little random angle jitter.
+ *      (Post-M6: so do people whose ring or tag changed, M6-I8.)
  *   4. In a useLayoutEffect (M2 review: useEffect painted one frame of empty rings) on
  *      [people, links, width, height] (skip when width/height is 0):
  *        const target = (n) => point at ringRadius(n.ring) + n.offset, angle sectorAngle(n.tag)
@@ -154,10 +155,14 @@ export function useForceLayout(
     const previous = nodesRef.current;
 
     // Step 3. Keep old x/y; new people start at their target spot with a little angle jitter.
+    // M6-I8: someone whose ring or tag changed is placed fresh at their new spot (like a new
+    // person); restarting from the old spot left re-tagged ring-3 people stuck in the old sector.
+    let moved = 0;
     const nodes: Node[] = people.map((p) => {
       const offset = offsetRef.current(p);
       const old = previous.get(p.id);
-      if (old) return Object.assign(old, { ring: p.ring, tag: p.primaryTag, offset });
+      if (old && old.ring === p.ring && old.tag === p.primaryTag) return Object.assign(old, { offset });
+      if (old) moved++;
       const r = ringRadius(g, p.ring) + offset;
       const a = sectorAngle(p.primaryTag) + (Math.random() - 0.5) * 0.9;
       return { id: p.id, ring: p.ring, tag: p.primaryTag, offset, x: g.cx + r * Math.cos(a), y: g.cy + r * Math.sin(a) };
@@ -173,7 +178,9 @@ export function useForceLayout(
     };
 
     // Step 4.
-    const startAlpha = previous.size ? 0.3 : 1; // a small nudge when people already have spots
+    // A small nudge when people already have spots; a full restart when many moved at once
+    // (e.g. accepting a 112-person sort), so the crowd spreads out cleanly.
+    const startAlpha = !previous.size || moved > 10 ? 1 : 0.3;
     const sim = forceSimulation<Node>(nodes)
       .force('radial', forceRadial<Node>((n) => ringRadius(g, n.ring) + n.offset, g.cx, g.cy).strength(1))
       .force('x', forceX<Node>((n) => target(n).x).strength((n) => SECTOR_PULL[n.ring]))
