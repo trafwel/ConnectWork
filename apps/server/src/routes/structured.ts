@@ -1,5 +1,5 @@
 /**
- * R — Structured AI route helper · Owner: Person B · ~20 min · do this BEFORE M6
+ * R — Structured AI route helper · done (M6)
  *
  * WHAT THIS ACHIEVES
  *   Every AI endpoint does the same eight things: validate the request, check
@@ -20,6 +20,8 @@
  * STEPS
  *   1. Move STATUS and MESSAGES from routes/ai.ts into this file and export
  *      them (ai.ts imports them back) so there is one copy of the error text.
+ *      (Also moved here: summaryIds and requestToday. links.ts needs summaryIds, and
+ *      importing it from ai.ts — which registers links.ts — would be a circular import.)
  *   2. Implement `structured()` below, following the numbered TODOs inside.
  *      The full reference implementation is in the guide (§11).
  *   3. Rewrite the /query handler in routes/ai.ts as:
@@ -50,7 +52,8 @@
 import type { Hono } from 'hono';
 import type { z } from 'zod';
 import type { AppDeps } from '../app';
-import type { Part, Thinking } from '../gemini';
+import { cacheKey } from '../cache';
+import { AiError, callStructured, type Part, type Thinking } from '../gemini';
 
 export interface StructuredRoute<Req, Res> {
   /** Path under /api/ai, e.g. '/classify'. */
@@ -71,17 +74,80 @@ export interface StructuredRoute<Req, Res> {
   cacheable?: boolean;
 }
 
-export function structured<Req, Res>(_routes: Hono, _deps: AppDeps, _route: StructuredRoute<Req, Res>): void {
-  // TODO(R) 1: _routes.post(_route.path, async (c) => { … })
-  // TODO(R) 2: parse the body with _route.request.safeParse(await c.req.json().catch(() => null));
-  //            on failure return c.json({ error: 'bad_request', message: 'Invalid request body' }, 400)
-  // TODO(R) 3: key = cacheKey(`/api/ai${_route.path}`, body); if _deps.cache.get(key) → set header
-  //            'x-cache: hit' and return it
-  // TODO(R) 4: if !_deps.generate → throw new AiError('no_api_key', …)
-  // TODO(R) 5: result = await callStructured(_deps.generate, { system, thinking, parts: _route.parts(body, today), schema: _route.response })
-  // TODO(R) 6: response = _route.post ? _route.post(result, body) : result
-  // TODO(R) 7: if (_route.cacheable !== false) _deps.cache.set(key, response); header 'x-cache: miss'; return c.json(response)
-  // TODO(R) 8: catch AiError → console.warn(`AI ${code} on ${path}: ${message.slice(0, 300)}`) (never the body!)
-  //            and return c.json({ error: code, message: MESSAGES[code] }, STATUS[code]); rethrow anything else
-  throw new Error('TODO(R): structured() is not implemented yet — see the steps at the top of this file');
+// Step 1. One copy of the error codes and texts for every AI route.
+export const STATUS: Record<AiError['code'], 502 | 503> = {
+  no_api_key: 503,
+  rate_limited: 503,
+  ai_unavailable: 503,
+  bad_ai_response: 502,
+};
+
+export const MESSAGES: Record<AiError['code'], string> = {
+  no_api_key: 'The AI is not set up yet: add GEMINI_API_KEY to .env and restart the server.',
+  rate_limited: 'The agent is busy. Try again in a minute.',
+  ai_unavailable: 'The AI service did not respond. Try again shortly.',
+  bad_ai_response: 'The AI gave an unusable answer. Try rephrasing.',
+};
+
+/** Person ids present in a graph summary ("P|id|..." lines). */
+export function summaryIds(summary: string): Set<string> {
+  const ids = new Set<string>();
+  for (const line of summary.split('\n')) {
+    if (!line.startsWith('P|')) continue;
+    const id = line.split('|')[1];
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+const DAY_MS = 86_400_000;
+const localIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** The user's calendar date: the browser's x-client-date if plausible (±1 day), else the server's local date. */
+export function requestToday(header: string | undefined, now = new Date()): string {
+  if (header && /^\d{4}-\d{2}-\d{2}$/.test(header)) {
+    const [y, m, d] = header.split('-').map(Number);
+    const claimed = new Date(y!, m! - 1, d!);
+    if (localIso(claimed) === header && Math.abs(claimed.getTime() - now.getTime()) <= 2 * DAY_MS) return header;
+  }
+  return localIso(now);
+}
+
+// Step 2. Validate → cache → Gemini (schema, retry) → guardrails → cache → reply; friendly errors.
+export function structured<Req, Res>(routes: Hono, deps: AppDeps, route: StructuredRoute<Req, Res>): void {
+  routes.post(route.path, async (c) => {
+    const parsed = route.request.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'bad_request', message: 'Invalid request body' }, 400);
+    const body = parsed.data;
+
+    const cacheable = route.cacheable !== false;
+    const key = cacheKey(`/api/ai${route.path}`, body);
+    const cached = cacheable ? deps.cache?.get(key) : undefined;
+    if (cached) {
+      c.header('x-cache', 'hit');
+      return c.json(cached);
+    }
+
+    try {
+      if (!deps.generate) throw new AiError('no_api_key', 'GEMINI_API_KEY is not set');
+      const today = requestToday(c.req.header('x-client-date'));
+      const result = await callStructured(deps.generate, {
+        system: route.system,
+        thinking: route.thinking,
+        parts: route.parts(body, today),
+        schema: route.response,
+      });
+      const response = route.post ? route.post(result, body) : result;
+      if (cacheable) deps.cache?.set(key, response);
+      c.header('x-cache', 'miss');
+      return c.json(response as object);
+    } catch (err) {
+      // Code and SDK message only: NEVER the request body (names, companies, photos).
+      if (err instanceof AiError) {
+        console.warn(`AI ${err.code} on ${c.req.path}: ${err.message.slice(0, 300)}`);
+        return c.json({ error: err.code, message: MESSAGES[err.code] }, STATUS[err.code]);
+      }
+      throw err;
+    }
+  });
 }

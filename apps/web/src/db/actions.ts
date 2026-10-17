@@ -146,6 +146,24 @@ export async function restorePerson(snapshot: DeletedPerson): Promise<void> {
   });
 }
 
+/**
+ * M6. Writes accepted AI sort suggestions in ONE transaction. Keeps the user's own tags and
+ * only drops the gray "LinkedIn" placeholder (the person's `source` still records it).
+ */
+export async function applyClassification(items: Array<{ id: string; ring: Ring; primaryTag: string; tags: string[] }>): Promise<void> {
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    const current = await db.people.bulkGet(items.map((i) => i.id));
+    const changes = items.flatMap((item, i) => {
+      const before = current[i];
+      if (!before) return []; // deleted while the review was open
+      const kept = before.tags.filter((t) => t !== 'LinkedIn');
+      return [{ key: item.id, changes: { ring: item.ring, primaryTag: item.primaryTag, tags: [...new Set([item.primaryTag, ...item.tags, ...kept])] } }];
+    });
+    await db.people.bulkUpdate(changes);
+    await ensureTags(changes.flatMap((c) => c.changes.tags));
+  });
+}
+
 // Step 4. Always both: drift (M10) reads lastContact, history reads the logs.
 export async function logContact(personId: string, kind: 'meeting' | 'message' | 'other' = 'other', note?: string): Promise<void> {
   const date = today();
@@ -193,6 +211,43 @@ export async function upsertLink(a: string, b: string, data: Pick<Link, 'source'
     }
     if (existing.status === 'accepted' && data.status === 'suggested') return; // never downgrade
     await db.links.update(existing.id, { ...data, label: data.label ?? existing.label });
+  });
+}
+
+/**
+ * M6. Writes AI suggestions as dashed `suggested` links in one transaction. Returns each
+ * link's id and whether THIS call created it, so a dismissed review removes only its own.
+ */
+export async function addSuggestedLinks(
+  suggestions: Array<{ fromId: string; toId: string; label: string }>,
+): Promise<Array<{ id: string; fromId: string; toId: string; label: string; created: boolean }>> {
+  return db.transaction('rw', [db.people, db.links], async () => {
+    const out: Array<{ id: string; fromId: string; toId: string; label: string; created: boolean }> = [];
+    for (const s of suggestions) {
+      const [fromId, toId] = normalizeLink(s.fromId, s.toId);
+      if (fromId === toId) continue;
+      const [a, b] = await db.people.bulkGet([fromId, toId]);
+      if (!a || !b) continue;
+      const existing = await db.links.where('fromId').equals(fromId).filter((l) => l.toId === toId).first();
+      if (existing?.status === 'accepted') continue; // already known: nothing to review
+      if (existing) {
+        await db.links.update(existing.id, { label: s.label, source: 'ai' });
+        out.push({ id: existing.id, fromId, toId, label: s.label, created: false });
+      } else {
+        const id = newId('l');
+        await db.links.add({ id, fromId, toId, label: s.label, source: 'ai', status: 'suggested' });
+        out.push({ id, fromId, toId, label: s.label, created: true });
+      }
+    }
+    return out;
+  });
+}
+
+/** M6. Accepts some suggested links and removes others, in one transaction. */
+export async function resolveLinks(acceptIds: string[], removeIds: string[]): Promise<void> {
+  await db.transaction('rw', db.links, async () => {
+    await db.links.bulkUpdate(acceptIds.map((key) => ({ key, changes: { status: 'accepted' as const } })));
+    await db.links.bulkDelete(removeIds);
   });
 }
 

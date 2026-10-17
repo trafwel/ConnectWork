@@ -54,13 +54,14 @@ export type ApiErrorBody = z.infer<typeof ApiErrorBody>;
 const Ring = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 
 /** Minimal person fields the model needs to sort someone (no notes). */
+// M6 review: every field is capped like the person card, so a request can't smuggle huge text to the model.
 const PersonBrief = z.object({
-  id: z.string(),
-  name: z.string(),
-  company: z.string().optional(),
-  role: z.string().optional(),
-  school: z.string().optional(),
-  metAt: z.string().optional(),
+  id: z.string().max(64),
+  name: z.string().max(120),
+  company: z.string().max(300).optional(),
+  role: z.string().max(300).optional(),
+  school: z.string().max(300).optional(),
+  metAt: z.string().max(10).optional(),
 });
 
 // M6 — auto-sort imported people into rings and tags ------------------------
@@ -69,7 +70,7 @@ export const ClassifyRequest = z.object({
   /** At most 150 per call; the client sends larger imports in chunks. */
   people: z.array(PersonBrief).min(1).max(150),
   /** Allowed tag names; the model must choose only from these. */
-  tags: z.array(z.string()).min(1),
+  tags: z.array(z.string().max(40)).min(1).max(20),
   /** Optional "about you" text from Settings, e.g. "UW CS junior, interning at Amazon". */
   userContext: z.string().max(500).optional(),
 });

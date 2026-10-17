@@ -1,5 +1,5 @@
 /**
- * M5 — Browser API client · done (aiPost arrives in step R)
+ * M5 — Browser API client · done (aiPost added in step R)
  *
  * WHAT THIS ACHIEVES
  *   Every call to the server returns a typed result — { ok: true, data } or
@@ -66,6 +66,11 @@ async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal
 // Step 3
 export function askQuery(question: string, summary: string, signal?: AbortSignal): Promise<ApiResult<QueryResponse>> {
   return post('/ai/query', { question, summary }, QueryResponse, signal);
+}
+
+// Step 5 (R). One line per new endpoint: aiPost('/links', body, LinksResponse).
+export function aiPost<T>(path: string, body: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<ApiResult<T>> {
+  return post(`/ai${path}`, body, schema, signal);
 }
 
 // Step 4

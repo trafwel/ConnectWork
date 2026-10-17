@@ -1,5 +1,5 @@
 /**
- * M6 — POST /api/ai/links · Owner: Person B · ~30 min
+ * M6 — POST /api/ai/links · done
  *
  * WHAT THIS ACHIEVES
  *   The "Abbey and John" moment from our pitch: the AI scans the network and
@@ -29,15 +29,44 @@
  * Contract: LinksRequest / LinksResponse · Guide: §12.1–12.3, §12.6
  */
 import type { Hono } from 'hono';
+import { LinksRequest, LinksResponse } from '@connectwork/shared';
 import type { AppDeps } from '../app';
+import { LINKS_SYSTEM } from '../prompts';
+import { structured, summaryIds } from './structured';
 
-export function registerLinks(_routes: Hono, _deps: AppDeps): void {
-  // TODO(M6) 1: structured(_routes, _deps, {
-  //   path: '/links', request: LinksRequest, response: LinksResponse,
-  //   system: LINKS_SYSTEM, thinking: 'medium',
-  // TODO(M6) 2: parts: (b) => [{ text: `Network:\n${b.summary}` + (b.focusIds?.length ? `\n\nFocus on: ${b.focusIds.join(', ')}` : '') }],
-  // TODO(M6) 3: post: const known = summaryIds(b.summary) (exported from routes/ai.ts);
-  //   keep links where fromId !== toId and both ids are known.
-  //   (The browser additionally drops confidence < 0.5.)
-  // TODO(M6) 4: register it from routes/ai.ts.
+const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+/** Pairs already linked ("L|fromId|toId|label" lines), as undirected keys. */
+function existingPairs(summary: string): Set<string> {
+  const pairs = new Set<string>();
+  for (const line of summary.split('\n')) {
+    if (!line.startsWith('L|')) continue;
+    const [, a, b] = line.split('|');
+    if (a && b) pairs.add(pairKey(a, b));
+  }
+  return pairs;
+}
+
+export function registerLinks(routes: Hono, deps: AppDeps): void {
+  structured(routes, deps, {
+    path: '/links',
+    request: LinksRequest,
+    response: LinksResponse,
+    system: LINKS_SYSTEM,
+    thinking: 'medium', // planning across the whole network, not a lookup
+    parts: (b) => [{ text: `Network:\n${b.summary}` + (b.focusIds?.length ? `\n\nFocus on: ${b.focusIds.join(', ')}` : '') }],
+    // Guardrails: real people only, no self-links, no duplicates, nothing already linked.
+    post: (res, b) => {
+      const known = summaryIds(b.summary);
+      const taken = existingPairs(b.summary);
+      return {
+        links: res.links.filter((l) => {
+          const key = pairKey(l.fromId, l.toId);
+          if (l.fromId === l.toId || !known.has(l.fromId) || !known.has(l.toId) || taken.has(key)) return false;
+          taken.add(key); // the same pair twice (either direction) is kept once
+          return true;
+        }),
+      };
+    },
+  });
 }

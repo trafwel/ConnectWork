@@ -23,7 +23,7 @@
  *   4. "Danger zone": Delete everything shows an inline "Delete every person, link and
  *      reminder?" with "Yes, delete" (destructive) and Cancel. Yes → deleteEverything(),
  *      clearFocus(), close, toast.
- *   5. Later sections: M6 "About you" textarea saved to db.meta 'userContext' on blur;
+ *   5. Later sections: M6 ✓ "About you" textarea saved to db.meta 'userContext' on blur;
  *      M7 "Export all reminders"; M10 drift thresholds; M16 <AgentConnection />.
  *
  * DONE WHEN
@@ -33,9 +33,13 @@
  */
 
 import { useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { db } from '@/db/db';
 import { deleteEverything, exportAll, importBackup, resetDemoData } from '@/db/seed';
 import { today } from '@/lib/dates';
 import { useStore } from '@/store/useStore';
@@ -85,6 +89,8 @@ export function SettingsDialog() {
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>Your data lives only in this browser. Export it to keep a copy.</DialogDescription>
         </DialogHeader>
+
+        <AboutYou />
 
         <section className="space-y-2">
           <h3 className="text-sm font-medium">Your data</h3>
@@ -191,5 +197,37 @@ export function SettingsDialog() {
         </section>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * M6. A line about the user ("UW CS junior, interning at Amazon") that Sort with AI uses to spot
+ * people from the same school or company. Draft only while typing, saved on blur (like the card).
+ */
+function AboutYou() {
+  const stored = useLiveQuery(async () => {
+    const v = (await db.meta.get('userContext'))?.value;
+    return typeof v === 'string' ? v : '';
+  }, []);
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <section className="space-y-1.5">
+      <Label htmlFor="settings-about" className="text-sm font-medium">
+        About you
+      </Label>
+      <Textarea
+        id="settings-about"
+        rows={2}
+        maxLength={500}
+        placeholder="e.g. UW CS junior, interning at Amazon"
+        value={draft ?? stored ?? ''}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (draft !== null && draft !== stored) void db.meta.put({ key: 'userContext', value: draft.trim() });
+          setDraft(null);
+        }}
+      />
+      <p className="text-xs text-muted-foreground">Sent with &ldquo;Sort with AI&rdquo; so it can spot people from your school or company.</p>
+    </section>
   );
 }

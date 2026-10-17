@@ -1,11 +1,12 @@
 /**
- * App shell · M5 state (grows in every milestone)
+ * App shell · M6 state (grows in every milestone)
  *
  * WHAT THIS DOES NOW (M3)
  *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar
  *   (+ Add), the map (pan, zoom, click to select and center), the person card on
  *   the right, Quick add (N), CSV import, Settings and toasts. Escape closes the card.
  *   M5: "Ask Connectwork" in the top bar, the answer card over the map, the free-tier banner.
+ *   M6: "Find hidden links", and the review sheet on the right for AI suggestions.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
  * WHAT IT BECOMES
@@ -43,18 +44,20 @@
  *   M5  ✓ done.
  *      10. <AgentBar /> centered in the top bar, <DemoBanner /> under it,
  *          <AgentAnswer /> as the first child of <main>.
- *   M6 11. "Find hidden links" button; the right panel shows <ReviewSheet /> when
+ *   M6  ✓ done.
+ *      11. "Find hidden links" button; the right panel shows <ReviewSheet /> when
  *          rightPanel === 'review', otherwise the person card.
  *
  * Shared file: tell your teammate before editing it. Guide: docs/IMPLEMENTATION_GUIDE.md §1.4, §4.4
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Upload } from 'lucide-react';
+import { Plus, Upload, Waypoints } from 'lucide-react';
 import { AgentAnswer } from '@/components/AgentAnswer';
 import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
 import { PersonCard } from '@/components/PersonCard';
+import { ReviewSheet } from '@/components/ReviewSheet';
 import { QuickAdd } from '@/components/QuickAdd';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { TopBar } from '@/components/TopBar';
@@ -63,6 +66,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { db } from '@/db/db';
 import { ensureSeeded } from '@/db/seed';
 import { RingMap } from '@/graph/RingMap';
+import { findHiddenLinks } from '@/lib/aiFlows';
 import type { FilterContext } from '@/lib/filters';
 import { dueReminders } from '@/lib/people';
 import { useHotkey } from '@/lib/useHotkey';
@@ -75,6 +79,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [seedError, setSeedError] = useState(false);
   const selectedId = useStore((s) => s.selectedPersonId);
+  const rightPanel = useStore((s) => s.rightPanel);
   const setDialog = useStore((s) => s.setDialog);
   const clearFocus = useStore((s) => s.clearFocus);
   const importOpen = useStore((s) => s.importOpen);
@@ -113,6 +118,9 @@ export default function App() {
         <div className="mx-auto w-full max-w-xl">
           <AgentBar />
         </div>
+        <Button size="sm" variant="outline" onClick={() => void findHiddenLinks()}>
+          <Waypoints /> Find hidden links
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setDialog('import', true)}>
           <Upload /> Import
         </Button>
@@ -138,8 +146,8 @@ export default function App() {
             <RingMap people={people} links={links} tags={tags} filterContext={filterContext} />
           )}
         </main>
-        {/* Step 7 */}
-        {selectedId && <PersonCard personId={selectedId} />}
+        {/* Steps 7 and 11: the review sheet, or the selected person's card */}
+        {rightPanel === 'review' ? <ReviewSheet /> : selectedId && <PersonCard personId={selectedId} />}
       </div>
       <QuickAdd />
       {importLoaded && (

@@ -56,3 +56,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 
 1. You ask "Microsoft?", then quickly "Apple?". The Microsoft reply arrives *after* the Apple one. What stops it from replacing the Apple answer?
 2. After you cancel, does Gemini stop working on the question? What does that mean for our free-tier quota?
+
+## M6
+**Step R, Sort with AI, hidden links, review sheet**
+
+1. The prompt already says "never suggest ring 1 for imported contacts". Why do we *also* turn ring 1 into ring 2 in code?
+2. Hidden links appear as dashed lines before you accept them. What does Dismiss have to do, and why?
+3. Step R rewrote how `/query` works. How do we know it still behaves exactly the same?
+4. Accepting a sort keeps your own tags but drops "LinkedIn". Why both?

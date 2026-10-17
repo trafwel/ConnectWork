@@ -162,3 +162,68 @@ describe('rate limit', () => {
     expect(statuses.at(-1)).toBe(429); // a new fake IP per request did not reset the limit
   });
 });
+
+// M6
+describe('POST /api/ai/classify', () => {
+  const people = [
+    { id: 'p_1', name: 'Ravi Fischer', company: 'Zillow', role: 'Software Engineer' },
+    { id: 'p_2', name: 'Lena Hughes', school: 'University of Washington' },
+    { id: 'p_3', name: 'Kai Larsen', company: 'Chess Club' },
+  ];
+  const body = { people, tags: ['Work', 'School', 'Clubs'] };
+  const postTo = (app: ReturnType<typeof createApp>, path: string, b: unknown) =>
+    app.request(`/api/ai${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+
+  it('applies guardrails: unknown ids, ring 1, unknown tags, duplicates', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        items: [
+          { id: 'p_1', ring: 1, primaryTag: 'Work', tags: ['Work', 'VIP'], reason: 'Engineer at Zillow' },
+          { id: 'p_ghost', ring: 3, primaryTag: 'Work', tags: [], reason: 'invented' },
+          { id: 'p_2', ring: 3, primaryTag: 'Celebrities', tags: [], reason: 'bad tag' },
+          { id: 'p_3', ring: 3, primaryTag: 'Clubs', tags: ['Clubs'], reason: 'Chess Club member' },
+          { id: 'p_3', ring: 2, primaryTag: 'Work', tags: [], reason: 'duplicate' },
+        ],
+      }),
+    );
+    const res = await postTo(appWith(generate), '/classify', body);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      items: [
+        { id: 'p_1', ring: 2, primaryTag: 'Work', tags: ['Work'], reason: 'Engineer at Zillow' },
+        { id: 'p_3', ring: 3, primaryTag: 'Clubs', tags: ['Clubs'], reason: 'Chess Club member' },
+      ],
+    });
+    expect(generate.mock.calls[0]![0].system).toContain('sort newly imported contacts');
+  });
+
+  it('rejects more than 150 people and oversized fields', async () => {
+    const many = Array.from({ length: 151 }, (_, i) => ({ id: `p_${i}`, name: 'X' }));
+    expect((await postTo(appWith(null), '/classify', { people: many, tags: ['Work'] })).status).toBe(400);
+    expect((await postTo(appWith(null), '/classify', { people: [{ id: 'p', name: 'x'.repeat(121) }], tags: ['Work'] })).status).toBe(400);
+  });
+});
+
+describe('POST /api/ai/links', () => {
+  const postTo = (app: ReturnType<typeof createApp>, b: unknown) =>
+    app.request('/api/ai/links', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+
+  it('keeps only new links between real, different people, once per pair', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        links: [
+          { fromId: 'p_abbey', toId: 'p_john', label: 'both UW, both Microsoft', confidence: 0.9 },
+          { fromId: 'p_john', toId: 'p_abbey', label: 'same pair reversed', confidence: 0.9 },
+          { fromId: 'p_abbey', toId: 'p_abbey', label: 'self', confidence: 0.9 },
+          { fromId: 'p_abbey', toId: 'p_ghost', label: 'invented', confidence: 0.9 },
+          { fromId: 'p_abbey', toId: 'p_01', label: 'already linked', confidence: 0.9 },
+        ],
+      }),
+    );
+    const extended = summary + '\nP|p_01|Someone|3|Work|Work|Microsoft|||';
+    const res = await postTo(appWith(generate), { summary: extended });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ links: [{ fromId: 'p_abbey', toId: 'p_john', label: 'both UW, both Microsoft', confidence: 0.9 }] });
+    expect(generate.mock.calls[0]![0].thinking).toBe('medium');
+  });
+});

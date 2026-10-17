@@ -320,3 +320,55 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m5).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m5).
+
+## M6
+
+**Step R (route helper) + Sort with AI + Find hidden links + the review sheet** · Oct 17 · branch `m6-review`
+
+**How it was checked:** typecheck, lint (0 warnings), tests (server 26: the unchanged `/query` tests after step R, plus classify and links guardrail tests; browser: 3 new action tests), production build.
+
+**Live, against Gemini** (fictional demo data):
+- **Find hidden links** (2.2 s): 10 suggestions with **Abbey Chen ↔ John Park, "both Microsoft, both UW", 90%**. I checked all 10 evidence labels against the data, and all were true.
+- **The review sheet:** hovering a row highlights its 2 people. Accepting only Abbey ↔ John made it a real link (25 → 26 links) and removed the other 9 dashed lines. A second run (20.4 s) didn't re-suggest Abbey ↔ John, and Dismiss brought the links back to exactly 26.
+- **Sort with AI** (7.7 s) on the 114 imported people: 112 suggestions, each with a reason about the person ("Software Engineer at Zillow"). The 9 ring-2 picks were all justified (8 at Microsoft, the company in "About you"; 1 met 38 days ago). Accept all → "Applied 112 changes", and the grey band turned into Work clusters.
+- No console errors; no names in the server log.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Accepting 112 sort suggestions as 112 `updatePerson` calls = 112 transactions. | **Fixed:** `applyClassification`, one transaction. |
+| E2 | Suggesting / resolving links one at a time. | **Fixed:** `addSuggestedLinks` and `resolveLinks`, one transaction each. |
+| E3 | Classify sends only what's needed to sort (name, company, role, school, metAt). | No notes, no tags, no ids beyond the person's. |
+| E4 | `/links` took 2.2 s once and 20.4 s the next time. | Free-tier variance; the 60 s chain budget covers it. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Step R moved `/query` onto `structured()`. | **Proven by tests:** `ai.test.ts` unchanged and green. |
+| I2 | `links.ts` importing `summaryIds` from `ai.ts` (which registers `links.ts`) would be circular. | **Avoided:** shared helpers live in `structured.ts`; `ai.ts` re-exports them. |
+| I3 | Hidden links are written as dashed *before* the decision, so "Dismiss changes nothing" was false. | **Fixed:** `onDismiss` removes the links this run created (not ones that existed before). Verified 33 → 26. |
+| I4 | Escape, Ask Connectwork or clicking a person would orphan an open review. | **Fixed:** `clearFocus` and `selectPerson(null)` return to the review while one is open. |
+| I5 | The scaffold's sort write replaced a person's tags, which would drop tags added after import. | **Fixed:** the user's tags are kept; only the grey "LinkedIn" placeholder is dropped. Tested. |
+| I6 | The import toast needs both "Sort with AI" and Undo. | Sort with AI is the main action; Undo is the secondary one (sonner `cancel`). |
+| I7 | `canonicalJson` moved to `@connectwork/shared` for M12's browser cache. | Done; the server re-exports it, and the tests still pass. |
+| I8 | After a sort, the newly blue people stay in the upper-left band instead of moving to the Work sector: the layout restarts "cool" (alpha 0.3) and ring 3's sector pull is weak. | Open, **fix now**. |
+| I9 | Hovering a review row sets highlights, and leaving it sets them to *nothing*, wiping the highlights of an earlier Ask Connectwork answer. | Open, **fix now**. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | `PersonBrief` (each person sent to `/classify`) had no length limits. | **Fixed:** name 120, fields 300, allowed tags 20 × 40. A test checks a 121-character name is refused. |
+| S2 | "About you" goes to Gemini with every sort. | Settings says so under the field; at most 500 characters; it's the user's own text. |
+| S3 | Guardrails **in code**: classify (unknown ids, unknown tags, **ring 1 → 2**, duplicates) and links (self, unknown, already linked, the same pair twice). | Tested on both routes. |
+| S4 | Link labels are model text, shown in the UI and stored. | Capped at 60 by the schema; React shows them as text. |
+| S5 | Logging. | Verified: no names, companies or schools in the server log. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | The model silently skipped 2 of 114 people (both "Software Engineer Intern"). They stay grey, but the user isn't told. | Open, **fix now**: say "N people had no suggestion" in the review. |
+| O2 | No undo after accepting a sort. | Won't fix for now: the review sheet *is* the confirmation step, and each person can be changed from their card. |
+| O3 | Double-clicking a flow would start two 20 s calls. | **Handled:** one AI flow at a time ("Already working on it…"). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m6).
