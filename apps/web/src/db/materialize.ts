@@ -1,3 +1,23 @@
+/**
+ * M1 — Turn seed offsets into real dates · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Keeps the demo current forever: "contacted 210 days ago" and "due tomorrow"
+ *   are computed from today's date at load time.
+ *
+ * HOW IT FITS
+ *   Pure function (no Dexie import) so Vitest can run it in Node; seed.ts calls it.
+ *
+ * HOW IT WAS BUILT
+ *   1. metDaysAgo / lastContactDaysAgo → isoDate(today − n days).
+ *   2. dueInDays → isoDate(today + n days).
+ *   3. Seed links become accepted user links; every person gets source 'seed'.
+ *
+ * DONE WHEN
+ *   - db/seed.test.ts passes (John's dates resolve correctly for a fixed "now").
+ *
+ * Guide: §5.3
+ */
 import type { Link, Person, Reminder } from '@connectwork/shared';
 import type seed from '../../../../demo/seed.json';
 import { addDays, isoDate } from '../lib/dates';

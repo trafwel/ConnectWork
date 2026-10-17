@@ -1,3 +1,24 @@
+/**
+ * M0 — Server configuration · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Reads secrets and settings from the repo-root .env (never committed) into one
+ *   typed object, with safe defaults so the app runs even before a key is added.
+ *
+ * HOW IT FITS
+ *   app.ts and index.ts read `env`. The Gemini key lives only here, on the server.
+ *
+ * HOW IT WAS BUILT
+ *   1. process.loadEnvFile() on ../../../.env (Node's built-in loader), wrapped in try.
+ *   2. Real environment variables win over .env (useful on the VM).
+ *   3. Defaults: model gemini-3.8-flash, fallback gemini-3.6-flash, tier free, cache off.
+ *
+ * DONE WHEN
+ *   - /api/health reports the model, fallback, tier and whether AI is configured.
+ *
+ * Gotcha: .env is read only at startup — restart `pnpm dev` after editing it.
+ * Guide: §4.3, §1.3
+ */
 import { fileURLToPath } from 'node:url';
 
 // Load the repo-root .env if present; real env vars win.

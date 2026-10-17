@@ -1,3 +1,22 @@
+/**
+ * M4 — Import dialog · done (gets a "Sort with AI" action in M6)
+ *
+ * WHAT THIS ACHIEVES
+ *   Drag in a CSV and see exactly what will happen ("120 people found") before
+ *   importing; a clear summary afterwards ("Imported 114 people · 6 already here").
+ *
+ * HOW IT FITS
+ *   Opened from the top bar. Uses lib/csv.ts and applyImport. The file is read
+ *   with file.text() in the browser and never leaves it.
+ *
+ * HOW IT WAS BUILT
+ *   1. Drop zone + hidden file input (CSV only), drag-over highlight.
+ *   2. Generic files show a column-mapping grid with guessed defaults.
+ *   3. Live count; Import button disabled until there is something to import.
+ *   4. Result toast with added / updated / already-here counts.
+ *
+ * Guide: §8.2
+ */
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { FileUp } from 'lucide-react';

@@ -1,3 +1,13 @@
+/**
+ * M2/M3 — Person helpers · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Small shared answers the UI needs everywhere: initials for ring-1 nodes, which
+ *   reminders are due or overdue, and human wording for last contact
+ *   ("7 months ago").
+ *
+ * Guide: §6.2, §7.3
+ */
 import type { Person, Reminder } from '@connectwork/shared';
 import { daysSince } from './dates';
 

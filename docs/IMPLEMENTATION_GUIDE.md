@@ -181,6 +181,8 @@ Workflow for each file: read the header → implement the steps top to bottom �
 | M13 | `deploy/Caddyfile`, `deploy/connectwork.service` | Live at our domain over HTTPS |
 | M14 | `components/CalendarMonth.tsx` | A month view of reminders and meetings (stretch) |
 
+The built M0–M5 files carry the same header (with **HOW IT WAS BUILT** instead of STEPS, and no TODOs), so the whole codebase reads the same way: open any file and its top comment says what it achieves, how it fits and how it works.
+
 Already written in full (no TODOs): the zod contracts for every new endpoint in `packages/shared/src/schemas.ts`, and draft system prompts in `apps/server/src/prompts.ts` (tune them after the first live run).
 
 ---

@@ -1,3 +1,16 @@
+/**
+ * M0 — Server entry point · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Starts the API on PORT (8787) with real dependencies and warns loudly if the
+ *   Gemini key is missing, so a misconfigured server is obvious in the logs.
+ *
+ * HOW IT FITS
+ *   `pnpm dev` runs it with tsx watch (restarts on file changes); production runs
+ *   `pnpm start` (deploy/connectwork.service).
+ *
+ * Guide: §4.3
+ */
 import { serve } from '@hono/node-server';
 import { createApp, defaultDeps } from './app';
 import { env } from './env';

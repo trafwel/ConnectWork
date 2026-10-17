@@ -1,3 +1,22 @@
+/**
+ * M5 — Demo reply cache · done (used for the demo in M12)
+ *
+ * WHAT THIS ACHIEVES
+ *   Record real AI replies once, then replay them — the scripted demo works even
+ *   when Gemini is slow, overloaded or offline.
+ *
+ * HOW IT FITS
+ *   DEMO_CACHE=record writes demo/demo-cache.json after each successful reply;
+ *   DEMO_CACHE=replay serves hits (header x-cache: hit) and only calls Gemini on a miss.
+ *
+ * HOW IT WAS BUILT
+ *   1. Key = sha256 of the route + "\n" + canonicalJson(body). canonicalJson sorts
+ *      object keys so equal requests always give equal keys.
+ *   2. The browser will compute the same key in M12 (canonicalJson moves to the
+ *      shared package in step R).
+ *
+ * Guide: §9.5, §19
+ */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

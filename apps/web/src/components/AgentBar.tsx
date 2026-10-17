@@ -1,3 +1,24 @@
+/**
+ * M5 — "Ask Connectwork" · done
+ *
+ * WHAT THIS ACHIEVES
+ *   The agent's front door: type a question, and the answer lights up the right
+ *   people on the map (and opens their card when there is exactly one).
+ *
+ * HOW IT FITS
+ *   Builds the summary from Dexie (lib/graphSummary.ts) → askQuery (lib/api.ts) →
+ *   sets the answer, highlights and filter hint in the store → RingMap and
+ *   AgentAnswer react.
+ *
+ * HOW IT WAS BUILT
+ *   1. Clear previous focus, show busy state.
+ *   2. Send { question, summary }.
+ *   3. Keep only ids that exist in this browser, then union exactMatches(question).
+ *   4. Apply filterHint ('due' / 'drifting') when the question is about those.
+ *   5. Escape clears the question and the highlights.
+ *
+ * Guide: §9.6
+ */
 import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';

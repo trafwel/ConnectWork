@@ -1,3 +1,29 @@
+/**
+ * M5 — AI routes (POST /api/ai/query) · done (refactored in step R)
+ *
+ * WHAT THIS ACHIEVES
+ *   Plain-English questions about your network ("Who do I know at Microsoft?")
+ *   answered in a sentence, with the ids of everyone the answer is about, so the
+ *   map can highlight them.
+ *
+ * HOW IT FITS
+ *   Browser AgentBar → POST /api/ai/query { question, summary } → validate →
+ *   demo cache → Gemini (QUERY_SYSTEM, thinking low) → guardrails → reply.
+ *   Step R moves this handler onto routes/structured.ts; later routes register here.
+ *
+ * HOW IT WAS BUILT
+ *   1. Validate the body with QueryRequest (400 on failure).
+ *   2. Cache hit → return it.
+ *   3. callStructured with today's date + the summary + the question.
+ *   4. Guardrail in code: drop any id that isn't a P line in the summary, and
+ *      de-duplicate — the model can never highlight someone who doesn't exist.
+ *   5. Errors → friendly message + status; logged as "AI <code> on <route>" without the body.
+ *
+ * DONE WHEN
+ *   - routes/ai.test.ts passes (mocked Gemini) and the live questions in §10 work.
+ *
+ * Guide: §9.5
+ */
 import { Hono } from 'hono';
 import { QueryRequest, QueryResponse } from '@connectwork/shared';
 import { cacheKey, type DemoCache } from '../cache';

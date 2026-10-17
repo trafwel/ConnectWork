@@ -1,3 +1,33 @@
+/**
+ * M2 — Ring layout (d3-force) · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Places every person on their ring around "You", grouped by tag so groups read
+ *   as shapes (Work at the top, School, Friends, Family, Clubs, LinkedIn clockwise),
+ *   with no overlaps and a stable picture that doesn't reshuffle when someone is added.
+ *
+ * HOW IT FITS
+ *   RingMap calls useForceLayout(people, links, width, height, offsetFor) and gets
+ *   back a Map of id → {x, y}. offsetFor pushes people outward (drift, M10).
+ *
+ * HOW IT WAS BUILT
+ *   1. Ring radius = 0.18 / 0.32 / 0.46 of min(width, height).
+ *   2. Forces: radial (pins the ring), x/y toward the tag's sector angle (weak for
+ *      ring 3 so big imports spread along the ring instead of piling inward),
+ *      collide (extra padding for ring 1 so names don't overlap), weak link pull.
+ *   3. The simulation is ticked to rest SYNCHRONOUSLY inside the effect, then
+ *      positions are published once. Stable on first paint, and it works in
+ *      background tabs, where animation frames are paused (our first version showed
+ *      an empty map there).
+ *   4. Existing nodes keep their previous x/y and the sim restarts at alpha 0.3, so
+ *      changes nudge the map. Moves animate with a CSS transition in PersonNode.
+ *
+ * DONE WHEN
+ *   - Seed renders in three rings, clustered by tag, with no overlapping ring-1 names;
+ *     importing 114 people keeps them on the outer ring.
+ *
+ * Guide: docs/IMPLEMENTATION_GUIDE.md §6.1
+ */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   forceCollide,

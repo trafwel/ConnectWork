@@ -1,3 +1,13 @@
+/**
+ * M3 — Primary tag picker · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Picks the tag that sets a person's color. A native <select> gives correct
+ *   keyboard and screen-reader behavior for free; an unknown current value is kept
+ *   as an option so editing never silently changes it.
+ *
+ * Guide: §7.2
+ */
 import { PRIMARY_TAGS } from '@/lib/colors';
 
 /** Native select keeps keyboard and screen-reader behavior for free. */

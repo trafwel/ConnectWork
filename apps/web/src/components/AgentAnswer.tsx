@@ -1,3 +1,13 @@
+/**
+ * M5 — The agent's answer card · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Shows "Thinking…", then the one-line answer and how many people are
+ *   highlighted, or a clear error. It sits in an aria-live region, so screen
+ *   readers announce answers too.
+ *
+ * Guide: §9.6
+ */
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

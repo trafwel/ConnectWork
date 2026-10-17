@@ -1,3 +1,12 @@
+/**
+ * M3 — A person's reminders · done (Add to calendar arrives in M7)
+ *
+ * WHAT THIS ACHIEVES
+ *   Lists, adds, completes and deletes follow-up reminders for one person.
+ *   Overdue dates turn orange-red. New reminders default to one week out.
+ *
+ * Guide: §7.3
+ */
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2 } from 'lucide-react';

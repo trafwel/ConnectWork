@@ -1,3 +1,20 @@
+/**
+ * M1 — Settings: your data · done (more settings arrive in M6, M7, M10)
+ *
+ * WHAT THIS ACHIEVES
+ *   Users stay in control of their data: export a backup, import one, reset the
+ *   demo, or delete everything (two-step confirm). It makes the privacy story
+ *   concrete in the UI.
+ *
+ * HOW IT FITS
+ *   Calls db/seed.ts. Later: "About you" text for auto-sort (M6), "Export all
+ *   reminders" (M7), drift thresholds (M10).
+ *
+ * DONE WHEN
+ *   - Delete everything → reload shows an empty map; Reset demo data restores 40 people.
+ *
+ * Guide: §5.5
+ */
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';

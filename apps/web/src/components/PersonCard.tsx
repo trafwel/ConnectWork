@@ -1,3 +1,28 @@
+/**
+ * M3 — Person card · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Everything about one person in one panel, editable in place: name, ring, tag,
+ *   company, role, school, email, LinkedIn, extra tags, notes, last contact,
+ *   reminders and connections. It is where the map becomes useful day to day.
+ *
+ * HOW IT FITS
+ *   Opens when a node is selected (store.rightPanel = 'person'). Reads the person
+ *   with useLiveQuery; writes through db/actions.ts. M8 adds "Draft follow-up".
+ *
+ * HOW IT WAS BUILT
+ *   1. Text fields keep a local draft and save on blur or Enter (no write per
+ *      keystroke). The body is keyed by person id so drafts reset when switching people.
+ *   2. Extra tags as chips with a datalist of existing tags; × removes one.
+ *   3. Notes save on blur. "Log contact today" calls logContact.
+ *   4. PersonReminders and PersonLinks are separate components below.
+ *   5. Delete person with a confirm step.
+ *
+ * DONE WHEN
+ *   - Edits survive a reload; adding the follow-up tag creates a reminder.
+ *
+ * Guide: §7.3
+ */
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';

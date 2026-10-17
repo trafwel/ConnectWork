@@ -1,3 +1,26 @@
+/**
+ * M3 — Every write to the database · done (applyImport added in M4)
+ *
+ * WHAT THIS ACHIEVES
+ *   One place that enforces the app's data rules, so no component can break them:
+ *   links are stored once per pair, logging contact always records history, deleting
+ *   a person cleans up after them, and imports never overwrite what the user typed.
+ *
+ * HOW IT FITS
+ *   Components and AI flows call these functions; they never call db.* to write.
+ *
+ * HOW IT WAS BUILT
+ *   1. addPerson: new id, primaryTag included in tags, lastContact = today.
+ *   2. updatePerson: keeps primaryTag inside tags; creates unknown tags (gray);
+ *      gaining a 'follow-up' tag schedules a 7-day reminder if none is open.
+ *   3. deletePerson: also removes their links, reminders and contact logs.
+ *   4. logContact: writes a ContactLog AND updates lastContact (drift resets).
+ *   5. upsertLink: normalizes fromId < toId and never downgrades an accepted link
+ *      back to suggested.
+ *   6. applyImport (M4): one transaction; ring 3 by default; returns new ids.
+ *
+ * Guide: §7.1
+ */
 import type { Link, Person, Reminder, Ring } from '@connectwork/shared';
 import { FALLBACK_COLOR } from '@/lib/colors';
 import { addDays, isoDate, today } from '@/lib/dates';

@@ -1,3 +1,17 @@
+/**
+ * M1 — Tags and colors · done (restyled in step T)
+ *
+ * WHAT THIS ACHIEVES
+ *   Default tags with colors from the Okabe-Ito palette, which stays
+ *   distinguishable for the common types of color blindness. Two tags also carry
+ *   behavior: follow-up (auto-reminder, M3) and intro (weekly review, M8).
+ *
+ * HOW IT FITS
+ *   Seeded into db.tags; the map, legend, person card and filters look colors up
+ *   with tagColor(). PRIMARY_TAGS are the tags that can define a person's color.
+ *
+ * Guide: §5.4, §14
+ */
 import type { Tag } from '@connectwork/shared';
 
 // Okabe-Ito: distinguishable for the common forms of color blindness.

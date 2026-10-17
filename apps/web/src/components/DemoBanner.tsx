@@ -1,3 +1,13 @@
+/**
+ * M5 — Demo-mode banner · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Honest about the free tier: Google may use free-tier requests to improve its
+ *   products, so the banner says to use sample data only, and says when the AI
+ *   isn't configured yet. Disappears with GEMINI_TIER=paid.
+ *
+ * Guide: §9.6
+ */
 import { useEffect, useState } from 'react';
 import { getHealth, type Health } from '@/lib/api';
 

@@ -1,3 +1,12 @@
+/**
+ * M2 — A connection between two people · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Shows who knows whom. Accepted links are quiet solid lines; AI-suggested links
+ *   (M6) are dashed in the accent color so they stand out until reviewed.
+ *
+ * Guide: §6.2
+ */
 import type { Link } from '@connectwork/shared';
 
 interface Props {

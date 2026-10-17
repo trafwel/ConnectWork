@@ -1,3 +1,19 @@
+/**
+ * M1 — Date helpers · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Correct calendar-day math everywhere: due dates, "7 months ago", drift.
+ *
+ * HOW IT WAS BUILT
+ *   1. isoDate() formats the LOCAL calendar date. toISOString() would use UTC and
+ *      show tomorrow's date in the evening west of Greenwich (Seattle!).
+ *   2. daysSince() compares midnight to midnight, so the time of day doesn't change the answer.
+ *
+ * DONE WHEN
+ *   - lib/dates.test.ts passes.
+ *
+ * Guide: §5.4
+ */
 const DAY = 86_400_000;
 
 /** Local calendar date as YYYY-MM-DD. */

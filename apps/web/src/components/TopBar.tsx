@@ -1,3 +1,12 @@
+/**
+ * M1 — Top bar · done
+ *
+ * WHAT THIS ACHIEVES
+ *   The app's header: name, a slot for the agent box and action buttons (filled in
+ *   App.tsx), and the Settings button.
+ *
+ * Guide: §5.5
+ */
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/store/useStore';

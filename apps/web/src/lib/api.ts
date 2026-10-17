@@ -1,3 +1,19 @@
+/**
+ * M5 — Browser API client · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Every call to the server returns a typed result — { ok: true, data } or
+ *   { ok: false, error, message } — so components never deal with thrown network
+ *   errors, HTTP codes or unvalidated JSON.
+ *
+ * HOW IT WAS BUILT
+ *   1. post(): fetch, then validate the body with the endpoint's zod schema.
+ *   2. Network failure → "Can't reach the Connectwork server" (M12 adds an offline
+ *      cache lookup here).
+ *   3. Step R adds aiPost(path, body, schema) for the new endpoints.
+ *
+ * Guide: §9.6
+ */
 import { ApiErrorBody, QueryResponse } from '@connectwork/shared';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';

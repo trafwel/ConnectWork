@@ -1,3 +1,24 @@
+/**
+ * M5 (and M6–M11 below) — API contracts as zod schemas · done
+ *
+ * WHAT THIS ACHIEVES
+ *   The single source of truth for what each AI endpoint accepts and returns.
+ *   The server validates the MODEL's reply against these (and retries once if it
+ *   doesn't match); the browser validates the SERVER's reply again. A malformed
+ *   AI answer can never reach the UI or the database.
+ *
+ * HOW IT FITS
+ *   Shared by apps/server (routes, gemini.ts turns them into JSON Schema for
+ *   Gemini) and apps/web (lib/api.ts). Mirrors SPEC.md §9.4.
+ *
+ * HOW IT WAS BUILT
+ *   1. QueryRequest / QueryResponse for M5; ApiErrorBody for every error reply.
+ *   2. Limits are part of the contract (answer ≤ 400 chars, ≤ 50 ids, ≤ 150
+ *      people per classify call) — they keep prompts and replies bounded.
+ *   3. The M6–M11 schemas further down are final contracts for the scaffolded routes.
+ *
+ * Guide: §9.1
+ */
 import { z } from 'zod';
 
 // Request/response contracts for /api/ai/*. The server validates model

@@ -1,3 +1,24 @@
+/**
+ * M3 — Quick add (press N) · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Adding a person takes under 10 seconds: name, ring, tag, Enter. Details come
+ *   later from the card. Low friction is the point of the Cook Smarter track.
+ *
+ * HOW IT FITS
+ *   Opened by the N hotkey (lib/useHotkey.ts) or the "+ Add" button; writes with
+ *   addPerson; the toast offers "Open card".
+ *
+ * HOW IT WAS BUILT
+ *   1. Base UI dialog with initialFocus on the Name input (autoFocus is ignored).
+ *   2. RingPicker (default 2) and TagSelect (default Friends).
+ *   3. Submit on Enter; reset fields when closed.
+ *
+ * DONE WHEN
+ *   - N → type a name → Enter adds a node immediately.
+ *
+ * Guide: §7.2
+ */
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { Ring } from '@connectwork/shared';

@@ -1,3 +1,25 @@
+/**
+ * M5 (+ drafts for M6–M11) — System prompts · done
+ *
+ * WHAT THIS ACHIEVES
+ *   The instructions that make the model behave like Connectwork's assistant:
+ *   short answers, only real people from the data, exact definitions for things
+ *   like "lost touch", and resistance to instructions hidden in imported data.
+ *
+ * HOW IT FITS
+ *   Prompts live ONLY in this file (CLAUDE.md rule) so they can be reviewed and
+ *   tuned in one place. Routes import them by name.
+ *
+ * HOW IT WAS BUILT
+ *   1. DATA_FORMAT explains the summary lines (P person, L link, R reminder).
+ *   2. QUERY_SYSTEM rules came from live testing: before we defined "lost touch"
+ *      (ring 1 > 90 days, ring 2 > 180 days), the model flagged 31 people with an
+ *      invented rule; after, exactly the right 5. Those thresholds must match lib/drift.ts.
+ *   3. Draft prompts for later milestones follow the same pattern: define every
+ *      rule, forbid invention, keep guardrails in code too.
+ *
+ * Guide: §9.4, §10
+ */
 // System instructions live only here (CLAUDE.md).
 
 const DATA_FORMAT = `The user's network arrives as pipe-separated lines:

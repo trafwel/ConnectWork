@@ -1,3 +1,23 @@
+/**
+ * M0 — Domain types · done
+ *
+ * WHAT THIS ACHIEVES
+ *   One definition of what a person, link, reminder, tag, meeting and contact log
+ *   are, used by the browser database, the UI, the AI summary and the server.
+ *   Change a field here and TypeScript shows every place that must follow.
+ *
+ * HOW IT FITS
+ *   Imported as `@connectwork/shared` by both apps (source is consumed directly,
+ *   no build step). Exact field list mirrors SPEC.md §5.
+ *
+ * HOW IT WAS BUILT
+ *   1. Ring is 1 | 2 | 3 (1 = closest).
+ *   2. Person keeps dates as ISO strings (YYYY-MM-DD) so they sort and compare as text.
+ *   3. Link is undirected: always stored with fromId < toId (see db/actions.ts normalizeLink).
+ *   4. lastContact drives drift; logging contact always writes a ContactLog too.
+ *
+ * Guide: §4.2
+ */
 export type Ring = 1 | 2 | 3;
 
 export type TagBehavior = 'none' | 'follow-up' | 'intro';

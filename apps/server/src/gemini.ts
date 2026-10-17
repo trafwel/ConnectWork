@@ -1,3 +1,33 @@
+/**
+ * M5 — Calling Gemini safely · done (live-tested Oct 17)
+ *
+ * WHAT THIS ACHIEVES
+ *   Every AI call gets structured JSON back, validated, with one retry on a bad
+ *   reply and one fallback to another model when the main one is overloaded. Live
+ *   testing showed why: on the free tier the same request took 4 s, 38 s or 75 s,
+ *   then returned "high demand" (503), deadline errors (504) and rate limits (429).
+ *   With the fallback, every test question succeeded.
+ *
+ * HOW IT FITS
+ *   routes/ai.ts (and the scaffolded routes, via structured.ts) call
+ *   callStructured(generate, { system, parts, schema, thinking }). `generate` is
+ *   injected so tests run without a key.
+ *
+ * HOW IT WAS BUILT
+ *   1. generateContent with systemInstruction, responseMimeType JSON,
+ *      responseJsonSchema (from zod via toGeminiSchema), temperature 0.3, and a
+ *      thinking level when the route asks for one ('low' for lookups).
+ *   2. withFallback: main model gets 20 s; on 429, 5xx, timeout or abort, try
+ *      GEMINI_FALLBACK_MODEL once with 25 s. 4xx errors are not retried.
+ *   3. callStructured: parse + zod-validate; on failure retry once with the
+ *      validation errors appended; a second failure → AiError('bad_ai_response').
+ *   4. Errors map to AiError codes the routes turn into friendly messages.
+ *
+ * DONE WHEN
+ *   - gemini.test.ts passes; the four live questions in guide §10 succeed.
+ *
+ * Guide: §9.3, §10
+ */
 import { ApiError, GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { z } from 'zod';
 

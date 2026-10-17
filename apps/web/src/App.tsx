@@ -1,3 +1,29 @@
+/**
+ * M0–M5 — App shell: layout and wiring · done (grows with each milestone)
+ *
+ * WHAT THIS ACHIEVES
+ *   The single screen of Connectwork: top bar (agent question box, Import, Add),
+ *   the demo banner, the ring map in the middle, and the person card on the right.
+ *   It loads data once and hands it to the map.
+ *
+ * HOW IT FITS
+ *   Reads the database with useLiveQuery (re-renders automatically when Dexie
+ *   changes) and UI state from the Zustand store. Every later milestone adds a
+ *   piece here: FilterTabs (M7), ReviewSheet / WeeklyReview / MeetingPrepCard in
+ *   the right panel (M6, M8, M11), MeetingStrip (M11), ListView (M10).
+ *
+ * HOW IT WAS BUILT
+ *   1. On mount, ensureSeeded() (M1) fills the demo network on first run.
+ *   2. Live queries for people, links, tags and reminders.
+ *   3. filterContext: which people are due (M2) and drifting (filled in M10).
+ *   4. The `N` hotkey opens Quick add (M3); Import opens the CSV dialog (M4).
+ *   5. AgentBar + AgentAnswer + DemoBanner (M5).
+ *
+ * DONE WHEN
+ *   - First load shows the 40-person map; every dialog opens from the top bar.
+ *
+ * Shared file: tell your teammate before editing it. Guide: §1.4
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Toaster } from '@/components/ui/sonner';

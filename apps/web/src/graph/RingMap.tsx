@@ -1,3 +1,32 @@
+/**
+ * M2 — Ring map (SVG) · done
+ *
+ * WHAT THIS ACHIEVES
+ *   The heart of the product: your network as rings around you. Pan and zoom,
+ *   click a person to open their card, see who an AI answer is about (highlights),
+ *   and filter without anyone moving.
+ *
+ * HOW IT FITS
+ *   App passes people, links, tags and filterContext. Selection, highlights and the
+ *   filter come from the store. Layout from layout.ts; nodes and links are drawn by
+ *   PersonNode and LinkLine. Colors move to graph/theme.ts in step T.
+ *
+ * HOW IT WAS BUILT
+ *   1. Measure the container on mount (getBoundingClientRect) AND with a
+ *      ResizeObserver — the observer alone reports nothing in a hidden tab.
+ *   2. Layers back to front: dashed rings + labels (placed in the gap between the
+ *      LinkedIn and Work sectors), links, the "You" node, people sorted ring 3 → 1.
+ *   3. Dimming: when anything is highlighted, everyone else fades to 15%; otherwise
+ *      people outside the current filter fade. Nobody is removed, so nothing jumps.
+ *   4. d3-zoom on the <svg> (0.5–3×, double-click zoom off); a Reset view button
+ *      appears when zoomed or panned. Clicking empty space clears the selection.
+ *   5. A tag-color legend in the corner.
+ *
+ * DONE WHEN
+ *   - Zoom, pan, click-to-open, reset view and keyboard selection all work.
+ *
+ * Guide: §6.2
+ */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';

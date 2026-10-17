@@ -1,3 +1,24 @@
+/**
+ * M2 — One person on the map · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Level of detail that keeps 150+ people readable: ring 1 shows initials and a
+ *   name, ring 2 shows the name on hover/focus or when zoomed in, ring 3 is a dot
+ *   until you zoom far in or it is selected or highlighted.
+ *
+ * HOW IT FITS
+ *   Rendered by RingMap; memoized so only changed nodes re-render. M7 adds the
+ *   reminder flag and pulse; M10 adds drift fading.
+ *
+ * HOW IT WAS BUILT
+ *   1. Position via CSS transform with a 450 ms transition (smooth moves).
+ *   2. Selected = 3 px dark ring; highlighted = 2.5 px ring.
+ *   3. Accessibility: <g role="button" tabIndex={0}> with an aria-label
+ *      ("Name, ring N, Tag, Company"); Enter/Space selects; a dashed focus ring
+ *      shows on keyboard focus; <title> gives a native tooltip.
+ *
+ * Guide: §6.2
+ */
 import { memo, useState } from 'react';
 import type { Person } from '@connectwork/shared';
 import { initials } from '@/lib/people';

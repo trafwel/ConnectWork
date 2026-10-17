@@ -1,3 +1,25 @@
+/**
+ * M0/M5 — API app: middleware, health, AI routes · done
+ *
+ * WHAT THIS ACHIEVES
+ *   The whole HTTP surface of the server: CORS locked to our web origin, a 10 MB
+ *   body limit, privacy-safe request logging, a health check, rate-limited AI routes,
+ *   and a catch-all error handler that never leaks internals.
+ *
+ * HOW IT FITS
+ *   createApp(deps) is a factory so tests can pass a fake Gemini and a temp cache
+ *   (routes/ai.test.ts); index.ts passes defaultDeps() with the real ones.
+ *
+ * HOW IT WAS BUILT
+ *   1. cors({ origin: ALLOWED_ORIGIN }) and bodyLimit(10 MB) on /api/*.
+ *   2. Logging middleware: method, path, status, latency, cache hit/miss — NEVER bodies
+ *      (they contain people's names and notes).
+ *   3. GET /api/health → { ok, model, fallbackModel, tier, cache, aiConfigured }.
+ *   4. 30 requests/minute per IP on /api/ai/* (rateLimit.ts), then the AI routes (routes/ai.ts).
+ *   5. onError → { error: 'internal', message } with 500.
+ *
+ * Guide: §4.3, §9.5
+ */
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { bodyLimit } from 'hono/body-limit';

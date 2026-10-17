@@ -1,3 +1,12 @@
+/**
+ * M3 — Ring picker · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Choosing Close / Regular / Wider with mouse or keyboard: a radio group where
+ *   the arrow keys move between options, as screen readers expect.
+ *
+ * Guide: §7.2
+ */
 import type { Ring } from '@connectwork/shared';
 import { cn } from '@/lib/utils';
 

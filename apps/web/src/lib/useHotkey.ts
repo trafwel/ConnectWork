@@ -1,3 +1,12 @@
+/**
+ * M3 — Single-key shortcuts · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Shortcuts like N for Quick add that never fire while you're typing in a field
+ *   or while a dialog is open.
+ *
+ * Guide: §7.2
+ */
 import { useEffect } from 'react';
 
 function isTyping(target: EventTarget | null): boolean {

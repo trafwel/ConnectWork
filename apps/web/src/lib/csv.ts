@@ -1,3 +1,33 @@
+/**
+ * M4 — CSV import logic · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Solves "nobody will type in 300 contacts": LinkedIn's official Connections.csv
+ *   export (or any CSV with a name column) becomes people on the map, without
+ *   duplicates and without ever overwriting something the user typed. We use the
+ *   official export, not scraping, which would break LinkedIn's terms.
+ *
+ * HOW IT FITS
+ *   ImportDialog reads the file in the browser (nothing is uploaded) → parseCsv →
+ *   planImport against existing people → applyImport (db/actions.ts). M9 reuses
+ *   findMatch to dedupe people read from photos.
+ *
+ * HOW IT WAS BUILT
+ *   1. parseCsv: strip a byte-order mark, find the line that starts with
+ *      "First Name," (LinkedIn puts "Notes:" lines above it), parse from there with
+ *      Papa Parse. No such line → generic CSV with a column-mapping step.
+ *   2. Columns are matched by NAME, case-insensitively — never by position.
+ *   3. parseLinkedInDate turns "15 Oct 2024" into 2024-10-15.
+ *   4. findMatch dedupes by LinkedIn URL (normalized), then name + company, then email.
+ *   5. planImport: new people → toAdd; matches → fill EMPTY fields only;
+ *      duplicates inside the same file collapse.
+ *
+ * DONE WHEN
+ *   - lib/csv.test.ts passes; importing demo/Connections.csv adds 114 people and
+ *     importing it again adds 0.
+ *
+ * Guide: docs/IMPLEMENTATION_GUIDE.md §8.1
+ */
 import Papa from 'papaparse';
 import type { Person, Ring } from '@connectwork/shared';
 

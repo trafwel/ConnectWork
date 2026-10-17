@@ -1,3 +1,12 @@
+/**
+ * M3 — A person's connections · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Shows who this person is connected to (click a name to jump to them) and lets
+ *   the user accept or reject AI-suggested links (M6) right from the card.
+ *
+ * Guide: §7.3
+ */
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';

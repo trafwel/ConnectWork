@@ -1,6 +1,34 @@
-// Generates everything in demo/. Deterministic: same output on every run.
-// All people are fictional. Dates in seed.json and calendar-events.json are
-// stored as offsets from "today" so the demo stays current whenever it loads.
+/**
+ * M1 — Demo data generator (`pnpm seed`) · done
+ *
+ * WHAT THIS ACHIEVES
+ *   A realistic, entirely fictional network that makes every feature demoable
+ *   from the first second: 40 people across three rings, links inside groups,
+ *   overdue reminders, drifting friends, a fake LinkedIn export, a club roster PDF
+ *   and sample meetings. It also plants the demo story: Abbey Chen and John Park
+ *   share a school and Microsoft but are NOT linked, so the AI can discover them.
+ *
+ * HOW IT FITS
+ *   Writes demo/seed.json (loaded on first run by db/seed.ts), demo/Connections.csv
+ *   (M4 import), demo/roster.pdf (M9 snap to add) and demo/calendar-events.json
+ *   (M11 sample meetings).
+ *
+ * HOW IT WAS BUILT
+ *   1. A seeded RNG (mulberry32) so every run produces identical files.
+ *   2. Names from first/last name lists; @example.com emails; LinkedIn URLs ending -demo.
+ *   3. Dates stored as offsets (metDaysAgo, lastContactDaysAgo, dueInDays, dayOffset)
+ *      and converted when the app loads, so "due tomorrow" stays true every day.
+ *   4. Hand-placed story pair, then 38 generated people by ring and tag.
+ *   5. 4 drifting ring-1/2 people, 3 tagged intro, 4 reminders (2 overdue).
+ *   6. 120-row CSV with LinkedIn's real header and "Notes:" preamble; 6 rows
+ *      overlap the seed so re-import dedupe is exercised.
+ *   7. roster.pdf drawn with pdf-lib; calendar meetings with John and Abbey.
+ *
+ * DONE WHEN
+ *   - `pnpm seed` prints the counts and demo/ holds the four files.
+ *
+ * Guide: docs/IMPLEMENTATION_GUIDE.md §5.1
+ */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';

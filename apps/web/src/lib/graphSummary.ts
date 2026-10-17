@@ -1,3 +1,21 @@
+/**
+ * M5 — Network summary sent to the AI · done
+ *
+ * WHAT THIS ACHIEVES
+ *   A compact text view of the network (≈ 70 lines / 2.5k tokens for 40 people)
+ *   that the model can read reliably. Notes are deliberately left out of queries:
+ *   privacy by default.
+ *
+ * HOW IT WAS BUILT
+ *   P|id|name|ring|tag|tags|company|role|school|lastContact|metAt per person,
+ *   L lines for accepted links, R lines for open reminders; pipes and newlines in
+ *   fields are flattened so a name can't break the format.
+ *
+ * DONE WHEN
+ *   - lib/graphSummary.test.ts passes (notes excluded, only accepted links and open reminders).
+ *
+ * Guide: §9.2
+ */
 import type { Link, Person, Reminder } from '@connectwork/shared';
 
 /** Pipes and newlines would break the line format, so they are flattened. */

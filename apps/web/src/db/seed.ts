@@ -1,3 +1,28 @@
+/**
+ * M1 — Seeding, reset, delete, export, import · done
+ *
+ * WHAT THIS ACHIEVES
+ *   First load shows a full demo network; Settings can reset it, wipe everything,
+ *   or back it up to a JSON file and restore it.
+ *
+ * HOW IT FITS
+ *   App.tsx calls ensureSeeded() on mount; SettingsDialog calls the rest.
+ *
+ * HOW IT WAS BUILT
+ *   1. ensureSeeded(): if meta.seeded is missing, write default tags + seed in one
+ *      transaction and set meta.seeded. The promise is memoized because React
+ *      StrictMode runs effects twice in development.
+ *   2. resetDemoData(): clear every table and seed again.
+ *   3. deleteEverything(): clear, re-add default tags, and KEEP meta.seeded so the
+ *      demo doesn't come back on reload.
+ *   4. exportAll() / importBackup(): { app: 'connectwork', version: 1, data } with an
+ *      app check before replacing anything.
+ *
+ * DONE WHEN
+ *   - 40 people on first load; reload keeps them; Delete → 0 after reload; Reset → 40.
+ *
+ * Guide: §5.3
+ */
 import seed from '../../../../demo/seed.json';
 import { DEFAULT_TAGS } from '@/lib/colors';
 import { materializeSeed } from './materialize';

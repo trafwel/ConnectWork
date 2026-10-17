@@ -1,3 +1,12 @@
+/**
+ * M5 — Rate limit for AI routes · done
+ *
+ * WHAT THIS ACHIEVES
+ *   Protects our Gemini quota and costs: at most 30 AI requests per minute per IP.
+ *   In memory, which is enough for one small server.
+ *
+ * Guide: §9.5
+ */
 import type { MiddlewareHandler } from 'hono';
 
 /** Fixed-window limit per client IP. In memory: fine for one small server. */
