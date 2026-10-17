@@ -15,10 +15,15 @@ interface Props {
   from: { x: number; y: number };
   to: { x: number; y: number };
   dimmed: boolean;
+  /** 'focus' = touches the selected person; 'faint' = someone is selected but this link isn't theirs. */
+  emphasis?: 'normal' | 'focus' | 'faint';
 }
 
-export function LinkLine({ link, from, to, dimmed }: Props) {
+export function LinkLine({ link, from, to, dimmed, emphasis = 'normal' }: Props) {
   const suggested = link.status === 'suggested';
+  const baseOpacity = suggested ? 0.9 : T.linkOpacity;
+  const opacity = emphasis === 'focus' ? 1 : emphasis === 'faint' ? 0.07 : dimmed ? 0.06 : baseOpacity;
+  const width = emphasis === 'focus' ? (suggested ? 2.2 : 2) : suggested ? 1.6 : T.linkWidth;
   return (
     <line
       x1={from.x}
@@ -26,10 +31,10 @@ export function LinkLine({ link, from, to, dimmed }: Props) {
       x2={to.x}
       y2={to.y}
       stroke={suggested ? T.suggestedLink : T.link}
-      strokeWidth={suggested ? 1.6 : T.linkWidth}
+      strokeWidth={width}
       strokeDasharray={suggested ? T.suggestedDash : undefined}
-      opacity={dimmed ? 0.06 : suggested ? 0.9 : T.linkOpacity}
-      style={{ transition: 'opacity 200ms' }}
+      opacity={opacity}
+      style={{ transition: 'opacity 200ms, stroke-width 200ms' }}
     >
       {link.label ? <title>{link.label}</title> : null}
     </line>

@@ -21,6 +21,9 @@
  *   4. d3-zoom on the <svg> (0.5–3×, double-click zoom off); a Reset view button
  *      appears when zoomed or panned. Clicking empty space clears the selection.
  *   5. A tag-color legend in the corner.
+ *   6. Focus: selecting a person pans them to the center (smooth, keeps the zoom,
+ *      instant with reduced motion) once the layout matches the new map size; their
+ *      links turn bold, all other links fade, and connected people show their names.
  *
  * DONE WHEN
  *   - Zoom, pan, click-to-open, reset view and keyboard selection all work.
@@ -29,7 +32,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { select } from 'd3-selection';
-import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
+import { zoom as d3zoom, zoomIdentity, zoomTransform, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
 import { Maximize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Link, Person, Ring, Tag } from '@connectwork/shared';
@@ -82,7 +85,8 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
   const selectPerson = useStore((s) => s.selectPerson);
   const clearFocus = useStore((s) => s.clearFocus);
 
-  const positions = useForceLayout(people, links, width, height, offsetFor);
+  const layout = useForceLayout(people, links, width, height, offsetFor);
+  const positions = layout.positions;
   const g = geometry(width, height);
   // Contour radii between the rings; skip ones that would sit on a ring line.
   const contours = useMemo(() => {
@@ -141,6 +145,36 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
   );
   const dimmedIds = useMemo(() => new Set(people.filter(isDimmed).map((p) => p.id)), [people, isDimmed]);
 
+  // People directly connected to the selected person (their links get emphasized).
+  const neighborIds = useMemo(() => {
+    const out = new Set<string>();
+    if (!selectedId) return out;
+    for (const l of links) {
+      if (l.fromId === selectedId) out.add(l.toId);
+      else if (l.toId === selectedId) out.add(l.fromId);
+    }
+    return out;
+  }, [links, selectedId]);
+
+  // Bring the selected person to the center, once per selection and map size.
+  // (Opening the card narrows the map, so the layout settles first, then we pan.)
+  const centeredFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedId) {
+      centeredFor.current = null;
+      return;
+    }
+    // Wait until the layout has been recomputed for the current map size.
+    if (layout.width !== width || layout.height !== height) return;
+    const key = `${selectedId}|${width}x${height}`;
+    const pos = positions.get(selectedId);
+    const svg = svgRef.current;
+    const zoomBehavior = zoomRef.current;
+    if (!pos || !svg || !zoomBehavior || centeredFor.current === key) return;
+    centeredFor.current = key;
+    panTo(svg, zoomBehavior, pos, width, height);
+  }, [selectedId, positions, layout.width, layout.height, width, height]);
+
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden">
       <svg
@@ -172,7 +206,17 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
               const a = positions.get(l.fromId);
               const b = positions.get(l.toId);
               if (!a || !b) return null;
-              return <LinkLine key={l.id} link={l} from={a} to={b} dimmed={dimmedIds.has(l.fromId) || dimmedIds.has(l.toId)} />;
+              const emphasis = !selectedId ? 'normal' : l.fromId === selectedId || l.toId === selectedId ? 'focus' : 'faint';
+              return (
+                <LinkLine
+                  key={l.id}
+                  link={l}
+                  from={a}
+                  to={b}
+                  dimmed={dimmedIds.has(l.fromId) || dimmedIds.has(l.toId)}
+                  emphasis={emphasis}
+                />
+              );
             })}
           </g>
 
@@ -201,6 +245,7 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                   selected={selectedId === p.id}
                   highlighted={highlightIds.has(p.id)}
                   dimmed={dimmedIds.has(p.id)}
+                  neighbor={neighborIds.has(p.id)}
                   onSelect={selectPerson}
                 />
               );
@@ -264,4 +309,38 @@ function Legend({ tags }: { tags: Tag[] }) {
       </ul>
     </div>
   );
+}
+
+/**
+ * Smoothly pans (keeping the current zoom) so `pos` sits at the center of the map.
+ * Uses a short requestAnimationFrame tween instead of d3-transition (no extra
+ * dependency); honors prefers-reduced-motion by jumping straight there.
+ */
+function panTo(
+  svg: SVGSVGElement,
+  behavior: ZoomBehavior<SVGSVGElement, unknown>,
+  pos: { x: number; y: number },
+  width: number,
+  height: number,
+) {
+  const from = zoomTransform(svg);
+  const k = from.k;
+  const to = { x: width / 2 - k * pos.x, y: height / 2 - k * pos.y };
+  const apply = (x: number, y: number) => select(svg).call(behavior.transform, zoomIdentity.translate(x, y).scale(k));
+
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion || document.hidden) {
+    apply(to.x, to.y);
+    return;
+  }
+  const duration = 450;
+  const start = performance.now();
+  const ease = (t: number) => 1 - (1 - t) ** 3; // ease-out cubic
+  const step = (now: number) => {
+    const t = Math.min(1, (now - start) / duration);
+    const e = ease(t);
+    apply(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }

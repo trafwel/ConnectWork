@@ -35,14 +35,16 @@ interface Props {
   selected: boolean;
   highlighted: boolean;
   dimmed: boolean;
+  /** Connected to the selected person: always show the name. */
+  neighbor?: boolean;
   onSelect: (id: string) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimmed, onSelect }: Props) {
+function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimmed, neighbor = false, onSelect }: Props) {
   const [hover, setHover] = useState(false);
   const r = NODE_RADIUS[person.ring];
   const showLabel =
-    person.ring === 1 || selected || highlighted || hover || (person.ring === 2 && zoom >= 1.3) || (person.ring === 3 && zoom >= 2.2);
+    person.ring === 1 || selected || highlighted || neighbor || hover || (person.ring === 2 && zoom >= 1.3) || (person.ring === 3 && zoom >= 2.2);
 
   return (
     <g

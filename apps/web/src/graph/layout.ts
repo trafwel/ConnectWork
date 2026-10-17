@@ -81,6 +81,13 @@ interface Node extends SimulationNodeDatum {
 
 export type Positions = Map<string, { x: number; y: number }>;
 
+/** Positions plus the map size they were computed for (so callers can tell a stale layout). */
+export interface Layout {
+  positions: Positions;
+  width: number;
+  height: number;
+}
+
 /**
  * Runs a d3-force simulation that pins each person to their ring radius
  * (plus an optional outward offset, used for drift) and pulls same-tag
@@ -93,8 +100,8 @@ export function useForceLayout(
   width: number,
   height: number,
   offsetFor: (p: Person) => number = () => 0,
-): Positions {
-  const [positions, setPositions] = useState<Positions>(new Map());
+): Layout {
+  const [layout, setLayout] = useState<Layout>({ positions: new Map(), width: 0, height: 0 });
   const simRef = useRef<Simulation<Node, SimulationLinkDatum<Node>> | null>(null);
   const nodesRef = useRef<Map<string, Node>>(new Map());
   const offsetRef = useRef(offsetFor);
@@ -150,8 +157,8 @@ export function useForceLayout(
     // Nodes animate between layouts with a CSS transition instead.
     sim.tick(Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay())));
     simRef.current = sim;
-    setPositions(new Map(nodes.map((n) => [n.id, { x: n.x ?? g.cx, y: n.y ?? g.cy }])));
+    setLayout({ positions: new Map(nodes.map((n) => [n.id, { x: n.x ?? g.cx, y: n.y ?? g.cy }])), width, height });
   }, [people, links, width, height]);
 
-  return positions;
+  return layout;
 }
