@@ -1,148 +1,107 @@
 /**
- * M3 — Every write to the database · done (applyImport added in M4)
+ * M3 — Every write to the database · Owner: Person B · ~1 h (applyImport in M4)
  *
  * WHAT THIS ACHIEVES
  *   One place that enforces the app's data rules, so no component can break them:
- *   links are stored once per pair, logging contact always records history, deleting
- *   a person cleans up after them, and imports never overwrite what the user typed.
+ *   links are stored once per pair, logging contact always records history,
+ *   deleting a person cleans up after them, and imports never overwrite what the
+ *   user typed.
  *
  * HOW IT FITS
- *   Components and AI flows call these functions; they never call db.* to write.
+ *   Components and AI flows call these functions; nothing else calls db.*.put/add/delete.
+ *   Reads stay in components (useLiveQuery).
  *
- * HOW IT WAS BUILT
- *   1. addPerson: new id, primaryTag included in tags, lastContact = today.
- *   2. updatePerson: keeps primaryTag inside tags; creates unknown tags (gray);
- *      gaining a 'follow-up' tag schedules a 7-day reminder if none is open.
- *   3. deletePerson: also removes their links, reminders and contact logs.
- *   4. logContact: writes a ContactLog AND updates lastContact (drift resets).
- *   5. upsertLink: normalizes fromId < toId and never downgrades an accepted link
- *      back to suggested.
- *   6. applyImport (M4): one transaction; ring 3 by default; returns new ids.
+ * STEPS
+ *   1. addPerson(input): build a Person with defaults — tags [primaryTag], source 'manual',
+ *      lastContact today() — then the input, then id (input.id ?? newId('p')), trimmed name,
+ *      createdAt now. db.people.add(person); return it.
+ *   2. updatePerson(id, patch), in ONE transaction over people, tags, reminders:
+ *      a. merge patch into the stored person; if primaryTag changed, make sure it's in tags;
+ *      b. any tag name that doesn't exist in db.tags yet → put { name, color: FALLBACK_COLOR, behavior: 'none' };
+ *      c. if the person GAINED a tag whose behavior is 'follow-up' and has no open reminder,
+ *         addReminder(id, today + 7 days, 'Follow up').
+ *   3. deletePerson(id): one transaction — delete the person, their links
+ *      (where('fromId').equals(id).or('toId').equals(id)), reminders and contact logs.
+ *   4. logContact(personId, kind = 'other', note?): one transaction — add a ContactLog
+ *      { id: newId('c'), personId, date: today(), kind, note } AND set lastContact = today().
+ *      (Always both: drift reads lastContact, history reads the logs.)
+ *   5. Reminders: addReminder(personId, dueDate, note) (note defaults to "Follow up"),
+ *      setReminderDone(id, done), snoozeReminder(id, days = 7) (due = today + days),
+ *      deleteReminder(id).
+ *   6. Links are undirected: normalizeLink(a, b) returns [smaller, larger].
+ *      upsertLink(a, b, { source, status, label? }): skip self-links; find the existing
+ *      pair; NEVER downgrade an accepted link back to 'suggested'; otherwise update or add
+ *      with id newId('l'). acceptLink(id) sets status 'accepted'; removeLink(id) deletes.
+ *   7. (M4) applyImport(plan, source, defaultTag): build Person rows for plan.toAdd —
+ *      ring = draft.ring ?? 3, tags = draft.tags or [defaultTag], primaryTag = tags[0],
+ *      lastContact = draft.metAt, the given source — then in ONE transaction bulkAdd them,
+ *      apply plan.toUpdate patches, and create any unknown tags. Return the new ids
+ *      (M6 "Sort with AI" sorts exactly those).
+ *
+ * DONE WHEN
+ *   - Quick add, card edits, reminders, links and delete all persist after reload, and
+ *     adding the follow-up tag creates a 7-day reminder.
  *
  * Guide: §7.1
  */
 import type { Link, Person, Reminder, Ring } from '@connectwork/shared';
-import { FALLBACK_COLOR } from '@/lib/colors';
-import { addDays, isoDate, today } from '@/lib/dates';
-import { newId } from '@/lib/ids';
-import { db } from './db';
 
-export async function addPerson(input: { name: string; ring: Ring; primaryTag: string } & Partial<Person>): Promise<Person> {
-  const person: Person = {
-    tags: [input.primaryTag],
-    source: 'manual',
-    lastContact: today(),
-    ...input,
-    id: input.id ?? newId('p'),
-    name: input.name.trim(),
-    createdAt: new Date().toISOString(),
-  };
-  await db.people.add(person);
-  return person;
+export async function addPerson(_input: { name: string; ring: Ring; primaryTag: string } & Partial<Person>): Promise<Person> {
+  // TODO(M3) step 1
+  throw new Error('TODO(M3): addPerson is not implemented yet');
 }
 
-export async function updatePerson(id: string, patch: Partial<Omit<Person, 'id'>>) {
-  await db.transaction('rw', [db.people, db.tags, db.reminders], async () => {
-    const before = await db.people.get(id);
-    if (!before) return;
-    const next = { ...before, ...patch };
-    if (patch.primaryTag && !next.tags.includes(patch.primaryTag)) next.tags = [patch.primaryTag, ...next.tags];
-    await db.people.put(next);
-
-    // Unknown tag names become new tags so they get a color and show in filters.
-    for (const name of next.tags) {
-      if (!(await db.tags.get(name))) await db.tags.put({ name, color: FALLBACK_COLOR, behavior: 'none' });
-    }
-
-    // Adding a follow-up tag schedules a reminder if none is open.
-    const followUps = (await db.tags.toArray()).filter((t) => t.behavior === 'follow-up').map((t) => t.name);
-    const gainedFollowUp = next.tags.some((t) => followUps.includes(t) && !before.tags.includes(t));
-    if (gainedFollowUp) {
-      const open = await db.reminders.where('personId').equals(id).filter((r) => !r.done).count();
-      if (!open) await addReminder(id, isoDate(addDays(new Date(), 7)), 'Follow up');
-    }
-  });
+export async function updatePerson(_id: string, _patch: Partial<Omit<Person, 'id'>>): Promise<void> {
+  // TODO(M3) step 2
 }
 
-export async function deletePerson(id: string) {
-  await db.transaction('rw', [db.people, db.links, db.reminders, db.contactLogs], async () => {
-    await db.people.delete(id);
-    await db.links.where('fromId').equals(id).or('toId').equals(id).delete();
-    await db.reminders.where('personId').equals(id).delete();
-    await db.contactLogs.where('personId').equals(id).delete();
-  });
+export async function deletePerson(_id: string): Promise<void> {
+  // TODO(M3) step 3
 }
 
-/** Records real contact: always writes a ContactLog alongside lastContact. */
-export async function logContact(personId: string, kind: 'meeting' | 'message' | 'other' = 'other', note?: string) {
-  const date = today();
-  await db.transaction('rw', [db.people, db.contactLogs], async () => {
-    await db.contactLogs.add({ id: newId('c'), personId, date, kind, note });
-    await db.people.update(personId, { lastContact: date });
-  });
+export async function logContact(_personId: string, _kind: 'meeting' | 'message' | 'other' = 'other', _note?: string): Promise<void> {
+  // TODO(M3) step 4
 }
 
-export async function addReminder(personId: string, dueDate: string, note: string): Promise<Reminder> {
-  const reminder: Reminder = { id: newId('r'), personId, dueDate, note: note.trim() || 'Follow up', done: false };
-  await db.reminders.add(reminder);
-  return reminder;
+export async function addReminder(_personId: string, _dueDate: string, _note: string): Promise<Reminder> {
+  // TODO(M3) step 5
+  throw new Error('TODO(M3): addReminder is not implemented yet');
 }
 
-export const setReminderDone = (id: string, done: boolean) => db.reminders.update(id, { done });
-export const snoozeReminder = async (id: string, days = 7) => {
-  const r = await db.reminders.get(id);
-  if (r) await db.reminders.update(id, { dueDate: isoDate(addDays(new Date(), days)) });
-};
-export const deleteReminder = (id: string) => db.reminders.delete(id);
+export async function setReminderDone(_id: string, _done: boolean): Promise<void> {
+  // TODO(M3) step 5
+}
 
-/** Links are undirected and stored with fromId < toId. */
+export async function snoozeReminder(_id: string, _days = 7): Promise<void> {
+  // TODO(M3) step 5
+}
+
+export async function deleteReminder(_id: string): Promise<void> {
+  // TODO(M3) step 5
+}
+
 export function normalizeLink(a: string, b: string): [string, string] {
-  return a < b ? [a, b] : [b, a];
+  // TODO(M3) step 6
+  return [a, b];
 }
 
-export async function upsertLink(a: string, b: string, data: Pick<Link, 'source' | 'status'> & { label?: string }) {
-  const [fromId, toId] = normalizeLink(a, b);
-  if (fromId === toId) return;
-  const existing = await db.links.where({ fromId }).filter((l) => l.toId === toId).first();
-  if (existing) {
-    // Never downgrade an accepted link back to suggested.
-    if (existing.status === 'accepted' && data.status === 'suggested') return;
-    await db.links.update(existing.id, { ...data, label: data.label ?? existing.label });
-  } else {
-    await db.links.add({ id: newId('l'), fromId, toId, ...data });
-  }
+export async function upsertLink(_a: string, _b: string, _data: Pick<Link, 'source' | 'status'> & { label?: string }): Promise<void> {
+  // TODO(M3) step 6
 }
 
-export const acceptLink = (id: string) => db.links.update(id, { status: 'accepted' });
-export const removeLink = (id: string) => db.links.delete(id);
+export async function acceptLink(_id: string): Promise<void> {
+  // TODO(M3) step 6
+}
 
-/** Writes an import plan in one transaction. New people land in ring 3 unless the file says otherwise. */
+export async function removeLink(_id: string): Promise<void> {
+  // TODO(M3) step 6
+}
+
 export async function applyImport(
-  plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
-  source: Person['source'],
-  defaultTag: string,
+  _plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
+  _source: Person['source'],
+  _defaultTag: string,
 ): Promise<string[]> {
-  const createdAt = new Date().toISOString();
-  const people: Person[] = plan.toAdd.map((d) => {
-    const tags = d.tags?.length ? d.tags : [defaultTag];
-    return {
-      ...d,
-      id: newId('p'),
-      name: d.name.trim(),
-      ring: d.ring ?? 3,
-      primaryTag: tags[0]!,
-      tags,
-      lastContact: d.lastContact ?? d.metAt,
-      source,
-      createdAt,
-    };
-  });
-  await db.transaction('rw', [db.people, db.tags], async () => {
-    await db.people.bulkAdd(people);
-    for (const u of plan.toUpdate) await db.people.update(u.id, u.patch);
-    for (const name of new Set(people.flatMap((p) => p.tags))) {
-      if (!(await db.tags.get(name))) await db.tags.put({ name, color: FALLBACK_COLOR, behavior: 'none' });
-    }
-  });
-  return people.map((p) => p.id);
+  // TODO(M4) step 7
+  return [];
 }

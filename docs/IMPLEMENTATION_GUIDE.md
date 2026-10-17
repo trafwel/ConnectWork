@@ -2,12 +2,14 @@
 
 The complete, step-by-step guide for building Connectwork for DubHacks '26: from an empty folder to a deployed, submitted app. Each milestone lists the commands to run, the files to create or change, the key code, how to test it, and what "done" means.
 
-**Where we are (Sat Oct 17):** M0–M5 are built, tested against the real Gemini API, and committed. M6–M14 are still to do.
+**Where we are (Sat Oct 17):** M0 is built (workspace, server health route, web shell). **Everything from M1 on is ours to build**: every file already exists as a scaffold — final name and signatures, a header explaining what it achieves and how it fits, numbered steps with code hints, and `TODO(M#)` markers. Each milestone's tests are written and skipped; unskip them when you finish it. `pnpm todo` lists every open step.
+
+> An earlier prototype of M1–M6 was built and live-tested, then reverted to scaffolds so we can write it ourselves. Its lessons are kept in section 10 and in the file comments.
 
 | Part | Sections |
 | --- | --- |
 | Ground rules, setup, accounts, plan, **scaffold file map** | 0–3 |
-| Built: scaffold → AI query (M0–M5) | 4–9 |
+| Scaffold (built) and M1–M5 (to do: data → map → card → import → AI query) | 4–9 |
 | What live Gemini testing taught us | 10 |
 | To build (M6–M14, plus the theme) | 11–21 |
 | Side tracks: VEYZL, Photon texting agent, Backboard (M15–M17) | 22–24 |
@@ -73,7 +75,7 @@ pnpm seed                  # regenerates demo/ (fictional people only)
 pnpm dev                   # web on :5173, API on :8787
 ```
 
-Open http://localhost:5173: the ring map with 40 sample people, and a yellow "Demo mode" banner (Gemini free tier). `curl localhost:8787/api/health` should report `"aiConfigured": true` once the key is in `.env`.
+Open http://localhost:5173: at M0 you'll see "Connectwork" and "Server ok · gemini-3.8-flash · free tier". After M1–M2 it becomes the ring map with 40 sample people. `curl localhost:8787/api/health` should return `{"ok":true,…}`.
 
 ### 1.3 Environment variables
 
@@ -143,11 +145,11 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | # | Milestone | Owner | Est. | Status / depends on |
 | --- | --- | --- | --- | --- |
 | M0 | Scaffold monorepo | — | — | done |
-| M1 | Local DB, demo data, seeding | — | — | done |
-| M2 | Ring map | — | — | done |
-| M3 | Quick add + person card | — | — | done |
-| M4 | CSV import | — | — | done |
-| M5 | AI query (live-tested) | — | — | done |
+| M1 | Local DB, demo data, seeding | B (+A store/settings) | 2.5 h | M0 |
+| M2 | Ring map | A | 3 h | M1 |
+| M3 | Quick add + person card | A (+B actions) | 3 h | M2 |
+| M4 | CSV import | B (+A dialog) | 2.5 h | M3 actions |
+| M5 | AI query (Gemini) | B (+A answer card) | 3 h | M1, Gemini key |
 | M15 | **VEYZL: connect + audit every PR** | either | 15 min setup, then per PR | **do first** — before M6 |
 | R | Route refactor | B | 20 min | before M6 |
 | M6 | AI auto-sort + hidden links | B | 2 h | R |
@@ -164,7 +166,7 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | M16 | Photon texting agent | B (+A UI) | 3 h | R, M6 (reuses query flow); Photon beta |
 | M17 | Backboard agent memory | B | 45 min | M16 |
 
-In parallel: **A** does M7 → T → M10 → M13 → M14; **B** does R → M6 → M8 → M16 → M17 → M9 → M11 → M12. M15 (VEYZL) is set up first by either of us and then runs on every PR. If time gets short, M16 (Photon) beats M9/M11 for prize value — it's a sponsored track with a concrete "live on a Photon channel" bar.
+Order: M1 → M5 first (both of us, split as in the table), then in parallel: **A** does M7 → T → M10 → M13 → M14; **B** does R → M6 → M8 → M16 → M17 → M9 → M11 → M12. M15 (VEYZL) is set up first by either of us and then runs on every PR. If time gets short, M16 (Photon) beats M9/M11 for prize value — it's a sponsored track with a concrete "live on a Photon channel" bar.
 
 ---
 
@@ -263,7 +265,7 @@ pnpm --filter @connectwork/web add -D vite @vitejs/plugin-react tailwindcss @tai
 
 ---
 
-## 5. M1 — Local database, demo data, seeding · done
+## 5. M1 — Local database, demo data, seeding · to do
 
 **Goal:** all user data lives in IndexedDB. First load fills it with a realistic fictional network; Settings can export, import, reset and delete.
 
@@ -311,7 +313,7 @@ Tables and indexes per SPEC.md §6; export a `TABLES` list so export/clear loop 
 
 ---
 
-## 6. M2 — The ring map · done
+## 6. M2 — The ring map · to do
 
 ```bash
 pnpm --filter @connectwork/web add d3-force d3-zoom d3-selection framer-motion
@@ -361,7 +363,7 @@ setPositions(new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }])));
 
 ---
 
-## 7. M3 — Quick add and person card · done
+## 7. M3 — Quick add and person card · to do
 
 ### 7.1 Data actions — `db/actions.ts` (every write goes through here)
 
@@ -388,7 +390,7 @@ Right panel. Inline-editable name; Company/Role/School/Email/LinkedIn save on bl
 
 ---
 
-## 8. M4 — CSV import · done
+## 8. M4 — CSV import · to do
 
 ```bash
 pnpm --filter @connectwork/web add papaparse
@@ -417,7 +419,7 @@ Columns are matched by name, never position.
 
 ---
 
-## 9. M5 — AI query with Gemini · done, live-tested
+## 9. M5 — AI query with Gemini · to do
 
 **Goal:** "Who do I know at Microsoft?" → a short answer with exactly the right people highlighted.
 
@@ -489,7 +491,7 @@ Explains the line format, then rules: at most two sentences to "you"; every refe
 
 ---
 
-## 10. What live Gemini testing taught us (Oct 17)
+## 10. What live Gemini testing taught us (Oct 17, earlier prototype)
 
 | Question (seed data) | Result | Notes |
 | --- | --- | --- |

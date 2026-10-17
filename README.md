@@ -14,10 +14,10 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 
 | Feature | Status |
 | --- | --- |
-| Ring map: three rings, tag clusters, level of detail, pan/zoom, keyboard access | ✅ |
-| Quick add (press `N`) and an editable person card with notes, tags, reminders, links | ✅ |
-| LinkedIn `Connections.csv` import (and any CSV), with de-duplication | ✅ |
-| Ask in plain English ("Who do I know at Microsoft?") — answers light up on the map | ✅ |
+| Ring map: three rings, tag clusters, level of detail, pan/zoom, keyboard access | 🚧 M2 |
+| Quick add (press `N`) and an editable person card with notes, tags, reminders, links | 🚧 M3 |
+| LinkedIn `Connections.csv` import (and any CSV), with de-duplication | 🚧 M4 |
+| Ask in plain English ("Who do I know at Microsoft?") — answers light up on the map | 🚧 M5 |
 | AI auto-sort of imported contacts into rings and tags | 🚧 M6 |
 | AI "hidden links": people you know who should know each other | 🚧 M6 |
 | Reminder flags, filters, calendar export (.ics) | 🚧 M7 |
@@ -52,7 +52,7 @@ pnpm seed                # generate fictional demo data
 pnpm dev                 # app on http://localhost:5173, API on :8787
 ```
 
-The app loads a sample network of 40 fictional people on first run. Try:
+Right now the app is at **M0**: it shows "Server ok". Every later file is a scaffold with step-by-step comments — run `pnpm todo` to see what's next. Once M1–M5 are built, the app loads a sample network of 40 fictional people on first run. Then try:
 
 1. Press **N** to add someone.
 2. **Import** → `demo/Connections.csv` (a fake LinkedIn export).

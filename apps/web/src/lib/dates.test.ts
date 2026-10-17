@@ -1,7 +1,11 @@
+// ACCEPTANCE TESTS for M1 (lib/dates.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { describe, expect, it } from 'vitest';
 import { addDays, daysSince, isoDate } from './dates';
 
-describe('dates', () => {
+describe.skip('dates', () => {
   it('formats local dates as YYYY-MM-DD', () => {
     expect(isoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
   });

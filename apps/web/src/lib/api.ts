@@ -1,44 +1,29 @@
 /**
- * M5 — Browser API client · done
+ * M5 — Browser API client · Owner: Person B · ~30 min
  *
  * WHAT THIS ACHIEVES
  *   Every call to the server returns a typed result — { ok: true, data } or
  *   { ok: false, error, message } — so components never deal with thrown network
  *   errors, HTTP codes or unvalidated JSON.
  *
- * HOW IT WAS BUILT
- *   1. post(): fetch, then validate the body with the endpoint's zod schema.
- *   2. Network failure → "Can't reach the Connectwork server" (M12 adds an offline
- *      cache lookup here).
- *   3. Step R adds aiPost(path, body, schema) for the new endpoints.
+ * STEPS
+ *   1. const BASE = import.meta.env.VITE_API_BASE ?? '/api';
+ *   2. post<T>(path, body, schema):
+ *      a. fetch POST with content-type JSON; a thrown fetch (server down) →
+ *         { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." }
+ *         (M12: look the reply up in the offline cache here first.)
+ *      b. Parse JSON (catch → null). Not res.ok → ApiErrorBody.safeParse(json): success →
+ *         { ok: false, ...error }; else 'rate_limited' for 429 or 'internal'.
+ *      c. schema.safeParse(json): success → { ok: true, data }; else 'bad_ai_response'.
+ *   3. askQuery(question, summary) = post('/ai/query', { question, summary }, QueryResponse).
+ *   4. getHealth(): GET `${BASE}/health`, return the JSON or null on any error.
+ *   5. (Step R) aiPost(path, body, schema) = post(`/ai${path}`, body, schema) for M6+ endpoints.
  *
  * Guide: §9.6
  */
-import { ApiErrorBody, QueryResponse } from '@connectwork/shared';
-
-const BASE = import.meta.env.VITE_API_BASE ?? '/api';
+import type { ApiErrorBody, QueryResponse } from '@connectwork/shared';
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiErrorBody['error']; message: string };
-
-async function post<T>(path: string, body: unknown, schema: { safeParse: (v: unknown) => { success: boolean; data?: T } }): Promise<ApiResult<T>> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  } catch {
-    return { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." };
-  }
-  const json: unknown = await res.json().catch(() => null);
-  if (!res.ok) {
-    const err = ApiErrorBody.safeParse(json);
-    return err.success
-      ? { ok: false, ...err.data }
-      : { ok: false, error: res.status === 429 ? 'rate_limited' : 'internal', message: 'Something went wrong. Try again.' };
-  }
-  const parsed = schema.safeParse(json);
-  return parsed.success ? { ok: true, data: parsed.data as T } : { ok: false, error: 'bad_ai_response', message: 'The AI gave an unusable answer.' };
-}
-
-export const askQuery = (question: string, summary: string) => post('/ai/query', { question, summary }, QueryResponse);
 
 export interface Health {
   ok: boolean;
@@ -48,11 +33,12 @@ export interface Health {
   aiConfigured: boolean;
 }
 
+export async function askQuery(_question: string, _summary: string): Promise<ApiResult<QueryResponse>> {
+  // TODO(M5) steps 1–3
+  return { ok: false, error: 'internal', message: 'TODO(M5): askQuery is not implemented yet' };
+}
+
 export async function getHealth(): Promise<Health | null> {
-  try {
-    const res = await fetch(`${BASE}/health`);
-    return res.ok ? ((await res.json()) as Health) : null;
-  } catch {
-    return null;
-  }
+  // TODO(M5) step 4
+  return null;
 }

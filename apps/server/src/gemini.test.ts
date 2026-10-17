@@ -1,10 +1,14 @@
+// ACCEPTANCE TESTS for M5 (gemini.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { ApiError } from '@google/genai';
 import { describe, expect, it, vi } from 'vitest';
 import { AiError, isRetryable, withFallback } from './gemini';
 
 const apiError = (status: number) => new ApiError({ message: `HTTP ${status}`, status });
 
-describe('isRetryable', () => {
+describe.skip('isRetryable', () => {
   it('retries overload, deadline, rate limit and timeouts', () => {
     for (const status of [429, 500, 503, 504]) expect(isRetryable(apiError(status))).toBe(true);
     expect(isRetryable(new Error('Request timed out'))).toBe(true);
@@ -16,7 +20,7 @@ describe('isRetryable', () => {
   });
 });
 
-describe('withFallback', () => {
+describe.skip('withFallback', () => {
   const quiet = () => {};
 
   it('returns the primary result without touching the fallback', async () => {

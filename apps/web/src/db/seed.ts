@@ -1,107 +1,65 @@
 /**
- * M1 — Seeding, reset, delete, export, import · done
+ * M1 — Seeding, reset, delete, export, import · Owner: Person B · ~40 min
  *
  * WHAT THIS ACHIEVES
  *   First load shows a full demo network; Settings can reset it, wipe everything,
- *   or back it up to a JSON file and restore it.
+ *   or back it up to a JSON file and restore it — the user stays in control of
+ *   their data.
  *
  * HOW IT FITS
  *   App.tsx calls ensureSeeded() on mount; SettingsDialog calls the rest.
+ *   Default tags come from lib/colors.ts; offsets → dates from db/materialize.ts.
  *
- * HOW IT WAS BUILT
- *   1. ensureSeeded(): if meta.seeded is missing, write default tags + seed in one
- *      transaction and set meta.seeded. The promise is memoized because React
- *      StrictMode runs effects twice in development.
- *   2. resetDemoData(): clear every table and seed again.
- *   3. deleteEverything(): clear, re-add default tags, and KEEP meta.seeded so the
- *      demo doesn't come back on reload.
- *   4. exportAll() / importBackup(): { app: 'connectwork', version: 1, data } with an
- *      app check before replacing anything.
+ * STEPS
+ *   1. import seed from '../../../../demo/seed.json' (Vite bundles JSON).
+ *   2. writeSeed(): ONE transaction over people, links, reminders, tags, meta:
+ *        bulkPut DEFAULT_TAGS, the materialized people/links/reminders, then
+ *        meta.put({ key: 'seeded', value: true }).
+ *   3. ensureSeeded(): if meta 'seeded' exists → return; else writeSeed().
+ *      MEMOIZE the promise in a module variable (`seeding ??= (async () => …)()`):
+ *      React StrictMode runs effects twice in development and would seed twice.
+ *   4. clearAll(): one transaction over every table in TABLES, clear each.
+ *   5. resetDemoData(): read the user's settings first (meta keys 'userContext',
+ *      'driftThresholds', 'relayToken'), clearAll(), writeSeed(), put the settings back.
+ *   6. deleteEverything(): clearAll(), re-add DEFAULT_TAGS, and KEEP meta 'seeded' = true
+ *      so the demo doesn't come back on reload.
+ *   7. exportAll(): read every table into { app: 'connectwork', version: 1,
+ *      exportedAt, data: { tableName: rows } } and return it as a JSON Blob.
+ *   8. importBackup(file): JSON.parse(await file.text()); refuse unless app === 'connectwork'
+ *      and data exists; clearAll(); bulkPut each table's rows in one transaction.
+ *   9. (Theme step T) syncDefaultTagColors(): when a theme changes DEFAULT_TAGS, browsers
+ *      that seeded earlier keep old colors. On startup, for each default tag name whose
+ *      color/behavior differs, put the new one. Never touch custom tags.
  *
  * DONE WHEN
- *   - 40 people on first load; reload keeps them; Delete → 0 after reload; Reset → 40.
+ *   - 40 people on first load; reload keeps them; Delete everything → 0 after reload;
+ *     Reset demo data → 40 again, with "About you" kept; export → import round-trips.
  *
  * Guide: §5.3
  */
-import seed from '../../../../demo/seed.json';
-import { DEFAULT_TAGS } from '@/lib/colors';
-import { materializeSeed } from './materialize';
-import type { Table } from 'dexie';
-import { db, TABLES } from './db';
 
-/**
- * Theme changes update DEFAULT_TAGS, but browsers that seeded earlier keep the
- * old colors in IndexedDB. Refresh color and behavior for the default tag names
- * only; custom tags the user created are left alone.
- */
-async function syncDefaultTagColors() {
-  await db.transaction('rw', db.tags, async () => {
-    for (const tag of DEFAULT_TAGS) {
-      const current = await db.tags.get(tag.name);
-      if (!current || current.color !== tag.color || current.behavior !== tag.behavior) await db.tags.put(tag);
-    }
-  });
+export async function ensureSeeded(): Promise<void> {
+  // TODO(M1) steps 1–3
 }
 
-async function writeSeed() {
-  const { people, links, reminders } = materializeSeed(seed);
-  await db.transaction('rw', [db.people, db.links, db.reminders, db.tags, db.meta], async () => {
-    await db.tags.bulkPut(DEFAULT_TAGS);
-    await db.people.bulkPut(people);
-    await db.links.bulkPut(links);
-    await db.reminders.bulkPut(reminders);
-    await db.meta.put({ key: 'seeded', value: true });
-  });
+export async function clearAll(): Promise<void> {
+  // TODO(M1) step 4
 }
 
-let seeding: Promise<void> | null = null;
-
-/** Seeds demo data once per browser. Safe to call repeatedly. */
-export function ensureSeeded(): Promise<void> {
-  seeding ??= (async () => {
-    if (await db.meta.get('seeded')) {
-      await syncDefaultTagColors();
-      return;
-    }
-    await writeSeed();
-  })();
-  return seeding;
+export async function resetDemoData(): Promise<void> {
+  // TODO(M1) step 5
 }
 
-export async function clearAll() {
-  await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
-    await Promise.all(TABLES.map((t) => db[t].clear()));
-  });
-}
-
-export async function resetDemoData() {
-  await clearAll();
-  await writeSeed();
-}
-
-/** Deletes everything and marks the db so the demo is not re-seeded. */
-export async function deleteEverything() {
-  await clearAll();
-  await db.tags.bulkPut(DEFAULT_TAGS);
-  await db.meta.put({ key: 'seeded', value: true });
+export async function deleteEverything(): Promise<void> {
+  // TODO(M1) step 6
 }
 
 export async function exportAll(): Promise<Blob> {
-  const dump: Record<string, unknown[]> = {};
-  for (const t of TABLES) dump[t] = await db[t].toArray();
-  return new Blob([JSON.stringify({ app: 'connectwork', version: 1, exportedAt: new Date().toISOString(), data: dump }, null, 2)], {
-    type: 'application/json',
-  });
+  // TODO(M1) step 7
+  throw new Error('TODO(M1): exportAll is not implemented yet');
 }
 
-export async function importBackup(file: File) {
-  const parsed = JSON.parse(await file.text()) as { app?: string; data?: Record<string, unknown[]> };
-  if (parsed.app !== 'connectwork' || !parsed.data) throw new Error('Not a Connectwork backup file');
-  await clearAll();
-  await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
-    for (const t of TABLES) {
-      const rows = parsed.data![t];
-      if (Array.isArray(rows)) await (db[t] as Table).bulkPut(rows);
-    }
-  });
+export async function importBackup(_file: File): Promise<void> {
+  // TODO(M1) step 8
+  throw new Error('TODO(M1): importBackup is not implemented yet');
 }

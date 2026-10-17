@@ -1,3 +1,7 @@
+// ACCEPTANCE TESTS for M5 (routes/ai.ts, cache.ts, gemini.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -19,13 +23,13 @@ const post = (app: ReturnType<typeof createApp>, body: unknown) =>
 
 const appWith = (generate: Generate | null, cache = new DemoCache('off')) => createApp({ generate, cache });
 
-describe('summaryIds', () => {
+describe.skip('summaryIds', () => {
   it('reads person ids from P lines only', () => {
     expect([...summaryIds(summary)]).toEqual(['p_abbey', 'p_john']);
   });
 });
 
-describe('POST /api/ai/query', () => {
+describe.skip('POST /api/ai/query', () => {
   it('returns the answer and drops ids the model invented', async () => {
     const generate = vi.fn<Generate>(async () =>
       JSON.stringify({ answer: 'You know Abbey Chen at Microsoft.', personIds: ['p_abbey', 'p_ghost', 'p_abbey'], filterHint: 'none' }),
@@ -99,7 +103,7 @@ describe('POST /api/ai/query', () => {
   });
 });
 
-describe('canonicalJson', () => {
+describe.skip('canonicalJson', () => {
   it('ignores key order', () => {
     expect(canonicalJson({ b: 1, a: [1, { d: 2, c: 3 }] })).toBe(canonicalJson({ a: [1, { c: 3, d: 2 }], b: 1 }));
   });

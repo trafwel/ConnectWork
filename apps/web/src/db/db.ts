@@ -1,19 +1,32 @@
 /**
- * M1 — Browser database (IndexedDB via Dexie) · done
+ * M1 — Browser database (IndexedDB via Dexie) · Owner: Person B · ~15 min
  *
  * WHAT THIS ACHIEVES
  *   All user data lives here, in the user's own browser: no accounts, no server
  *   database. This is the foundation of our privacy promise (local-first).
  *
  * HOW IT FITS
- *   Components read with useLiveQuery (auto-refresh on change); all writes go
- *   through db/actions.ts; seed.ts fills and resets it; TABLES drives export/clear.
+ *   Components READ with useLiveQuery (dexie-react-hooks), which re-renders when a
+ *   table changes. All WRITES go through db/actions.ts (M3). seed.ts fills/resets it;
+ *   TABLES drives export and clear-all.
  *
- * HOW IT WAS BUILT
- *   1. One Dexie class with typed tables: people, links, reminders, tags, meetings,
- *      contactLogs, meta (key/value for flags like 'seeded' and settings).
- *   2. Indexes only on fields we query by (ring, primaryTag, email, personId, dueDate…).
- *   3. Schema version 1 — bump the version and add an upgrade if fields change shape.
+ * STEPS
+ *   1. `pnpm --filter @connectwork/web add dexie dexie-react-hooks nanoid zustand`
+ *   2. In the constructor, after super('connectwork'), declare schema version 1. Only
+ *      list fields you QUERY by (the primary key first); other fields are stored anyway:
+ *        this.version(1).stores({
+ *          people: 'id, name, ring, primaryTag, company, email, linkedinUrl, lastContact',
+ *          links: 'id, fromId, toId, status',
+ *          reminders: 'id, personId, dueDate, done',
+ *          tags: 'name',
+ *          meetings: 'id, start',
+ *          contactLogs: 'id, personId, date',
+ *          meta: 'key',          // key/value: 'seeded', 'userContext', 'driftThresholds', …
+ *        });
+ *   3. If a field's shape ever changes, add version(2) with an upgrade() instead of editing version 1.
+ *
+ * DONE WHEN
+ *   - In DevTools → Application → IndexedDB you see a "connectwork" database with 7 tables.
  *
  * Spec: SPEC.md §6 · Guide: §5.2
  */
@@ -31,18 +44,11 @@ export class ConnectworkDB extends Dexie {
 
   constructor() {
     super('connectwork');
-    this.version(1).stores({
-      people: 'id, name, ring, primaryTag, company, email, linkedinUrl, lastContact',
-      links: 'id, fromId, toId, status',
-      reminders: 'id, personId, dueDate, done',
-      tags: 'name',
-      meetings: 'id, start',
-      contactLogs: 'id, personId, date',
-      meta: 'key',
-    });
+    // TODO(M1) step 2: this.version(1).stores({ … })
   }
 }
 
 export const db = new ConnectworkDB();
 
+/** Every table, so export/clear code can loop over all of them. */
 export const TABLES = ['people', 'links', 'reminders', 'tags', 'meetings', 'contactLogs', 'meta'] as const;

@@ -1,8 +1,12 @@
+// ACCEPTANCE TESTS for M1 (db/materialize.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { describe, expect, it } from 'vitest';
 import seed from '../../../../demo/seed.json';
 import { materializeSeed } from './materialize';
 
-describe('materializeSeed', () => {
+describe.skip('materializeSeed', () => {
   const now = new Date(2026, 9, 17);
   const { people, links, reminders } = materializeSeed(seed, now);
 

@@ -1,3 +1,7 @@
+// ACCEPTANCE TESTS for M5 (lib/exactMatch.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { describe, expect, it } from 'vitest';
 import type { Person } from '@connectwork/shared';
 import { exactMatches } from './exactMatch';
@@ -13,7 +17,7 @@ const people = [
   p('e', 'HP'),
 ];
 
-describe('exactMatches', () => {
+describe.skip('exactMatches', () => {
   it('finds everyone at a company named in the question, any case', () => {
     expect(exactMatches('Who do I know at Microsoft?', people)).toEqual(['a', 'b']);
   });

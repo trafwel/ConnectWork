@@ -1,3 +1,7 @@
+// ACCEPTANCE TESTS for M4 (lib/csv.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Person } from '@connectwork/shared';
@@ -24,7 +28,7 @@ const person = (over: Partial<Person>): Person => ({
   ...over,
 });
 
-describe('parseLinkedInDate', () => {
+describe.skip('parseLinkedInDate', () => {
   it('parses LinkedIn day-month-year dates', () => {
     expect(parseLinkedInDate('15 Oct 2024')).toBe('2024-10-15');
     expect(parseLinkedInDate('3 Jan 2026')).toBe('2026-01-03');
@@ -39,7 +43,7 @@ describe('parseLinkedInDate', () => {
   });
 });
 
-describe('parseCsv (LinkedIn)', () => {
+describe.skip('parseCsv (LinkedIn)', () => {
   it('skips the notes lines and reads every row of the demo export', () => {
     const parsed = parseCsv(demoCsv);
     expect(parsed.kind).toBe('linkedin');
@@ -76,7 +80,7 @@ describe('parseCsv (LinkedIn)', () => {
   });
 });
 
-describe('generic CSV', () => {
+describe.skip('generic CSV', () => {
   const text = 'Full Name,Organization,Title,Tags,Ring\nAlan Turing,Bletchley,Cryptanalyst,Work;Clubs,2\nNo Ring,,,,\n';
 
   it('falls back to generic parsing and guesses columns', () => {
@@ -99,7 +103,7 @@ describe('generic CSV', () => {
   });
 });
 
-describe('dedupe', () => {
+describe.skip('dedupe', () => {
   it('normalizes LinkedIn URLs', () => {
     expect(normalizeLinkedInUrl('https://www.LinkedIn.com/in/ada/?trk=x')).toBe('linkedin.com/in/ada');
     expect(normalizeLinkedInUrl('linkedin.com/in/ada')).toBe('linkedin.com/in/ada');

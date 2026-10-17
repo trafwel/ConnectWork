@@ -1,13 +1,15 @@
 /**
- * M2 — Filter matching · done (used by FilterTabs in M7)
+ * M2 — Filter matching · ~10 min (used by FilterTabs in M7 and ListView in M10)
  *
  * WHAT THIS ACHIEVES
  *   One rule for "does this person match the current view", shared by the map and
- *   (in M10) the list view, so both always agree.
+ *   the list view so both always agree.
  *
- * HOW IT WAS BUILT
- *   'all' matches everyone; 'due' and 'drifting' use precomputed id sets from
- *   App.tsx; any other value matches the primary tag or any extra tag.
+ * STEPS
+ *   1. 'all' → true.
+ *   2. 'due' → ctx.dueIds.has(p.id); 'drifting' → ctx.driftingIds.has(p.id)
+ *      (App.tsx precomputes both sets once per render, not per person).
+ *   3. Any other value is a tag name → p.primaryTag === filter || p.tags.includes(filter).
  *
  * Guide: §6.2, §13.2
  */
@@ -19,9 +21,7 @@ export interface FilterContext {
   driftingIds: Set<string>;
 }
 
-export function matchesFilter(p: Person, filter: Filter, ctx: FilterContext): boolean {
-  if (filter === 'all') return true;
-  if (filter === 'due') return ctx.dueIds.has(p.id);
-  if (filter === 'drifting') return ctx.driftingIds.has(p.id);
-  return p.primaryTag === filter || p.tags.includes(filter);
+export function matchesFilter(_p: Person, _filter: Filter, _ctx: FilterContext): boolean {
+  // TODO(M2) steps 1–3
+  return true;
 }

@@ -1,3 +1,7 @@
+// ACCEPTANCE TESTS for M5 (lib/graphSummary.ts).
+// These are skipped until you build that milestone. They describe exactly what
+// "done" means: when you finish it, change every `describe.skip(` below back to
+// `describe(` and run `pnpm test` — they should all pass.
 import { describe, expect, it } from 'vitest';
 import type { Person } from '@connectwork/shared';
 import { buildSummary } from './graphSummary';
@@ -13,7 +17,7 @@ const p = (over: Partial<Person>): Person => ({
   ...over,
 });
 
-describe('buildSummary', () => {
+describe.skip('buildSummary', () => {
   it('writes one P line per person and leaves notes out', () => {
     const s = buildSummary([p({ company: 'Acme|Corp', notes: 'secret note', lastContact: '2026-10-01' })], [], []);
     expect(s).toBe('P|p_a|Ada|2|Work|Work|Acme / Corp|||2026-10-01|');

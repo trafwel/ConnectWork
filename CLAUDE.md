@@ -12,9 +12,13 @@ Connectwork is a local-first web app that maps a user's personal network as ring
 4. When a milestone is done, report: what works, what you verified and how, what you skipped.
 5. The Devpost draft is due **Saturday 10:30 PM PT**. Around 9:00 PM, stop and remind the human, whatever milestone you're on.
 
+## Who writes the code
+
+The team writes the code themselves. Only help when asked, and only with what's asked (explain, review, debug, answer questions). Don't implement milestones, open PRs or "keep going" on your own.
+
 ## Scaffold files
 
-Files for M6–M14 already exist as scaffolds: a header comment (WHAT THIS ACHIEVES, HOW IT FITS, STEPS, DONE WHEN) and `TODO(M#) n:` markers where each step goes. Follow the header's steps in order, delete each TODO as you finish it, and keep the existing function signatures. `pnpm todo` lists what's left.
+Files for M1–M17 already exist as scaffolds (M0 is built): a header comment (WHAT THIS ACHIEVES, HOW IT FITS, STEPS, DONE WHEN) and `TODO(M#) n:` markers where each step goes. Follow the header's steps in order, delete each TODO as you finish it, and keep the existing function signatures. `pnpm todo` lists what's left.
 
 ## Hard rules
 

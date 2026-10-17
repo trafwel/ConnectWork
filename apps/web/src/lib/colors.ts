@@ -1,61 +1,55 @@
 /**
- * M1 — Tags and colors · done (restyled in step T)
+ * M1 — Tags and colors · ~15 min (restyled in theme step T)
  *
  * WHAT THIS ACHIEVES
- *   Default tags with colors from the Okabe-Ito palette, which stays
- *   distinguishable for the common types of color blindness. Two tags also carry
- *   behavior: follow-up (auto-reminder, M3) and intro (weekly review, M8).
+ *   Default tags with colors that stay distinguishable for the common types of
+ *   color blindness, and two tags with behavior: follow-up (auto-reminder, M3) and
+ *   intro (weekly review, M8).
  *
  * HOW IT FITS
- *   Seeded into db.tags; the map, legend, person card and filters look colors up
- *   with tagColor(). PRIMARY_TAGS are the tags that can define a person's color.
+ *   Seeded into db.tags (db/seed.ts). The map, legend, person card and filters look
+ *   colors up with tagColor(). PRIMARY_TAGS are the tags that can define a person's color.
  *
- * Guide: §5.4, §14
+ * STEPS
+ *   1. DEFAULT_TAGS (M1, Okabe-Ito palette):
+ *        Work #0072B2 · School #E69F00 · Friends #009E73 · Family #CC79A7 · Clubs #56B4E9 ·
+ *        LinkedIn #8C8C8C (unsorted imports) — behavior 'none';
+ *        follow-up #D55E00 behavior 'follow-up'; intro #F0E442 behavior 'intro'.
+ *   2. PRIMARY_TAGS = ['Work', 'School', 'Friends', 'Family', 'Clubs', 'LinkedIn'];
+ *      FALLBACK_COLOR for tags the user invents (a neutral gray).
+ *   3. tagColor(tags, name) → the tag's color or FALLBACK_COLOR.
+ *   4. (Theme step T — Atlas) Darker, earthier versions of the same hues, which stay
+ *      colorblind-safe and give readable initials:
+ *        Work #2F5D8A · School #94600F · Friends #2E7D5B · Family #8E4570 · Clubs #4A9BC7 ·
+ *        LinkedIn #9AA39C · follow-up #B4441A · intro #B08A1E
+ *   5. (T) contrastRatio(a, b): WCAG relative luminance of each hex
+ *        c = channel/255; c ≤ 0.03928 ? c/12.92 : ((c + 0.055)/1.055)^2.4;
+ *        L = 0.2126 R + 0.7152 G + 0.0722 B;  ratio = (Lhi + 0.05) / (Llo + 0.05)
+ *   6. (T) readableOn(fill): '#FFFFFF' if contrastRatio(fill, white) ≥ 4.5, else the ink color.
+ *
+ * DONE WHEN
+ *   - lib/colors.test.ts passes (unskip it after step T): every default tag has initials
+ *     at ≥ 4.5:1, and the two blue tags differ clearly in lightness.
+ *
+ * Spec: SPEC.md §7.6 · Guide: §5.4, §14
  */
 import type { Tag } from '@connectwork/shared';
 
-// Atlas theme: earthy, darker versions of the Okabe-Ito hues (blue, orange,
-// bluish green, reddish purple, sky blue, gray). Keeping Okabe-Ito's hue
-// structure keeps groups distinguishable for the common kinds of color
-// blindness; Work and Clubs (both blue) also differ clearly in lightness.
-export const DEFAULT_TAGS: Tag[] = [
-  { name: 'Work', color: '#2F5D8A', behavior: 'none' },
-  { name: 'School', color: '#94600F', behavior: 'none' },
-  { name: 'Friends', color: '#2E7D5B', behavior: 'none' },
-  { name: 'Family', color: '#8E4570', behavior: 'none' },
-  { name: 'Clubs', color: '#4A9BC7', behavior: 'none' },
-  { name: 'LinkedIn', color: '#9AA39C', behavior: 'none' },
-  { name: 'follow-up', color: '#B4441A', behavior: 'follow-up' },
-  { name: 'intro', color: '#B08A1E', behavior: 'intro' },
-];
+export const DEFAULT_TAGS: Tag[] = []; // TODO(M1) step 1
+export const PRIMARY_TAGS: string[] = []; // TODO(M1) step 2
+export const FALLBACK_COLOR = '#8C8C8C';
 
-/** Tags a person can have as their primary (color-defining) tag. */
-export const PRIMARY_TAGS = ['Work', 'School', 'Friends', 'Family', 'Clubs', 'LinkedIn'];
-
-export const FALLBACK_COLOR = '#7D8780';
-
-export function tagColor(tags: Tag[] | undefined, name: string): string {
-  return tags?.find((t) => t.name === name)?.color ?? FALLBACK_COLOR;
+export function tagColor(_tags: Tag[] | undefined, _name: string): string {
+  // TODO(M1) step 3
+  return FALLBACK_COLOR;
 }
 
-const INK = '#1D2A24';
-
-function luminance(hex: string): number {
-  const n = hex.replace('#', '');
-  const full = n.length === 3 ? [...n].map((c) => c + c).join('') : n;
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const c = parseInt(full.slice(i, i + 2), 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+export function contrastRatio(_a: string, _b: string): number {
+  // TODO(T) step 5
+  throw new Error('TODO(T): contrastRatio is not implemented yet');
 }
 
-export function contrastRatio(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi! + 0.05) / (lo! + 0.05);
-}
-
-/** Text color for initials on a tag-colored node: white when it reads at 4.5:1, else ink. */
-export function readableOn(fill: string): string {
-  return contrastRatio(fill, '#FFFFFF') >= 4.5 ? '#FFFFFF' : INK;
+export function readableOn(_fill: string): string {
+  // TODO(T) step 6
+  return '#FFFFFF';
 }
