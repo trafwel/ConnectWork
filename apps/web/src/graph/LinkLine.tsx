@@ -8,6 +8,7 @@
  * Guide: §6.2
  */
 import type { Link } from '@connectwork/shared';
+import { mapTheme as T } from './theme';
 
 interface Props {
   link: Link;
@@ -24,10 +25,10 @@ export function LinkLine({ link, from, to, dimmed }: Props) {
       y1={from.y}
       x2={to.x}
       y2={to.y}
-      stroke={suggested ? 'var(--color-primary)' : '#64748b'}
-      strokeWidth={suggested ? 1.5 : 1}
-      strokeDasharray={suggested ? '5 4' : undefined}
-      opacity={dimmed ? 0.06 : suggested ? 0.8 : 0.35}
+      stroke={suggested ? T.suggestedLink : T.link}
+      strokeWidth={suggested ? 1.6 : T.linkWidth}
+      strokeDasharray={suggested ? T.suggestedDash : undefined}
+      opacity={dimmed ? 0.06 : suggested ? 0.9 : T.linkOpacity}
       style={{ transition: 'opacity 200ms' }}
     >
       {link.label ? <title>{link.label}</title> : null}

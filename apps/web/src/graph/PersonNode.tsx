@@ -22,7 +22,9 @@
 import { memo, useState } from 'react';
 import type { Person } from '@connectwork/shared';
 import { initials } from '@/lib/people';
+import { readableOn } from '@/lib/colors';
 import { NODE_RADIUS } from './layout';
+import { mapTheme as T } from './theme';
 
 interface Props {
   person: Person;
@@ -71,13 +73,14 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
     >
       <title>{`${person.name} · ${person.primaryTag}${person.company ? ` · ${person.company}` : ''}`}</title>
       {/* focus ring for keyboard users */}
-      <circle className="focus" r={r + 6} fill="none" stroke="#0f172a" strokeWidth={2} strokeDasharray="3 3" opacity={0} />
-      {(selected || highlighted) && (
-        <circle r={r + 4} fill="none" stroke="#0f172a" strokeWidth={selected ? 3 : 2.5} />
+      <circle className="focus" r={r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
+      {highlighted && !selected && (
+        <circle r={r + 5} fill="none" stroke={T.highlight} strokeWidth={1.75} strokeDasharray={T.highlightDash} />
       )}
-      <circle r={r} fill={color} stroke="white" strokeWidth={person.ring === 3 ? 1 : 2} />
+      {selected && <circle r={r + 4} fill="none" stroke={T.selected} strokeWidth={2.5} />}
+      <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
       {person.ring === 1 && (
-        <text textAnchor="middle" dy="0.35em" fontSize={12} fontWeight={600} fill="white" pointerEvents="none">
+        <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={500} fontFamily={T.mono} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}
         </text>
       )}
@@ -87,9 +90,9 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
           textAnchor="middle"
           fontSize={person.ring === 1 ? 12 : 11}
           fontWeight={person.ring === 1 || selected ? 600 : 500}
-          fill="#0f172a"
-          stroke="white"
-          strokeWidth={3}
+          fill={T.label}
+          stroke={T.labelHalo}
+          strokeWidth={4}
           paintOrder="stroke"
           pointerEvents="none"
         >

@@ -67,7 +67,7 @@ export default function App() {
   const loaded = ready && people && links && tags;
 
   return (
-    <div className="flex h-screen flex-col bg-muted/30 text-foreground">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <TopBar>
         <div className="flex flex-1 justify-center">
           <AgentBar />

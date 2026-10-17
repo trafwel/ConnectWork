@@ -56,7 +56,7 @@ export function PersonCard({ personId }: { personId: string }) {
   const person = useLiveQuery(() => db.people.get(personId), [personId]);
   if (!person) return null;
   return (
-    <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l bg-background" aria-label={`${person.name} details`}>
+    <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l bg-card" aria-label={`${person.name} details`}>
       <div className="flex items-start justify-between gap-2 border-b p-4">
         <div className="min-w-0 flex-1">
           <TextInput
@@ -105,7 +105,7 @@ function CardBody({ person }: { person: Person }) {
       </section>
 
       <section aria-labelledby="tags-heading" className="space-y-2">
-        <h3 id="tags-heading" className="text-sm font-medium">
+        <h3 id="tags-heading" className="cw-eyebrow">
           More tags
         </h3>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -147,7 +147,7 @@ function CardBody({ person }: { person: Person }) {
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Last contact</h3>
+          <h3 className="cw-eyebrow">Last contact</h3>
           <Button
             variant="outline"
             size="xs"
@@ -163,7 +163,7 @@ function CardBody({ person }: { person: Person }) {
       </section>
 
       <section className="space-y-1.5">
-        <Label htmlFor="pc-notes" className="text-sm font-medium">
+        <Label htmlFor="pc-notes" className="cw-eyebrow">
           Notes
         </Label>
         <NotesField person={person} />

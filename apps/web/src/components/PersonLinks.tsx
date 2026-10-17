@@ -23,7 +23,7 @@ export function PersonLinks({ personId }: { personId: string }) {
 
   return (
     <section aria-labelledby="links-heading" className="space-y-2">
-      <h3 id="links-heading" className="text-sm font-medium">
+      <h3 id="links-heading" className="cw-eyebrow">
         Connected to
       </h3>
       {rows?.length ? (

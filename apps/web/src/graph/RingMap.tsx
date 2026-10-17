@@ -38,9 +38,10 @@ import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
+import { mapTheme as T } from './theme';
 import { PersonNode } from './PersonNode';
 
-const RING_LABELS: Record<Ring, string> = { 1: 'Close', 2: 'Regular', 3: 'Wider' };
+const RING_LABELS: Record<Ring, string> = { 1: 'R1 CLOSE', 2: 'R2 REGULAR', 3: 'R3 WIDER' };
 
 interface Props {
   people: Person[];
@@ -83,6 +84,15 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
 
   const positions = useForceLayout(people, links, width, height, offsetFor);
   const g = geometry(width, height);
+  // Contour radii between the rings; skip ones that would sit on a ring line.
+  const contours = useMemo(() => {
+    const rings = ([1, 2, 3] as Ring[]).map((r) => ringRadius(g, r));
+    const out: number[] = [];
+    for (let r = T.contourStep * 3; r < rings[2]! + T.contourStep * 2; r += T.contourStep) {
+      if (rings.every((ringR) => Math.abs(ringR - r) > T.contourStep / 2)) out.push(r);
+    }
+    return out;
+  }, [g.base]); // eslint-disable-line react-hooks/exhaustive-deps -- g changes identity every render; base is what matters
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -96,6 +106,33 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
       select(svg).on('.zoom', null);
     };
   }, []);
+
+  // Put each ring's label in the widest angular gap between that ring's people.
+  const labelAngles = useMemo(() => {
+    const out = { 1: LABEL_ANGLE, 2: LABEL_ANGLE, 3: LABEL_ANGLE } as Record<Ring, number>;
+    for (const ring of [1, 2, 3] as Ring[]) {
+      const angles = people
+        .filter((p) => p.ring === ring)
+        .map((p) => positions.get(p.id))
+        .filter((pos): pos is { x: number; y: number } => Boolean(pos))
+        .map((pos) => Math.atan2(pos.y - g.cy, pos.x - g.cx));
+      if (!angles.length) continue;
+      let best = LABEL_ANGLE;
+      let bestGap = -1;
+      for (let deg = -180; deg < 180; deg += 5) {
+        const a = (deg * Math.PI) / 180;
+        // Distance to the nearest person on this ring, plus a nudge toward the upper left.
+        const gap = Math.min(...angles.map((b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)))));
+        const score = gap - Math.abs(a - LABEL_ANGLE) * 0.02;
+        if (score > bestGap) {
+          bestGap = score;
+          best = a;
+        }
+      }
+      out[ring] = best;
+    }
+    return out;
+  }, [people, positions, g.cx, g.cy]);
 
   const hasHighlights = highlightIds.size > 0;
   const isDimmed = useCallback(
@@ -116,19 +153,17 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
         onClick={() => clearFocus()}
       >
         <g transform={transform.toString()}>
+          {/* Atlas: faint contour lines and a dotted crosshair under the three ring boundaries */}
+          <g aria-hidden="true">
+            {contours.map((r) => (
+              <circle key={r} cx={g.cx} cy={g.cy} r={r} fill="none" stroke={T.contourStroke} />
+            ))}
+            <line x1={g.cx} y1={0} x2={g.cx} y2={height} stroke={T.axisStroke} strokeDasharray="1 5" />
+            <line x1={0} y1={g.cy} x2={width} y2={g.cy} stroke={T.axisStroke} strokeDasharray="1 5" />
+          </g>
           {([3, 2, 1] as Ring[]).map((ring) => (
             <g key={ring} aria-hidden="true">
-              <circle cx={g.cx} cy={g.cy} r={ringRadius(g, ring)} fill="none" stroke="#cbd5e1" strokeDasharray="2 6" />
-              <text
-                x={g.cx + ringRadius(g, ring) * Math.cos(LABEL_ANGLE)}
-                y={g.cy + ringRadius(g, ring) * Math.sin(LABEL_ANGLE)}
-                dy="-0.4em"
-                textAnchor="middle"
-                fontSize={11}
-                fill="#94a3b8"
-              >
-                {RING_LABELS[ring]}
-              </text>
+              <circle cx={g.cx} cy={g.cy} r={ringRadius(g, ring)} fill="none" stroke={T.ringStroke} strokeWidth={T.ringWidth} />
             </g>
           ))}
 
@@ -142,9 +177,10 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
           </g>
 
           <g aria-hidden="true">
-            <circle cx={g.cx} cy={g.cy} r={26} fill="#0f172a" />
-            <text x={g.cx} y={g.cy} dy="0.35em" textAnchor="middle" fontSize={12} fontWeight={600} fill="white">
-              You
+            <circle cx={g.cx} cy={g.cy} r={20} fill={T.youFill} stroke={T.youStroke} strokeWidth={1.5} />
+            <circle cx={g.cx} cy={g.cy} r={5} fill={T.ink} />
+            <text x={g.cx + 24} y={g.cy + 24} fontSize={10} fontFamily={T.mono} letterSpacing="0.06em" fill={T.ink}>
+              YOU
             </text>
           </g>
 
@@ -169,6 +205,31 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                 />
               );
             })}
+
+          {/* Ring labels on top, each at its ring's widest empty gap, with a paper halo */}
+          <g aria-hidden="true" pointerEvents="none">
+            {([1, 2, 3] as Ring[]).map((ring) => {
+              const angle = labelAngles[ring];
+              return (
+                <text
+                  key={ring}
+                  x={g.cx + ringRadius(g, ring) * Math.cos(angle)}
+                  y={g.cy + ringRadius(g, ring) * Math.sin(angle)}
+                  dy="0.35em"
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontFamily={T.mono}
+                  letterSpacing="0.06em"
+                  fill={T.ringLabel}
+                  stroke={T.paper}
+                  strokeWidth={5}
+                  paintOrder="stroke"
+                >
+                  {RING_LABELS[ring]}
+                </text>
+              );
+            })}
+          </g>
         </g>
       </svg>
       <Legend tags={tags} />
@@ -191,13 +252,16 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
 function Legend({ tags }: { tags: Tag[] }) {
   const shown = tags.filter((t) => t.behavior === 'none');
   return (
-    <ul className="absolute bottom-3 left-3 flex flex-wrap gap-x-3 gap-y-1 rounded-md bg-background/80 px-3 py-2 text-xs backdrop-blur" aria-label="Tag colors">
-      {shown.map((t) => (
-        <li key={t.name} className="flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-full" style={{ background: t.color }} aria-hidden="true" />
-          {t.name}
-        </li>
-      ))}
-    </ul>
+    <div className="absolute bottom-3 left-3 rounded-sm border border-input bg-card px-3 py-2 text-xs">
+      <span className="mb-1.5 block font-mono text-[10px] tracking-wider text-muted-foreground">LEGEND</span>
+      <ul className="grid grid-cols-3 gap-x-4 gap-y-1" aria-label="Tag colors">
+        {shown.map((t) => (
+          <li key={t.name} className="flex items-center gap-1.5">
+            <span className="inline-block size-2.5 rounded-full border border-foreground" style={{ background: t.color }} aria-hidden="true" />
+            {t.name}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

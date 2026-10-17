@@ -24,17 +24,22 @@ export function AgentAnswer() {
   return (
     <div aria-live="polite" className="pointer-events-none absolute top-3 left-1/2 z-10 w-full max-w-xl -translate-x-1/2 px-4">
       {busy ? (
-        <p className="pointer-events-auto rounded-lg border bg-background/95 px-4 py-3 text-sm text-muted-foreground shadow-sm">Thinking…</p>
+        <p className="pointer-events-auto rounded-sm border border-input bg-card px-4 py-3 text-sm text-muted-foreground">
+          <span className="cw-eyebrow block">Surveying</span>
+          Thinking…
+        </p>
       ) : answer ? (
         <div
           className={cn(
-            'pointer-events-auto flex items-start gap-3 rounded-lg border bg-background/95 px-4 py-3 text-sm shadow-sm',
-            isError && 'border-destructive/40 text-destructive',
+            'pointer-events-auto flex items-start gap-3 rounded-sm border border-foreground bg-card px-4 py-3 text-sm',
+            isError && 'border-destructive text-destructive',
           )}
         >
           <p className="flex-1">
+            <span className={cn('cw-eyebrow mb-0.5 block', !isError && 'text-primary', isError && 'text-destructive')}>
+              {isError ? 'Could not answer' : `Finding · ${count} ${count === 1 ? 'person' : 'people'}`}
+            </span>
             {answer}
-            {!isError && count > 1 && <span className="text-muted-foreground"> · {count} people highlighted</span>}
           </p>
           <Button variant="ghost" size="icon-xs" aria-label="Clear answer" onClick={clearFocus}>
             <X />

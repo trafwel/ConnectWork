@@ -28,7 +28,7 @@ export function PersonReminders({ personId }: { personId: string }) {
 
   return (
     <section aria-labelledby="reminders-heading" className="space-y-2">
-      <h3 id="reminders-heading" className="text-sm font-medium">
+      <h3 id="reminders-heading" className="cw-eyebrow">
         Reminders
       </h3>
       <ul className="space-y-1">

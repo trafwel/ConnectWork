@@ -29,6 +29,20 @@ import { materializeSeed } from './materialize';
 import type { Table } from 'dexie';
 import { db, TABLES } from './db';
 
+/**
+ * Theme changes update DEFAULT_TAGS, but browsers that seeded earlier keep the
+ * old colors in IndexedDB. Refresh color and behavior for the default tag names
+ * only; custom tags the user created are left alone.
+ */
+async function syncDefaultTagColors() {
+  await db.transaction('rw', db.tags, async () => {
+    for (const tag of DEFAULT_TAGS) {
+      const current = await db.tags.get(tag.name);
+      if (!current || current.color !== tag.color || current.behavior !== tag.behavior) await db.tags.put(tag);
+    }
+  });
+}
+
 async function writeSeed() {
   const { people, links, reminders } = materializeSeed(seed);
   await db.transaction('rw', [db.people, db.links, db.reminders, db.tags, db.meta], async () => {
@@ -45,7 +59,10 @@ let seeding: Promise<void> | null = null;
 /** Seeds demo data once per browser. Safe to call repeatedly. */
 export function ensureSeeded(): Promise<void> {
   seeding ??= (async () => {
-    if (await db.meta.get('seeded')) return;
+    if (await db.meta.get('seeded')) {
+      await syncDefaultTagColors();
+      return;
+    }
     await writeSeed();
   })();
   return seeding;
