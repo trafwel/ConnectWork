@@ -36,7 +36,9 @@ import { AgentBar } from '@/components/AgentBar';
 import { AgentAnswer } from '@/components/AgentAnswer';
 import { DemoBanner } from '@/components/DemoBanner';
 import { Button } from '@/components/ui/button';
-import { Plus, Upload } from 'lucide-react';
+import { Plus, Upload, Waypoints } from 'lucide-react';
+import { ReviewSheet } from '@/components/ReviewSheet';
+import { findHiddenLinks } from '@/lib/aiFlows';
 import { useHotkey } from '@/lib/useHotkey';
 import { RingMap } from '@/graph/RingMap';
 import { db } from '@/db/db';
@@ -55,6 +57,7 @@ export default function App() {
   const tags = useLiveQuery(() => db.tags.toArray());
   const reminders = useLiveQuery(() => db.reminders.toArray());
   const selectedId = useStore((s) => s.selectedPersonId);
+  const rightPanel = useStore((s) => s.rightPanel);
   const setDialog = useStore((s) => s.setDialog);
   const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
   useHotkey('n', openQuickAdd);
@@ -72,6 +75,9 @@ export default function App() {
         <div className="flex flex-1 justify-center">
           <AgentBar />
         </div>
+        <Button variant="outline" size="sm" onClick={() => void findHiddenLinks()}>
+          <Waypoints /> Find hidden links
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setDialog('import', true)}>
           <Upload /> Import
         </Button>
@@ -93,7 +99,7 @@ export default function App() {
             <p className="p-6 text-muted-foreground">Loading…</p>
           )}
         </main>
-        {selectedId && <PersonCard personId={selectedId} />}
+        {rightPanel === 'review' ? <ReviewSheet /> : selectedId ? <PersonCard personId={selectedId} /> : null}
       </div>
       <SettingsDialog />
       <QuickAdd />

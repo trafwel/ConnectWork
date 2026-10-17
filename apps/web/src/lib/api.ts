@@ -40,6 +40,10 @@ async function post<T>(path: string, body: unknown, schema: { safeParse: (v: unk
 
 export const askQuery = (question: string, summary: string) => post('/ai/query', { question, summary }, QueryResponse);
 
+/** One-line client for any /api/ai endpoint; validates the reply with the endpoint's schema. */
+export const aiPost = <T>(path: string, body: unknown, schema: { safeParse: (v: unknown) => { success: boolean; data?: T } }) =>
+  post<T>(`/ai${path}`, body, schema);
+
 export interface Health {
   ok: boolean;
   model: string;

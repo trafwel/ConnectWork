@@ -12,7 +12,8 @@
  *   1. ensureSeeded(): if meta.seeded is missing, write default tags + seed in one
  *      transaction and set meta.seeded. The promise is memoized because React
  *      StrictMode runs effects twice in development.
- *   2. resetDemoData(): clear every table and seed again.
+ *   2. resetDemoData(): clear every table and seed again, keeping the user's settings
+ *     (About you, drift thresholds, relay token).
  *   3. deleteEverything(): clear, re-add default tags, and KEEP meta.seeded so the
  *      demo doesn't come back on reload.
  *   4. exportAll() / importBackup(): { app: 'connectwork', version: 1, data } with an
@@ -74,9 +75,14 @@ export async function clearAll() {
   });
 }
 
+/** Settings the user typed (not demo data); Reset demo data keeps them, Delete everything doesn't. */
+const SETTING_KEYS = ['userContext', 'driftThresholds', 'relayToken'];
+
 export async function resetDemoData() {
+  const settings = (await db.meta.bulkGet(SETTING_KEYS)).filter((row): row is { key: string; value: unknown } => Boolean(row));
   await clearAll();
   await writeSeed();
+  if (settings.length) await db.meta.bulkPut(settings);
 }
 
 /** Deletes everything and marks the db so the demo is not re-seeded. */

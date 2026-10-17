@@ -36,7 +36,7 @@ export interface AppDeps {
 
 export function defaultDeps(): AppDeps {
   return {
-    generate: env.geminiApiKey ? geminiGenerate(env.geminiApiKey, env.geminiModel, env.geminiFallbackModel || undefined) : null,
+    generate: env.geminiApiKey ? geminiGenerate(env.geminiApiKey, env.geminiModel, env.geminiFallbackModels) : null,
     cache: new DemoCache(env.demoCache),
   };
 }
@@ -56,7 +56,7 @@ export function createApp(deps: AppDeps) {
   });
 
   app.get('/api/health', (c) =>
-    c.json({ ok: true, model: env.geminiModel, fallbackModel: env.geminiFallbackModel || null, tier: env.geminiTier, cache: deps.cache.mode, aiConfigured: Boolean(deps.generate) }),
+    c.json({ ok: true, model: env.geminiModel, fallbackModels: env.geminiFallbackModels, tier: env.geminiTier, cache: deps.cache.mode, aiConfigured: Boolean(deps.generate) }),
   );
 
   app.use('/api/ai/*', rateLimit(30, 60_000));

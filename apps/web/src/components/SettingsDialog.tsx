@@ -15,7 +15,10 @@
  *
  * Guide: §5.5
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { db } from '@/db/db';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -91,6 +94,8 @@ export function SettingsDialog() {
           </div>
         </section>
 
+        <AboutYou />
+
         <section className="space-y-2">
           <h3 className="text-sm font-medium">Danger zone</h3>
           {confirmDelete ? (
@@ -119,5 +124,30 @@ export function SettingsDialog() {
         </section>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** M6: a sentence about the user helps the AI suggest rings for imported contacts. Stored locally. */
+function AboutYou() {
+  const [value, setValue] = useState('');
+  useEffect(() => {
+    db.meta.get('userContext').then((row) => setValue((row?.value as string | undefined) ?? ''));
+  }, []);
+  return (
+    <section className="space-y-1.5">
+      <Label htmlFor="about-you" className="text-sm font-medium">
+        About you
+      </Label>
+      <Textarea
+        id="about-you"
+        rows={2}
+        maxLength={500}
+        value={value}
+        placeholder="e.g. UW CS junior, interning at Amazon, in the Data Science Club"
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => db.meta.put({ key: 'userContext', value: value.trim() })}
+      />
+      <p className="text-xs text-muted-foreground">Sent to the AI only when you use Sort with AI, to suggest who's close to you.</p>
+    </section>
   );
 }

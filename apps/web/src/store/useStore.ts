@@ -23,6 +23,28 @@ import { create } from 'zustand';
 export type Filter = 'all' | 'due' | 'drifting' | (string & {});
 export type RightPanel = null | 'person' | 'weekly' | 'review' | 'meeting';
 
+/** One AI proposal the user can accept or reject (M6 sort/links, M9 snap). */
+export interface ReviewItem {
+  id: string;
+  title: string;
+  detail?: string;
+  /** People this proposal is about; highlighted while the row is hovered. */
+  personIds: string[];
+  /** Default true. false for rows that probably shouldn't be applied (e.g. duplicates). */
+  checked?: boolean;
+}
+
+export interface ReviewPayload {
+  heading: string;
+  /** One line under the heading, e.g. what the AI looked at. */
+  description?: string;
+  items: ReviewItem[];
+  /** Writes the accepted rows. Rejected rows are passed too, for cleanup (e.g. removing suggested links). */
+  onAccept: (acceptedIds: string[], rejectedIds: string[]) => Promise<void>;
+  /** Called when the review is dismissed without accepting (cleanup). */
+  onDismiss?: () => Promise<void>;
+}
+
 interface UIState {
   view: 'map' | 'list';
   filter: Filter;
@@ -35,6 +57,7 @@ interface UIState {
   quickAddOpen: boolean;
   importOpen: boolean;
   settingsOpen: boolean;
+  reviewPayload: ReviewPayload | null;
 
   setView: (view: 'map' | 'list') => void;
   setFilter: (filter: Filter) => void;
@@ -43,9 +66,11 @@ interface UIState {
   clearFocus: () => void;
   setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy' | 'agentError'>>) => void;
   setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
+  openReview: (payload: ReviewPayload) => void;
+  closeReview: () => void;
 }
 
-export const useStore = create<UIState>((set) => ({
+export const useStore = create<UIState>((set, get) => ({
   view: 'map',
   filter: 'all',
   selectedPersonId: null,
@@ -57,14 +82,26 @@ export const useStore = create<UIState>((set) => ({
   quickAddOpen: false,
   importOpen: false,
   settingsOpen: false,
+  reviewPayload: null,
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
-  selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : null }),
+  // Closing a person card returns to an open review instead of an empty panel.
+  selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : get().reviewPayload ? 'review' : null }),
   setHighlights: (ids) => set({ highlightIds: new Set(ids) }),
+  // Clicking empty map space clears selection but keeps an open review on screen.
   clearFocus: () =>
-    set({ selectedPersonId: null, rightPanel: null, highlightIds: new Set(), agentAnswer: null, agentError: false, filter: 'all' }),
+    set({
+      selectedPersonId: null,
+      rightPanel: get().reviewPayload ? 'review' : null,
+      highlightIds: new Set(),
+      agentAnswer: null,
+      agentError: false,
+      filter: 'all',
+    }),
   setAgent: (patch) => set(patch),
   setDialog: (dialog, open) =>
     set(dialog === 'quickAdd' ? { quickAddOpen: open } : dialog === 'import' ? { importOpen: open } : { settingsOpen: open }),
+  openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
+  closeReview: () => set({ reviewPayload: null, rightPanel: null, highlightIds: new Set() }),
 }));

@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { db } from '@/db/db';
 import { applyImport } from '@/db/actions';
+import { sortWithAi } from '@/lib/aiFlows';
 import {
   guessMapping,
   mapGenericRows,
@@ -84,14 +85,16 @@ export function ImportDialog() {
     setBusy(true);
     const plan = planImport(await db.people.toArray(), drafts);
     const isLinkedIn = parsed.kind === 'linkedin';
-    await applyImport(plan, isLinkedIn ? 'linkedin' : 'manual', 'LinkedIn');
+    const newIds = await applyImport(plan, isLinkedIn ? 'linkedin' : 'manual', 'LinkedIn');
     setDialog('import', false);
     reset();
     const parts = [`Imported ${plan.toAdd.length} ${plan.toAdd.length === 1 ? 'person' : 'people'}`];
     if (plan.toUpdate.length) parts.push(`updated ${plan.toUpdate.length}`);
     if (plan.unchanged) parts.push(`${plan.unchanged} already here`);
     toast.success(parts.join(' · '), {
-      description: plan.toAdd.length ? 'New people are in the outer ring. Sorting them with AI comes next.' : undefined,
+      description: newIds.length ? 'New people are in the outer ring. Let the AI suggest rings and tags?' : undefined,
+      duration: newIds.length ? 15_000 : undefined,
+      action: newIds.length ? { label: 'Sort with AI', onClick: () => void sortWithAi(newIds) } : undefined,
     });
   };
 

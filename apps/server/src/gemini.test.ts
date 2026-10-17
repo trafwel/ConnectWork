@@ -74,3 +74,47 @@ describe('withFallback', () => {
     ).rejects.toMatchObject({ code: 'ai_unavailable' });
   });
 });
+
+describe('withFallback chain', () => {
+  it('tries each fallback in order until one succeeds', async () => {
+    const order: string[] = [];
+    const result = await withFallback(
+      async () => {
+        order.push('primary');
+        throw apiError(504);
+      },
+      [
+        async () => {
+          order.push('fallback1');
+          throw apiError(503);
+        },
+        async () => {
+          order.push('fallback2');
+          return 'ok';
+        },
+      ],
+      () => {},
+    );
+    expect(result).toBe('ok');
+    expect(order).toEqual(['primary', 'fallback1', 'fallback2']);
+  });
+
+  it('stops the chain on a non-retryable error', async () => {
+    const last = vi.fn(async () => 'never');
+    await expect(
+      withFallback(
+        async () => {
+          throw apiError(503);
+        },
+        [
+          async () => {
+            throw apiError(400);
+          },
+          last,
+        ],
+        () => {},
+      ),
+    ).rejects.toMatchObject({ code: 'ai_unavailable' });
+    expect(last).not.toHaveBeenCalled();
+  });
+});

@@ -67,7 +67,7 @@ Without a Gemini key, everything works except the AI features, which say how to 
 | --- | --- | --- |
 | `GEMINI_API_KEY` | — | Gemini API key (server only, never committed) |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | Main model |
-| `GEMINI_FALLBACK_MODEL` | `gemini-3.6-flash` | Tried once if the main model is overloaded, slow or rate limited |
+| `GEMINI_FALLBACK_MODEL` | `gemini-3.6-flash,gemini-3.5-flash-lite` | Tried in order if the main model is overloaded, slow or rate limited |
 | `GEMINI_TIER` | `free` | `free` shows a "sample data only" banner |
 | `ALLOWED_ORIGIN` | `http://localhost:5173` | CORS origin |
 | `PORT` | `8787` | API port |

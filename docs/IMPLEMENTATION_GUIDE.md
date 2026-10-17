@@ -81,7 +81,7 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | --- | --- | --- |
 | `GEMINI_API_KEY` | — | Server only. Never in the web bundle, never committed. |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | Main model |
-| `GEMINI_FALLBACK_MODEL` | `gemini-3.6-flash` | Tried once when the main model is overloaded, times out or is rate limited. Empty disables. |
+| `GEMINI_FALLBACK_MODEL` | `gemini-3.6-flash,gemini-3.5-flash-lite` | Comma-separated; each tried once, in order, when the previous model is overloaded, times out or is rate limited. Empty disables. |
 | `GEMINI_TIER` | `free` | `free` shows the "sample data only" banner |
 | `ALLOWED_ORIGIN` | `http://localhost:5173` | CORS origin for the API |
 | `PORT` | `8787` | API port |
@@ -456,7 +456,7 @@ Pipes/newlines inside fields are flattened. **Notes are never sent** with querie
 
 - `Generate` is injectable (`({system, parts, jsonSchema, thinking}) => Promise<string>`) so tests never need a key.
 - `geminiGenerate(apiKey, model, fallbackModel)`: `generateContent` with `systemInstruction`, `responseMimeType: 'application/json'`, `responseJsonSchema`, `temperature: 0.3`, and `thinkingConfig.thinkingLevel` when a route asks for it.
-- **Fallback:** the main model gets **20 s**; on 429, 5xx, timeout or abort (`isRetryable`) the request runs **once** on `GEMINI_FALLBACK_MODEL` with **25 s**. `withFallback()` is exported and unit-tested. 400-class errors are not retried.
+- **Fallback:** the main model gets **20 s**; on 429, 5xx, timeout or abort (`isRetryable`) the request runs **once on each** model in `GEMINI_FALLBACK_MODEL` (default `gemini-3.6-flash`, then `gemini-3.5-flash-lite`) with **40 s** each (planning calls like `/links` need ~25 s). `withFallback()` is exported and unit-tested. 400-class errors are not retried.
 - `toGeminiSchema(zod)` = `z.toJSONSchema()` minus `$schema`.
 - `callStructured()` validates the reply with zod and **retries once** with the validation errors appended; a second failure → `bad_ai_response`.
 - Errors map to `AiError` codes: `rate_limited` (429), `ai_unavailable` (everything else), `no_api_key`.

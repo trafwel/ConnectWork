@@ -17,8 +17,10 @@
  *   1. generateContent with systemInstruction, responseMimeType JSON,
  *      responseJsonSchema (from zod via toGeminiSchema), temperature 0.3, and a
  *      thinking level when the route asks for one ('low' for lookups).
- *   2. withFallback: main model gets 20 s; on 429, 5xx, timeout or abort, try
- *      GEMINI_FALLBACK_MODEL once with 25 s. 4xx errors are not retried.
+ *   2. withFallback: main model gets 20 s; on 429, 5xx, timeout or abort, try each
+ *      model in GEMINI_FALLBACK_MODEL (comma-separated) once, 40 s each. 4xx errors
+ *      are not retried. On Oct 17 both 3.8-flash and 3.6-flash were overloaded at
+ *      once, so the default chain ends with the fast gemini-3.5-flash-lite.
  *   3. callStructured: parse + zod-validate; on failure retry once with the
  *      validation errors appended; a second failure → AiError('bad_ai_response').
  *   4. Errors map to AiError codes the routes turn into friendly messages.
@@ -57,9 +59,9 @@ export class AiError extends Error {
   }
 }
 
-/** Primary gets a short leash so an overloaded model fails over quickly; the fallback gets a bit longer. */
+/** Primary gets a short leash so an overloaded model fails over quickly; the fallback gets longer (planning calls like /links need ~25 s on 3.6-flash). */
 const PRIMARY_TIMEOUT_MS = 20_000;
-const FALLBACK_TIMEOUT_MS = 25_000;
+const FALLBACK_TIMEOUT_MS = 40_000;
 
 /** Overload (500/503), deadline (504), timeouts and per-model rate limits (429) are worth one try elsewhere. */
 export function isRetryable(err: unknown): boolean {
@@ -70,19 +72,28 @@ export function isRetryable(err: unknown): boolean {
 
 type Attempt = () => Promise<string>;
 
-/** Runs the primary call, and on a retryable failure the fallback once. Errors map to AiError codes. */
-export async function withFallback(primary: Attempt, fallback?: Attempt, log: (msg: string) => void = console.warn): Promise<string> {
-  try {
-    return await primary();
-  } catch (err) {
-    if (!fallback || !isRetryable(err)) throw toAiError(err);
-    log(`Primary model failed (${describe(err)}); trying fallback model`);
+/**
+ * Runs the primary call; on a retryable failure (overload, deadline, rate limit,
+ * timeout) tries each fallback in order, once. A non-retryable error stops the
+ * chain. Errors map to AiError codes.
+ */
+export async function withFallback(
+  primary: Attempt,
+  fallbacks?: Attempt | Attempt[],
+  log: (msg: string) => void = console.warn,
+): Promise<string> {
+  const chain = [primary, ...(fallbacks === undefined ? [] : Array.isArray(fallbacks) ? fallbacks : [fallbacks])];
+  let lastError: unknown;
+  for (let i = 0; i < chain.length; i++) {
     try {
-      return await fallback();
-    } catch (err2) {
-      throw toAiError(err2);
+      return await chain[i]!();
+    } catch (err) {
+      lastError = err;
+      if (!isRetryable(err) || i === chain.length - 1) break;
+      log(`${i === 0 ? 'Primary' : `Fallback ${i}`} model failed (${describe(err)}); trying fallback model ${i + 1}`);
     }
   }
+  throw toAiError(lastError);
 }
 
 function describe(err: unknown): string {
@@ -95,7 +106,7 @@ function toAiError(err: unknown): AiError {
   return new AiError('ai_unavailable', `Gemini request failed: ${String((err as Error)?.message ?? err).slice(0, 300)}`);
 }
 
-export function geminiGenerate(apiKey: string, model: string, fallbackModel?: string): Generate {
+export function geminiGenerate(apiKey: string, model: string, fallbackModels: string[] = []): Generate {
   const primaryClient = new GoogleGenAI({ apiKey, httpOptions: { timeout: PRIMARY_TIMEOUT_MS } });
   const fallbackClient = new GoogleGenAI({ apiKey, httpOptions: { timeout: FALLBACK_TIMEOUT_MS } });
 
@@ -114,10 +125,11 @@ export function geminiGenerate(apiKey: string, model: string, fallbackModel?: st
     return res.text ?? '';
   };
 
+  const fallbacks = [...new Set(fallbackModels)].filter((m) => m && m !== model);
   return (opts) =>
     withFallback(
       () => call(primaryClient, model, opts),
-      fallbackModel && fallbackModel !== model ? () => call(fallbackClient, fallbackModel, opts) : undefined,
+      fallbacks.map((m) => () => call(fallbackClient, m, opts)),
     );
 }
 
