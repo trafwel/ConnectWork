@@ -1,0 +1,30 @@
+# M13 — Caddy config for the live demo · Owner: Person A
+#
+# WHAT THIS ACHIEVES
+#   One small VM serves the whole app over HTTPS at our domain: the built web
+#   app as static files, and /api/* proxied to the Node server. Caddy gets and
+#   renews the HTTPS certificate automatically.
+#
+# STEPS
+#   1. TODO(M13): replace connectwork.example with our GoDaddy Registry domain.
+#   2. Point the domain's A record at the VM's IP (GoDaddy DNS) and wait a few minutes.
+#   3. sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+#   4. Check: curl https://<domain>/api/health → {"ok":true,...}
+#
+# Guide: docs/IMPLEMENTATION_GUIDE.md §20
+
+connectwork.example {
+	encode gzip
+
+	# API → the Node server (deploy/connectwork.service, port 8787)
+	handle /api/* {
+		reverse_proxy localhost:8787
+	}
+
+	# Everything else → the built single-page app; unknown paths fall back to index.html
+	handle {
+		root * /srv/connectwork/app/apps/web/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,30 @@
+# M13 — systemd unit for the Connectwork API · Owner: Person A
+#
+# WHAT THIS ACHIEVES
+#   Keeps the API running on the VM: starts at boot and restarts on crash.
+#
+# STEPS
+#   1. On the VM, clone to /srv/connectwork/app, then: pnpm install && pnpm build
+#   2. Create /srv/connectwork/app/.env from .env.example:
+#        GEMINI_API_KEY=…   ALLOWED_ORIGIN=https://<domain>   DEMO_CACHE=replay
+#      (TODO(M13): never commit this file; chmod 600 it.)
+#   3. sudo cp deploy/connectwork.service /etc/systemd/system/
+#      sudo systemctl daemon-reload && sudo systemctl enable --now connectwork
+#   4. Logs: journalctl -u connectwork -f   (route, status, latency only — never bodies)
+#
+# Guide: docs/IMPLEMENTATION_GUIDE.md §20
+
+[Unit]
+Description=Connectwork API
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/connectwork/app/apps/server
+ExecStart=/usr/bin/pnpm start
+Restart=always
+RestartSec=3
+User=www-data
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

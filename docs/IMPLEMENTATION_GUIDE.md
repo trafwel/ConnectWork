@@ -6,7 +6,7 @@ The complete, step-by-step guide for building Connectwork for DubHacks '26: from
 
 | Part | Sections |
 | --- | --- |
-| Ground rules, setup, accounts, plan | 0–3 |
+| Ground rules, setup, accounts, plan, **scaffold file map** | 0–3 |
 | Built: scaffold → AI query (M0–M5) | 4–9 |
 | What live Gemini testing taught us | 10 |
 | To build (M6–M14, plus the theme) | 11–21 |
@@ -153,6 +153,35 @@ Open http://localhost:5173: the ring map with 40 sample people, and a yellow "De
 | M14 | Month view | A | 1 h | only if time |
 
 In parallel: **A** does M7 → T → M10 → M13 → M14; **B** does R → M6 → M8 → M9 → M11 → M12.
+
+---
+
+### 3.1 The scaffold files — start here
+
+Every file for the remaining work already exists in the repo as a **scaffold**: correct name, final function signature, and a header comment with four parts — **WHAT THIS ACHIEVES**, **HOW IT FITS**, **STEPS** (numbered), **DONE WHEN**. Inside the body, `TODO(M#) n:` markers sit exactly where step *n*'s code goes. Every scaffold compiles and is not yet wired into the UI, so the app and all checks stay green while you fill them in.
+
+```bash
+pnpm todo                 # lists every open TODO step with file and line
+pnpm todo | grep "M6"     # just one milestone
+```
+
+Workflow for each file: read the header → implement the steps top to bottom → delete each `TODO` line as you finish it → run the four checks → commit. When `pnpm todo | grep M6` prints nothing, M6 is done.
+
+| Step | Files (already created) | What you'll achieve |
+| --- | --- | --- |
+| R | `apps/server/src/routes/structured.ts` | Every AI endpoint becomes ~15 lines with the same validation, cache, retry, fallback, guardrails and error handling |
+| M6 | `routes/classify.ts`, `routes/links.ts`, `web/src/lib/aiFlows.ts`, `components/ReviewSheet.tsx` | One click sorts an import into colored clusters; the AI finds Abbey ↔ John; nothing changes until you accept |
+| M7 | `components/FilterTabs.tsx`, `components/RemindersPanel.tsx`, `lib/ics.ts` | Follow-ups pulse on the map, one-click views, "Add to calendar" for any calendar app |
+| T | `graph/theme.ts` (+ `index.css`, `lib/colors.ts`) | The chosen theme from the canvas applied in one place |
+| M8 | `routes/weeklyReview.ts`, `routes/draft.ts`, `lib/weeklyCandidates.ts`, `components/WeeklyReview.tsx` | The agent plans your week, you approve, it does the work — the Cook Smarter centerpiece |
+| M9 | `routes/extract.ts`, `lib/image.ts`, `components/SnapDialog.tsx` | Photo of a business card or a roster PDF → people in your network |
+| M10 | `lib/drift.ts`, `components/ListView.tsx` | Fading relationships drift outward; the whole app works by keyboard and screen reader |
+| M11 | `routes/meetingBrief.ts`, `lib/googleCalendar.ts`, `components/MeetingStrip.tsx`, `components/MeetingPrepCard.tsx` | Today's meetings above the map, a prep card per meeting, reminders in Google Calendar |
+| M12 | `lib/offlineCache.ts` | The scripted demo works even with no Wi-Fi or an overloaded Gemini |
+| M13 | `deploy/Caddyfile`, `deploy/connectwork.service` | Live at our domain over HTTPS |
+| M14 | `components/CalendarMonth.tsx` | A month view of reminders and meetings (stretch) |
+
+Already written in full (no TODOs): the zod contracts for every new endpoint in `packages/shared/src/schemas.ts`, and draft system prompts in `apps/server/src/prompts.ts` (tune them after the first live run).
 
 ---
 
@@ -465,6 +494,8 @@ Lessons to carry into every new AI feature:
 
 ## 11. R — Route refactor (Person B, 20 min, before M6)
 
+> **You'll achieve:** one helper that gives every AI endpoint the same validation, cache, retry, model fallback, guardrails and error handling. **Scaffold:** `apps/server/src/routes/structured.ts`.
+
 Every new AI route repeats what `/query` does. Pull it into one helper in `apps/server/src/routes/ai.ts`:
 
 ```ts
@@ -516,6 +547,8 @@ Commit `Refactor: structured AI route helper`.
 ---
 
 ## 12. M6 — AI auto-sort + hidden links (Person B)
+
+> **You'll achieve:** a 114-person gray import becomes colored clusters in one click, and the app discovers Abbey ↔ John — with every suggestion reviewed before it's saved. **Scaffolds:** `routes/classify.ts`, `routes/links.ts`, `lib/aiFlows.ts`, `components/ReviewSheet.tsx`.
 
 **Goal:** after import, one click sorts everyone into rings and tags; "Find hidden links" discovers connections like Abbey ↔ John. Both go through a review sheet first.
 
@@ -621,6 +654,8 @@ export async function sortWithAi(ids: string[]) {
 
 ## 13. M7 — Reminder flags, filter tabs, .ics (Person A)
 
+> **You'll achieve:** follow-ups you can't miss (pulsing flags, a Due list), one-click views of the network, and calendar export that works anywhere. **Scaffolds:** `components/FilterTabs.tsx`, `components/RemindersPanel.tsx`, `lib/ics.ts`.
+
 ### 13.1 Flags
 
 `App.tsx` passes `dueIds` and `overdueIds` (`isOverdue` in `lib/people.ts`) to the map; `PersonNode` takes `flag: 'none' | 'due' | 'overdue'`:
@@ -681,6 +716,8 @@ Download with a `text/calendar` Blob. **Add to calendar** on each reminder; **Ex
 
 ## 14. T — Apply the chosen theme (Person A, 45 min)
 
+> **You'll achieve:** the app looks like the direction we chose on the canvas, from one set of tokens. **Scaffold:** `graph/theme.ts`.
+
 The theme canvas shows the same screen in four directions: **Daylight** (polished current look), **Night Sky** (dark, glowing nodes), **Atlas** (map paper, contour rings, IBM Plex) and **Campus** (bold, friendly, filled ring bands). Pick one together, then:
 
 1. **Fonts** — add the Google Fonts `<link>` in `apps/web/index.html`; set `--font-sans` (and a display font if the theme has one) in `src/index.css`. Daylight keeps Geist.
@@ -696,6 +733,8 @@ Existing users must reset tag colors (Settings → Reset demo data) or migrate: 
 ---
 
 ## 15. M8 — Weekly review agent (Person B)
+
+> **You'll achieve:** the demo's finale — the agent plans the week from an exact shortlist, writes the drafts, and approving does the work. **Scaffolds:** `routes/weeklyReview.ts`, `routes/draft.ts`, `lib/weeklyCandidates.ts`, `components/WeeklyReview.tsx`.
 
 The Cook Smarter centerpiece: one button, the agent plans, you approve, it does the work.
 
@@ -730,6 +769,8 @@ Test with the seed: John Park appears as `follow_up` **and** `reconnect`.
 
 ## 16. M9 — Snap to add (Person B)
 
+> **You'll achieve:** add people you met in person by photographing a card or dropping a roster — a live-demo moment and our Gemini prize entry. **Scaffolds:** `routes/extract.ts`, `lib/image.ts`, `components/SnapDialog.tsx`.
+
 ### 16.1 Client — `components/SnapDialog.tsx`
 
 **Snap** button → file input `accept="image/*,application/pdf"` `capture="environment"` (phones open the camera). Downscale images before sending:
@@ -763,6 +804,8 @@ Dedupe each extracted person with `findMatch` (`lib/csv.ts`); matches show "alre
 
 ## 17. M10 — Drift + accessible list view (Person A)
 
+> **You'll achieve:** relationships you're neglecting visibly drift outward, and everything works without seeing the map. **Scaffolds:** `lib/drift.ts`, `components/ListView.tsx`.
+
 ### 17.1 `lib/drift.ts` (+ tests)
 
 ```ts
@@ -793,6 +836,8 @@ Tests: no `lastContact` → 0; at threshold → 0; 2× threshold → 1; ring 3 �
 ---
 
 ## 18. M11 — Google Calendar + meeting prep (Person B, UI with A)
+
+> **You'll achieve:** the network meets your real schedule — meeting prep from today's calendar and reminders written back to it. **Scaffolds:** `routes/meetingBrief.ts`, `lib/googleCalendar.ts`, `components/MeetingStrip.tsx`, `components/MeetingPrepCard.tsx`.
 
 Needs `VITE_GOOGLE_CLIENT_ID` (section 2).
 
@@ -830,6 +875,8 @@ A `gcal(path, init)` helper adds `Authorization: Bearer`; on 401 clear the token
 
 ## 19. M12 — Demo hardening (Person B)
 
+> **You'll achieve:** a demo that survives bad Wi-Fi and an overloaded free tier. **Scaffold:** `lib/offlineCache.ts`.
+
 1. **Reset first:** Settings → Reset demo data (the cache key includes dates relative to today — record on judging morning and don't touch the demo data afterwards).
 2. **Record:** `.env` `DEMO_CACHE=record`, restart, run every scripted action once: each demo question, Sort with AI, Find hidden links, Review my week, Snap `roster.pdf`, the John meeting brief. `demo/demo-cache.json` grows.
 3. **Replay:** `DEMO_CACHE=replay`, restart; the log shows `cache=hit` and no Gemini calls.
@@ -847,6 +894,8 @@ A `gcal(path, init)` helper adds `Authorization: Bearer`; on 401 clear the token
 ---
 
 ## 20. M13 — Deploy (Person A)
+
+> **You'll achieve:** a live HTTPS URL on our own domain for judges and Devpost. **Files:** `deploy/Caddyfile`, `deploy/connectwork.service`.
 
 On the VM:
 
@@ -895,6 +944,8 @@ DNS `A` record → VM IP; add `https://<domain>` to the OAuth client's origins. 
 ---
 
 ## 21. M14 — Month view (Person A, only if everything else is done)
+
+> **You'll achieve:** a month at a glance (stretch goal). **Scaffold:** `components/CalendarMonth.tsx`.
 
 `components/CalendarMonth.tsx`: a 7-column grid for the current month; each day lists reminders and meetings; clicking a day highlights those people. Opened from a **Calendar** filter tab. Commit `M14`.
 
