@@ -28,7 +28,6 @@ Resolved items move to the table at the bottom, with what changed.
 ## Team decision
 | ID | Question | Claude's suggested default |
 | --- | --- | --- |
-| M5-S7 | `.env` (holds the Gemini key) is readable by every user account on this Mac (`-rw-r--r--`). | Run `chmod 600 .env` once. It's your file, so Claude didn't change it. |
 | M4-I4 | Import drop zone not yet checked with a real keyboard. | Tab to the drop zone and press Space/Enter once. |
 | M1-O5 | Import replaces everything without confirming. Should it ask first, or auto-export a backup? | A two-step confirm like Delete ("Replace all your data with this backup?"). It's consistent, needs no extra download, and is easy to change. *Applied in the fix step unless you say otherwise.* |
 
@@ -53,6 +52,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| M5-S7 | `.env` (holds the Gemini key) was readable by every user account on the Mac. | The team ran `chmod 600 .env` (now `-rw-------`); the server still reads the key. |
 | M5-O2 | The answer sentence could miscount while the highlights were right. | Post-M5 step: when code changes the model's list, the card adds "· list checked against your data". Checked in the browser with a stubbed reply. |
 | M5-O3 | A slow question couldn't be cancelled. | Post-M5 step: an AbortController per question; the card's Cancel, Escape, or a new question cancel it, and late replies are ignored. Checked: nothing appeared 12 s after Cancel; a second question replaced the first. |
 | M3-S2 | Text bypassing `maxLength` would reach AI summaries. | CSV path: M4. Summary: M5 caps every field in `buildSummary`; the server caps question (500) and summary (400k). |

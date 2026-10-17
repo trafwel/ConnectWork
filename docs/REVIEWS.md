@@ -282,7 +282,7 @@ Also: an unreachable server shows a red message; Escape clears everything; the s
 | S4 | The rate limiter trusted `X-Forwarded-For`, so a client could fake a new IP per request and dodge the limit. | **Fixed:** trusted only with `TRUST_PROXY=1` (behind Caddy); otherwise the real socket address. Expired entries are swept. Tested. |
 | S5 | Prompt injection via a contact's name or company. | Mitigated: the prompt says data is not instructions, ids are filtered in code, and the answer is shown as plain text. Residual: a crafted name could make the *sentence* misleading. Accepted. |
 | S6 | Free tier: Google may use requests to improve its products. | The banner says "use sample data only"; demo data is fictional. **Don't import real contacts until `GEMINI_TIER=paid`.** |
-| S7 | `.env` (holds the key) is readable by every user account on the Mac (`-rw-r--r--`). | Team action: `chmod 600 .env` (see OPEN_ISSUES). Claude didn't change your file. |
+| S7 | `.env` (holds the key) is readable by every user account on the Mac (`-rw-r--r--`). | **Resolved:** the team ran `chmod 600 .env` (now `-rw-------`). |
 | S8 | `demo/demo-cache.json` stores model answers, which name people. | Record only with fictional demo data (comment in `cache.ts`). |
 | S9 | The deployed server has no login, so anyone who can reach it can spend our Gemini quota (30/min per IP). | Waits for M13/M14 deploy (see OPEN_ISSUES). |
 
