@@ -12,8 +12,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Fix now
 | ID | Issue | Plan |
 | --- | --- | --- |
-| M5-O2 | The answer sentence can miscount ("7 people") while the highlights are right (9). | When code changed the model's list, add "· list checked against your data" to the card. |
-| M5-O3 | A slow question (up to 60 s) can't be cancelled. | An AbortController per question: Escape, ✕ or a new question cancels it; stale replies are ignored. |
+| — | Nothing open. The post-M5 step fixed both (see Resolved). | — |
 
 ## Waits for a milestone
 | ID | Issue | Milestone |
@@ -37,6 +36,7 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Issue | Why |
 | --- | --- | --- |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
+| P5-O1 | Cancelling a question stops the *browser* waiting, but the server still finishes the Gemini call (quota is spent). | Passing the client's abort through to Gemini (`c.req.raw.signal` → SDK `abortSignal`) is possible; worth it only if quota gets tight. |
 | M5-E2 | Every question sends the whole network (about 10k tokens at 154 people). | Fine on the free tier; the model needs the data. Trim only if cost matters. |
 | M5-S5 | A crafted contact name could make the answer *sentence* misleading (prompt injection). | Ids are filtered in code and the answer is plain text; the residual risk is wording only. |
 | M5-O5 | On a narrow window the corner answer card can overlap the outer ring. | Desktop-first demo. |
@@ -53,6 +53,8 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| M5-O2 | The answer sentence could miscount while the highlights were right. | Post-M5 step: when code changes the model's list, the card adds "· list checked against your data". Checked in the browser with a stubbed reply. |
+| M5-O3 | A slow question couldn't be cancelled. | Post-M5 step: an AbortController per question; the card's Cancel, Escape, or a new question cancel it, and late replies are ignored. Checked: nothing appeared 12 s after Cancel; a second question replaced the first. |
 | M3-S2 | Text bypassing `maxLength` would reach AI summaries. | CSV path: M4. Summary: M5 caps every field in `buildSummary`; the server caps question (500) and summary (400k). |
 | M1-I4 | A failed first seed stayed failed until reload. | Post-M4 step: the memoized promise is cleared on failure, so the next call retries. |
 | M1-S2 | Backup import checked only row shape. | Post-M4 step: zod schemas per table (`packages/shared/src/storedRows.ts`); every row validated before anything is replaced; unsafe links dropped; unknown fields stripped. 5 tests in `db/backup.test.ts`. |

@@ -50,3 +50,9 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. The model returned an id that isn't in the data. Where does it get dropped, and why there rather than in the prompt?
 3. On the first live run, "Who have I lost touch with?" named the wrong people. What did we change so the highlights are right no matter what the model says?
 4. Why does the browser send today's date in a header instead of in the request body?
+
+## Open-issues step (after M5)
+**Cancelling questions**
+
+1. You ask "Microsoft?", then quickly "Apple?". The Microsoft reply arrives *after* the Apple one. What stops it from replacing the Apple answer?
+2. After you cancel, does Gemini stop working on the question? What does that mean for our free-tier quota?

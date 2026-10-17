@@ -297,3 +297,26 @@ Also: an unreachable server shows a red message; Escape clears everything; the s
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m5).
+
+## Open-issues step (after M5)
+
+**Fixing M5-O2 and M5-O3** · Oct 17 · branch `m5-ask`
+
+**What changed:**
+- **Questions can be cancelled.** An AbortController per question: the card's Cancel, Escape, or a new question cancels it, and a late reply is ignored.
+- **The card says when code corrected the model's list:** "· list checked against your data".
+
+**How it was checked:** typecheck, lint, tests. In the browser:
+- Cancel while thinking: the card cleared, and nothing appeared 12 s later.
+- Two questions in a row: only the second answer showed.
+- A stubbed reply naming 2 of 3 Microsoft people: 3 highlighted, and the note appeared.
+- No console errors.
+
+| | Finding | Status |
+| --- | --- | --- |
+| Efficiency | Cancelling stops the browser waiting, but the server still completes the Gemini call. | Logged (P5-O1, won't fix for now). |
+| Integration | "Busy" now has two ways to end (answer or cancel). The abort fires only on a cancel, because the request is cleared *before* the answer is stored. | Verified both paths. |
+| Integration | The global Escape (outside the box) still clears the answer but doesn't cancel a request in flight. | Acceptable: the card's Cancel button and Escape *in* the box both cancel. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m5).

@@ -47,6 +47,8 @@ export interface UIState {
   agentAnswer: string | null;
   agentError: boolean;
   agentBusy: boolean;
+  /** Code changed the model's list (grounding, exact matches, drift rule): say so on the card (M5-O2). */
+  agentChecked: boolean;
   quickAddOpen: boolean;
   importOpen: boolean;
   settingsOpen: boolean;
@@ -56,7 +58,7 @@ export interface UIState {
   selectPerson: (id: string | null) => void;
   setHighlights: (ids: Iterable<string>) => void;
   clearFocus: () => void;
-  setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy' | 'agentError'>>) => void;
+  setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy' | 'agentError' | 'agentChecked'>>) => void;
   setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
 }
 
@@ -67,6 +69,7 @@ const noFocus = {
   rightPanel: null,
   agentAnswer: null,
   agentError: false,
+  agentChecked: false,
   filter: 'all',
 } satisfies Partial<UIState>;
 

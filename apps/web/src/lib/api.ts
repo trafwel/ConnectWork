@@ -40,15 +40,17 @@ export interface Health {
 const BASE: string = import.meta.env.VITE_API_BASE ?? '/api';
 
 // Step 2. Never throws: components get a typed result, and the server's reply is validated again.
-async function post<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<ApiResult<T>> {
+async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<ApiResult<T>> {
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-client-date': today() },
       body: JSON.stringify(body),
+      signal,
     });
   } catch {
+    if (signal?.aborted) return { ok: false, error: 'internal', message: 'Cancelled' }; // the caller ignores it
     return { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." };
   }
   const json: unknown = await res.json().catch(() => null);
@@ -62,8 +64,8 @@ async function post<T>(path: string, body: unknown, schema: z.ZodType<T>): Promi
 }
 
 // Step 3
-export function askQuery(question: string, summary: string): Promise<ApiResult<QueryResponse>> {
-  return post('/ai/query', { question, summary }, QueryResponse);
+export function askQuery(question: string, summary: string, signal?: AbortSignal): Promise<ApiResult<QueryResponse>> {
+  return post('/ai/query', { question, summary }, QueryResponse, signal);
 }
 
 // Step 4
