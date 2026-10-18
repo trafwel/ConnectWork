@@ -27,7 +27,7 @@
  *      newIds = await applyImport(plan, linkedin ? 'linkedin' : 'manual', 'LinkedIn'); close; toast
  *      "Imported X people · updated Y · Z already here".
  *   7b. (open-issues step, M4-O3) The toast has Undo → undoImport(newIds, plan.toUpdate).
- *   8. (M6) Give that toast an action { label: 'Sort with AI', onClick: () => sortWithAi(newIds) }
+ *   8. (M6 ✓) Give that toast an action { label: 'Sort with AI', onClick: () => sortWithAi(newIds) }
  *      and a longer duration (15 s) when there are new people.
  *
  * DONE WHEN
@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { applyImport, undoImport } from '@/db/actions';
+import { sortWithAi } from '@/lib/aiFlows';
 import { db } from '@/db/db';
 import { guessMapping, mapGenericRows, parseCsv, planImport, type ColumnMapping, type MappableField, type ParsedCsv } from '@/lib/csv';
 import { cn } from '@/lib/utils';
@@ -143,10 +144,14 @@ export function ImportDialog() {
         [`Imported ${plural(newIds.length, 'person', 'people')}`, fresh.toUpdate.length && `updated ${fresh.toUpdate.length}`, fresh.unchanged && `${fresh.unchanged} already here`]
           .filter(Boolean)
           .join(' · '),
-        // Undo removes the new people and clears only the fields this import filled (M4-O3).
-        // M6 puts "Sort with AI" in `action`; Undo then moves to `cancel`.
+        // M6: "Sort with AI" is the main action when there are new people; Undo (M4-O3) is the
+        // secondary one. Undo removes the new people and clears only the fields this import filled.
         changed
-          ? { duration: 15_000, action: { label: 'Undo', onClick: () => void undoImport(newIds, fresh.toUpdate).then(() => toast('Import undone')) } }
+          ? {
+              duration: 15_000,
+              ...(newIds.length ? { action: { label: 'Sort with AI', onClick: () => void sortWithAi(newIds) } } : {}),
+              [newIds.length ? 'cancel' : 'action']: { label: 'Undo', onClick: () => void undoImport(newIds, fresh.toUpdate).then(() => toast('Import undone')) },
+            }
           : undefined,
       );
     } catch (err) {

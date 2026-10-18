@@ -28,28 +28,12 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { canonicalJson } from '@connectwork/shared';
 
 export type CacheMode = 'off' | 'record' | 'replay';
 
-/**
- * Stable JSON: object keys sorted and undefined values dropped, so equal request
- * bodies always produce identical text.
- *   arrays  → `[${items.map(canonicalJson).join(',')}]`
- *   objects → entries without undefined values, sorted by key, as `{"k":<canonicalJson(v)>,…}`
- *   others  → JSON.stringify(value)
- * Step R (guide §11) moves this to packages/shared/src/canonical.ts so the browser (M12)
- * computes the same cache keys.
- */
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
+// Step R: canonicalJson now lives in @connectwork/shared (the browser needs it in M12).
+export { canonicalJson };
 
 // Step 1. The key reveals nothing about the request: it's a hash.
 export function cacheKey(route: string, body: unknown): string {

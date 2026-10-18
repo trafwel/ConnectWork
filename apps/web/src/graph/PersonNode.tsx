@@ -92,7 +92,7 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
       {selected && <circle r={r + 4} fill="none" stroke={T.selected} strokeWidth={2.5} />}
       <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
       {person.ring === 1 && (
-        <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fill={readableOn(color)} pointerEvents="none">
+        <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}
         </text>
       )}

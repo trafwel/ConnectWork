@@ -56,3 +56,24 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 
 1. You ask "Microsoft?", then quickly "Apple?". The Microsoft reply arrives *after* the Apple one. What stops it from replacing the Apple answer?
 2. After you cancel, does Gemini stop working on the question? What does that mean for our free-tier quota?
+
+## M6
+**Step R, Sort with AI, hidden links, review sheet**
+
+1. The prompt already says "never suggest ring 1 for imported contacts". Why do we *also* turn ring 1 into ring 2 in code?
+2. Hidden links appear as dashed lines before you accept them. What does Dismiss have to do, and why?
+3. Step R rewrote how `/query` works. How do we know it still behaves exactly the same?
+4. Accepting a sort keeps your own tags but drops "LinkedIn". Why both?
+
+## Step S: style switching
+**Styles and modes**
+
+1. Switching to Atlas restyles the whole map without React re-rendering it. What makes that possible?
+2. Why is there a small script inside `index.html` instead of only doing this in React?
+3. Why is the style choice saved in `localStorage` and not in IndexedDB with the rest of the data?
+
+## Open-issues step (after M6)
+**Sector moves and highlights**
+
+1. After a sort, why didn't the re-tagged people move to the Work sector at first, and what makes them move now?
+2. Hovering a review row used to wipe your Ask Connectwork highlights. What does the row remember, and when does it give it back?

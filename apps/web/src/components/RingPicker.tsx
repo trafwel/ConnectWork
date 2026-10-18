@@ -1,5 +1,5 @@
 /**
- * M3 — Ring picker · done
+ * M3 — Ring picker · done (step S: built on the shared Segmented control)
  *
  * WHAT THIS ACHIEVES
  *   Choosing Close / Regular / Wider with mouse or keyboard — a proper radio group,
@@ -14,58 +14,16 @@
  *
  * Guide: §7.2
  */
-import { useRef } from 'react';
 import type { Ring } from '@connectwork/shared';
-import { cn } from '@/lib/utils';
+import { Segmented } from './Segmented';
 
-const OPTIONS: Array<{ ring: Ring; label: string }> = [
-  { ring: 1, label: '1 · Close' },
-  { ring: 2, label: '2 · Regular' },
-  { ring: 3, label: '3 · Wider' },
+const OPTIONS: Array<{ value: Ring; label: string }> = [
+  { value: 1, label: '1 · Close' },
+  { value: 2, label: '2 · Regular' },
+  { value: 3, label: '3 · Wider' },
 ];
 
+// Steps 1–4 live in Segmented (radio group, roving tabindex, arrow keys move focus too).
 export function RingPicker({ value, onChange, id }: { value: Ring; onChange: (ring: Ring) => void; id?: string }) {
-  const buttons = useRef<Record<Ring, HTMLButtonElement | null>>({ 1: null, 2: null, 3: null });
-
-  // Step 3. Arrow keys move the selection AND the focus (focus must follow, or the
-  // screen reader keeps announcing the old option).
-  const move = (to: Ring) => {
-    onChange(to);
-    buttons.current[to]?.focus();
-  };
-
-  return (
-    <div
-      id={id}
-      role="radiogroup"
-      aria-label="Ring"
-      className="inline-flex rounded-md border p-0.5"
-      onKeyDown={(e) => {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(((value % 3) + 1) as Ring);
-        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move((((value + 1) % 3) + 1) as Ring);
-        else return;
-        e.preventDefault(); // don't scroll the panel
-      }}
-    >
-      {OPTIONS.map(({ ring, label }) => (
-        <button
-          key={ring}
-          ref={(el) => {
-            buttons.current[ring] = el;
-          }}
-          type="button"
-          role="radio"
-          aria-checked={value === ring}
-          tabIndex={value === ring ? 0 : -1} // Step 2: roving tabindex, one Tab stop for the group
-          onClick={() => onChange(ring)}
-          className={cn(
-            'rounded-sm px-2.5 py-1 text-sm transition-colors',
-            value === ring ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-          )}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
+  return <Segmented id={id} label="Ring" value={value} options={OPTIONS} onChange={onChange} />;
 }

@@ -9,7 +9,7 @@
  * STEPS
  *   1. On mount: getHealth() into state.
  *   2. Render nothing unless health.tier === 'free'.
- *   3. <div role="note" className="border-b bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900">
+ *   3. <div role="note" className="border-b bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
  *        "Demo mode: the AI runs on Gemini's free tier, so use sample data only."
  *        + " AI is not configured yet (no GEMINI_API_KEY)." when !health.aiConfigured
  *
@@ -34,7 +34,7 @@ export function DemoBanner() {
   if (health?.tier !== 'free') return null;
   // Step 3
   return (
-    <div role="note" className="border-b bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900">
+    <div role="note" className="border-b bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
       Demo mode: the AI runs on Gemini&apos;s free tier, so use sample data only.
       {!health.aiConfigured && ' AI is not configured yet (no GEMINI_API_KEY).'}
     </div>

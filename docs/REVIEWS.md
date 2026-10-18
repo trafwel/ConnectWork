@@ -320,3 +320,109 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m5).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m5).
+
+## M6
+
+**Step R (route helper) + Sort with AI + Find hidden links + the review sheet** · Oct 17 · branch `m6-review`
+
+**How it was checked:** typecheck, lint (0 warnings), tests (server 26: the unchanged `/query` tests after step R, plus classify and links guardrail tests; browser: 3 new action tests), production build.
+
+**Live, against Gemini** (fictional demo data):
+- **Find hidden links** (2.2 s): 10 suggestions with **Abbey Chen ↔ John Park, "both Microsoft, both UW", 90%**. I checked all 10 evidence labels against the data, and all were true.
+- **The review sheet:** hovering a row highlights its 2 people. Accepting only Abbey ↔ John made it a real link (25 → 26 links) and removed the other 9 dashed lines. A second run (20.4 s) didn't re-suggest Abbey ↔ John, and Dismiss brought the links back to exactly 26.
+- **Sort with AI** (7.7 s) on the 114 imported people: 112 suggestions, each with a reason about the person ("Software Engineer at Zillow"). The 9 ring-2 picks were all justified (8 at Microsoft, the company in "About you"; 1 met 38 days ago). Accept all → "Applied 112 changes", and the grey band turned into Work clusters.
+- No console errors; no names in the server log.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Accepting 112 sort suggestions as 112 `updatePerson` calls = 112 transactions. | **Fixed:** `applyClassification`, one transaction. |
+| E2 | Suggesting / resolving links one at a time. | **Fixed:** `addSuggestedLinks` and `resolveLinks`, one transaction each. |
+| E3 | Classify sends only what's needed to sort (name, company, role, school, metAt). | No notes, no tags, no ids beyond the person's. |
+| E4 | `/links` took 2.2 s once and 20.4 s the next time. | Free-tier variance; the 60 s chain budget covers it. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Step R moved `/query` onto `structured()`. | **Proven by tests:** `ai.test.ts` unchanged and green. |
+| I2 | `links.ts` importing `summaryIds` from `ai.ts` (which registers `links.ts`) would be circular. | **Avoided:** shared helpers live in `structured.ts`; `ai.ts` re-exports them. |
+| I3 | Hidden links are written as dashed *before* the decision, so "Dismiss changes nothing" was false. | **Fixed:** `onDismiss` removes the links this run created (not ones that existed before). Verified 33 → 26. |
+| I4 | Escape, Ask Connectwork or clicking a person would orphan an open review. | **Fixed:** `clearFocus` and `selectPerson(null)` return to the review while one is open. |
+| I5 | The scaffold's sort write replaced a person's tags, which would drop tags added after import. | **Fixed:** the user's tags are kept; only the grey "LinkedIn" placeholder is dropped. Tested. |
+| I6 | The import toast needs both "Sort with AI" and Undo. | Sort with AI is the main action; Undo is the secondary one (sonner `cancel`). |
+| I7 | `canonicalJson` moved to `@connectwork/shared` for M12's browser cache. | Done; the server re-exports it, and the tests still pass. |
+| I8 | After a sort, the newly blue people stay in the upper-left band instead of moving to the Work sector: the layout restarts "cool" (alpha 0.3) and ring 3's sector pull is weak. | Open, **fix now**. |
+| I9 | Hovering a review row sets highlights, and leaving it sets them to *nothing*, wiping the highlights of an earlier Ask Connectwork answer. | Open, **fix now**. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | `PersonBrief` (each person sent to `/classify`) had no length limits. | **Fixed:** name 120, fields 300, allowed tags 20 × 40. A test checks a 121-character name is refused. |
+| S2 | "About you" goes to Gemini with every sort. | Settings says so under the field; at most 500 characters; it's the user's own text. |
+| S3 | Guardrails **in code**: classify (unknown ids, unknown tags, **ring 1 → 2**, duplicates) and links (self, unknown, already linked, the same pair twice). | Tested on both routes. |
+| S4 | Link labels are model text, shown in the UI and stored. | Capped at 60 by the schema; React shows them as text. |
+| S5 | Logging. | Verified: no names, companies or schools in the server log. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | The model silently skipped 2 of 114 people (both "Software Engineer Intern"). They stay grey, but the user isn't told. | Open, **fix now**: say "N people had no suggestion" in the review. |
+| O2 | No undo after accepting a sort. | Won't fix for now: the review sheet *is* the confirmation step, and each person can be changed from their card. |
+| O3 | Double-clicking a flow would start two 20 s calls. | **Handled:** one AI flow at a time ("Already working on it…"). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m6).
+
+## Step S: style switching
+
+**Intermediary step after M6 (requested Oct 17): switch the app's look at runtime** · branch `m6-review`
+
+**What was built:** Settings → Appearance with **Style** (Neutral | Atlas, the theme-canvas pick) and **Mode** (System | Light | Dark).
+- `index.css` has one palette per style/mode, including new `--map-*` variables, and `graph/theme.ts` reads only those variables.
+- `lib/appearance.ts` sets `<html data-style class="dark">` and saves the choice per device.
+- A tiny inline script in `index.html` applies it **before React loads** (no flash).
+- The pick-one keyboard pattern moved into a shared `Segmented` control, which RingPicker now uses too.
+
+**How it was checked:** typecheck, lint, 106 tests (new: parsing saved choices, resolving System). Contrast computed for every text pair in Atlas light and dark: all ≥ 4.5:1 (lowest 4.83). In the browser:
+- Neutral → Atlas: paper background, solid ink rings, mono labels, teal accent.
+- Mode changed by keyboard only: arrows move both selection and focus, one Tab stop.
+- Atlas dark kept after a reload; Neutral dark checked.
+- RingPicker still changes a ring by keyboard.
+- **System mode follows the OS live**, in both directions, using the pane's colour-scheme emulation.
+
+| | Finding | Status |
+| --- | --- | --- |
+| Efficiency | Switching changes CSS variables only, so the map and components restyle without React re-rendering them. | ✅ |
+| Integration | Toasts read a `next-themes` provider we never added, so they ignored our mode. | **Fixed:** App passes `theme` to the Toaster. |
+| Integration | The free-tier banner had fixed amber colours (bright in dark mode). | **Fixed:** `dark:` variants. |
+| Integration | First live test: after switching the OS scheme while the page loaded, the page stayed dark. The update depended on a React state *change*, which can be a no-op. | **Fixed:** the OS listener re-applies the theme directly. Re-tested with the same sequence. |
+| Integration | RingPicker rebuilt on `Segmented`. | Verified by keyboard in a person card. |
+| Security | No Google Fonts request: Atlas uses IBM Plex only if installed, else the system mono font. `localStorage` holds only `{style, mode}`. | ✅ |
+| Security | The no-flash script is inline; a strict Content-Security-Policy (M13 deploy) would block it. | Open (waits for M13): allow it by hash. |
+| Other | Tag colours are the same in every style: the colourblind-safe palette, stored with your data. | By design. Atlas's darker variants stay a step-T decision. |
+| Other | Atlas details not yet done: contour circles, the crosshair through "You", uppercase "R1 CLOSE" labels, bundled IBM Plex. | Open (waits for theme step T). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#step-s-style-switching).
+
+## Open-issues step (after M6)
+
+**Fixing M6-O1, M6-I8, M6-I9** · Oct 17 · branch `m6-review`
+
+**What changed:**
+- **Skipped people are named.** The review says who had no suggestion.
+- **Sorted people move to their sector.** People whose ring or tag changes are placed fresh at their new spot; many changes at once restart the layout hot.
+- **Hover no longer wipes highlights.** Hovering a review row restores the previous highlights on leave.
+
+**How it was checked:** typecheck, lint, tests. In the browser:
+- Live sort of 114 people → Accept all: the 111 ring-3 Work people now sit around the Work sector (mean −92°, all within 60° of −90°). Before, they stayed in the upper-left band.
+- An Abbey highlight survived hovering and leaving a row.
+- A stubbed reply skipping one person showed "1 person had no suggestion and stays unsorted: Zoe Xu" (the wording was fixed for the singular).
+
+| | Finding | Status |
+| --- | --- | --- |
+| Integration | Changing *one* person's ring or tag now also places them fresh at their new spot (a glide, not a nudge). | Intended: clearer than a small shuffle. The M2 "median 2.3 px" stability for everyone *else* still holds. |
+| Testing lesson | `performance.getEntriesByType('resource')` lists every hot-reloaded version of a module; the first match can be a stale copy with its own store. | Use the **last** match (it bit once here). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m6).

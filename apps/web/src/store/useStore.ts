@@ -1,5 +1,5 @@
 /**
- * M1 — UI state (Zustand) · done for M1 (extended by later milestones)
+ * M1 — UI state (Zustand) · done through M6 (extended by later milestones)
  *
  * WHAT THIS ACHIEVES
  *   One small store for what the UI is doing — which person is selected, what is
@@ -35,6 +35,25 @@
  */
 import { create } from 'zustand';
 
+// M6. One suggestion in the review sheet, and the whole review.
+export interface ReviewItem {
+  id: string;
+  title: string;
+  detail?: string;
+  /** Who this suggestion is about: highlighted on the map while the row is hovered or focused. */
+  personIds: string[];
+  checked?: boolean;
+}
+export interface ReviewPayload {
+  heading: string;
+  /** Extra context shown under the heading, e.g. who got no suggestion (M6-O1). */
+  note?: string;
+  items: ReviewItem[];
+  onAccept: (ids: string[]) => Promise<void>;
+  /** Undo anything shown before the decision (e.g. dashed suggested links). Dismiss must change nothing. */
+  onDismiss?: () => Promise<void>;
+}
+
 export type Filter = 'all' | 'due' | 'drifting' | (string & {});
 export type RightPanel = null | 'person' | 'weekly' | 'review' | 'meeting';
 
@@ -52,6 +71,7 @@ export interface UIState {
   quickAddOpen: boolean;
   importOpen: boolean;
   settingsOpen: boolean;
+  reviewPayload: ReviewPayload | null;
 
   setView: (view: 'map' | 'list') => void;
   setFilter: (filter: Filter) => void;
@@ -60,6 +80,8 @@ export interface UIState {
   clearFocus: () => void;
   setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy' | 'agentError' | 'agentChecked'>>) => void;
   setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
+  openReview: (payload: ReviewPayload) => void;
+  closeReview: () => void;
 }
 
 // What clearFocus() resets. Kept in one place so the initial state and "clear" can't drift apart.
@@ -75,20 +97,24 @@ const noFocus = {
 
 const DIALOG_FLAG = { quickAdd: 'quickAddOpen', import: 'importOpen', settings: 'settingsOpen' } as const;
 
-export const useStore = create<UIState>((set) => ({
+export const useStore = create<UIState>((set, get) => ({
   view: 'map',
   ...noFocus,
   agentBusy: false,
   quickAddOpen: false,
   importOpen: false,
   settingsOpen: false,
+  reviewPayload: null,
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
-  selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : null }),
+  // Closing a person card returns to an open review instead of losing it.
+  selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : get().reviewPayload ? 'review' : null }),
   // A new Set every time: Zustand compares by reference, so mutating the old Set would not re-render.
   setHighlights: (ids) => set({ highlightIds: new Set(ids) }),
-  clearFocus: () => set({ ...noFocus, highlightIds: new Set<string>() }),
+  clearFocus: () => set({ ...noFocus, highlightIds: new Set<string>(), rightPanel: get().reviewPayload ? 'review' : null }),
   setAgent: (patch) => set(patch),
   setDialog: (dialog, open) => set({ [DIALOG_FLAG[dialog]]: open }),
+  openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
+  closeReview: () => set({ reviewPayload: null, rightPanel: get().selectedPersonId ? 'person' : null, highlightIds: new Set<string>() }),
 }));

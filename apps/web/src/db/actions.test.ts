@@ -301,3 +301,35 @@ describe('undo', async () => {
     expect(after).not.toHaveProperty('school');
   });
 });
+
+describe('M6 actions', async () => {
+  const { addSuggestedLinks, applyClassification, resolveLinks } = await import('./actions');
+
+  it('applyClassification keeps the user’s own tags and drops only the LinkedIn placeholder', async () => {
+    const p = await person('Ravi', { primaryTag: 'LinkedIn', tags: ['LinkedIn', 'Hackathon'], ring: 3 });
+    await applyClassification([{ id: p.id, ring: 2, primaryTag: 'Work', tags: ['Work', 'Clubs'] }, { id: 'p_gone', ring: 3, primaryTag: 'Work', tags: [] }]);
+    expect(await db.people.get(p.id)).toMatchObject({ ring: 2, primaryTag: 'Work', tags: ['Work', 'Clubs', 'Hackathon'] });
+    expect(await db.tags.get('Hackathon')).toBeDefined();
+  });
+
+  it('addSuggestedLinks skips accepted pairs, reports what it created, and resolveLinks accepts/removes', async () => {
+    const a = await person('A');
+    const b = await person('B');
+    const c = await person('C');
+    await upsertLink(a.id, b.id, { source: 'user', status: 'accepted', label: 'mine' });
+    const written = await addSuggestedLinks([
+      { fromId: b.id, toId: a.id, label: 'already accepted' },
+      { fromId: a.id, toId: c.id, label: 'both UW' },
+      { fromId: c.id, toId: 'p_gone', label: 'missing person' },
+    ]);
+    expect(written).toEqual([expect.objectContaining({ label: 'both UW', created: true })]);
+    expect((await db.links.toArray()).find((l) => l.label === 'mine')?.status).toBe('accepted');
+
+    await resolveLinks([], written.map((l) => l.id)); // dismiss
+    expect(await db.links.count()).toBe(1);
+
+    const again = await addSuggestedLinks([{ fromId: a.id, toId: c.id, label: 'both UW' }]);
+    await resolveLinks(again.map((l) => l.id), []); // accept
+    expect((await db.links.get(again[0]!.id))?.status).toBe('accepted');
+  });
+});

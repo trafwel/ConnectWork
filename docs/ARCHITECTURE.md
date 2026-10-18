@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M5 built** — everything through CSV import, plus *Ask Connectwork*: the browser sends a compact summary (no notes) to the server, which asks Gemini for structured JSON (fallback chain, one retry), drops invented ids, and replies; the browser re-validates, grounds the ids in code and highlights them. Review sheet (M6) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M6 + step S built** — everything through Ask Connectwork, plus *Sort with AI* and *Find hidden links* (one review sheet: the AI proposes, the user accepts; every AI route uses `structured()`), and Settings → Appearance (Neutral/Atlas × System/Light/Dark). Flags and filters (M7) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -41,7 +41,9 @@ flowchart LR
   Csv["CSV logic<br/><small>lib/csv.ts · parse, map, dedupe, plan · M4</small>"]:::built
   Rows["Stored-row schemas (zod)<br/><small>packages/shared/src/storedRows.ts · post-M4</small>"]:::built
   App["App shell<br/><small>App.tsx · M0–M3 · hotkeys N, Escape</small>"]:::built
-  Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1</small>"]:::built
+  Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1, Appearance S</small>"]:::built
+  Look["Appearance<br/><small>lib/appearance.ts + index.css palettes · Neutral/Atlas × System/Light/Dark · S</small>"]:::built
+  LocalPref[/"localStorage<br/><small>cw-appearance (display preference only)</small>"/]:::built
   Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
   Seed["Seed · reset · delete · export · import<br/><small>db/seed.ts, materialize.ts · M1</small>"]:::built
   DB[("IndexedDB<br/><small>db/db.ts · M1</small>")]:::built
@@ -54,7 +56,7 @@ flowchart LR
     Card["Person card · quick add<br/><small>PersonCard, QuickAdd, RingPicker, TagSelect, PersonReminders, PersonLinks · M3</small>"]:::built
     Import["CSV import<br/><small>ImportDialog · lazy-loaded · preview, undo · M4</small>"]:::built
     Ask["Ask Connectwork<br/><small>AgentBar, AgentAnswer, DemoBanner · M5</small>"]:::built
-    Review["Review sheet · M6"]:::planned
+    Review["Review sheet<br/><small>ReviewSheet · AI proposes, you accept · M6</small>"]:::built
     Weekly["Weekly review · M8"]:::planned
     Snap["Snap to add · M9"]:::planned
   end
@@ -73,6 +75,8 @@ flowchart LR
   Map -->|"selected, highlights, filter"| Store
   App --> Chrome
   Chrome -->|"settingsOpen, clearFocus"| Store
+  Chrome -->|"style, mode"| Look
+  Look <-->|"saved per device"| LocalPref
   Chrome -->|"reset · delete · export · import"| Seed
   Seed <-->|"export (no secrets) / import (confirmed)"| BackupFile
   Seed -->|"validate every row"| Rows
@@ -89,7 +93,11 @@ flowchart LR
   Ask -->|"buildSummary, ground ids"| Summary
   Ask -->|"askQuery"| Api
   Ask -->|"highlights, answer"| Store
-  Review -.-> Api
+  Flows["AI flows<br/><small>lib/aiFlows.ts · sort, hidden links · M6</small>"]:::built
+  Import -->|"Sort with AI"| Flows
+  Flows -->|"aiPost /classify, /links"| Api
+  Flows -->|"openReview"| Store
+  Review -->|"accept → applyClassification, resolveLinks"| Actions
   Weekly -.-> Api
   Snap -.-> Api
   Relay -.->|"answers from local data"| DB
@@ -105,8 +113,10 @@ flowchart LR
   Health["GET /api/health<br/><small>app.ts · M0</small>"]:::built
   Limit["Rate limit<br/><small>rateLimit.ts · 30/min per IP · M5</small>"]:::built
   Query["POST /api/ai/query<br/><small>routes/ai.ts · drops invented ids · M5</small>"]:::built
-  Routes["POST /api/ai/* (more)<br/><small>routes/* · M6–M11</small>"]:::planned
-  Helper["Route helper<br/><small>routes/structured.ts · R</small>"]:::planned
+  Classify["POST /api/ai/classify<br/><small>ring 1 → 2, allowed tags only · M6</small>"]:::built
+  Links["POST /api/ai/links<br/><small>no self / unknown / existing pairs · M6</small>"]:::built
+  Routes["POST /api/ai/* (more)<br/><small>routes/* · M8–M11</small>"]:::planned
+  Helper["Route helper<br/><small>routes/structured.ts · validate, cache, retry, guardrails, safe errors · R</small>"]:::built
   Cache["Demo cache<br/><small>cache.ts · record / replay · M5</small>"]:::built
   GeminiH["Gemini helper<br/><small>schema · retry · fallback chain · 60 s budget · gemini.ts · M5</small>"]:::built
   Prompts["Prompts<br/><small>prompts.ts · DATA_FORMAT, QUERY done</small>"]:::built
@@ -115,14 +125,16 @@ flowchart LR
   Gemini["Gemini API"]:::external
 
   Limit --> Query
-  Query --> Cache
-  Query --> GeminiH
-  Query --> Prompts
+  Limit --> Classify
+  Limit --> Links
   Limit -.-> Routes
+  Query --> Helper
+  Classify --> Helper
+  Links --> Helper
   Routes -.-> Helper
-  Helper -.-> Cache
-  Helper -.-> GeminiH
-  Helper -.-> Prompts
+  Helper --> Cache
+  Helper --> GeminiH
+  Helper --> Prompts
   GeminiH -->|"3.8-flash → 3.6-flash → 3.5-flash-lite"| Gemini
   Agent -.->|"intent"| GeminiH
   Agent -.-> Hub
@@ -152,8 +164,10 @@ flowchart LR
 | M3 | Every write (`actions.ts`), person card, quick add | ✅ built ([review](REVIEWS.md#m3)) |
 | M4 | CSV import | ✅ built ([review](REVIEWS.md#m4)) |
 | M5 | Ask Connectwork → `/api/ai/query` → Gemini | ✅ built ([review](REVIEWS.md#m5)) |
-| R, M6 | Route helper; review sheet; classify + links | ⬜ next |
-| M7–M14 | Flags/filters, weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
+| R, M6 | Route helper; review sheet; classify + links | ✅ built ([review](REVIEWS.md#m6)) |
+| S | Style switching (intermediary step, requested Oct 17) | ✅ built ([review](REVIEWS.md#step-s-style-switching)) |
+| M7 | Flags and filter tabs | ⬜ next |
+| M8–M14 | Weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -167,3 +181,5 @@ flowchart LR
 | Oct 17 | M4 | Browser diagram: CSV file, CSV logic (`lib/csv.ts`) and the import dialog are built; the file is read in the browser, planned (dedupe, fill-only) and written through `applyImport` in one transaction. Status: M4 ✅, M5 next. |
 | Oct 17 | post-M4 | Open-issues step: added the stored-row schemas that every backup row is checked against; backups carry no secrets and ask before replacing; the import dialog is lazy-loaded and has Undo. |
 | Oct 17 | M5 | Big picture: browser → server → Gemini is built. Browser: Ask Connectwork, summary + guardrails, API client. Server: rate limit, `/api/ai/query`, demo cache, Gemini helper (fallback chain, 60 s budget) and prompts are built. Status: M5 ✅, R/M6 next. |
+| Oct 17 | R + M6 | Server: every AI route goes through the route helper; classify and links are built. Browser: AI flows (sort, hidden links) and the review sheet are built; accepting writes through `actions.ts`. Status: R/M6 ✅, style switching next. |
+| Oct 17 | S | Browser: Appearance (style + mode) built; Settings sets it, `localStorage` remembers it per device, and the map's colours come from `--map-*` variables. Status: S ✅, M7 next. |
