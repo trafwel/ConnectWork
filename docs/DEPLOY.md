@@ -8,6 +8,21 @@ One small Ubuntu VM runs everything:
 
 Steps marked 🧑 are **human-only** (accounts, money, credentials). The rest is copy-paste.
 
+## Right now, without a VM: a tunnel from a laptop
+
+```bash
+bash deploy/tunnel.sh
+```
+
+This builds the app, starts it with the production headers, and opens a Cloudflare "quick tunnel" (no account) at a public `https://<random>.trycloudflare.com` address.
+
+- It stays live only while the script runs and the laptop is awake (`caffeinate` keeps it awake meanwhile).
+- The address changes on every restart.
+- All visitors share one 30-requests-per-minute AI limit, which protects the quota.
+- `cloudflared` comes from Homebrew (`brew install cloudflared`).
+
+Use it for a link today; the steps below are the permanent site.
+
 ## 0. Before you start (🧑)
 
 1. 🧑 **VM:** create an Ubuntu 24.04 VM (Vultr, the smallest plan is enough) and add your SSH key. Note its **IP address**.
