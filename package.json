@@ -9,6 +9,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "eslint .",
     "seed": "tsx scripts/make-demo-data.ts",
+    "preview:prod": "tsx scripts/preview-prod.ts",
     "todo": "grep -rn --include='*.ts' --include='*.tsx' --include='Caddyfile' --include='*.service' 'TODO(' apps packages deploy || true"
   },
   "devDependencies": {

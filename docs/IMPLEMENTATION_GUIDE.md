@@ -917,6 +917,8 @@ A `gcal(path, init)` helper adds `Authorization: Bearer`; on 401 clear the token
 ## 20. M13 — Deploy (Person A)
 
 > **You'll achieve:** a live HTTPS URL on our own domain for judges and Devpost. **Files:** `deploy/Caddyfile`, `deploy/connectwork.service`.
+>
+> **As built (M13): follow [DEPLOY.md](DEPLOY.md)**, which supersedes the sketch below. The unit reads `.env` through systemd (so it can stay `chmod 600`), the API listens on 127.0.0.1 only, Caddy adds a CSP and security headers, and `deploy/update.sh` ships updates.
 
 On the VM:
 
