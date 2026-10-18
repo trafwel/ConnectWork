@@ -31,6 +31,8 @@ Resolved items move to the table at the bottom, with what changed.
 | --- | --- | --- |
 | M4-I4 | Import drop zone not yet checked with a real keyboard. | Tab to the drop zone and press Space/Enter once. |
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
+| F1-I5 | `pnpm lint` fails locally because of the untracked nested `conNetWork/` folder (a second copy of the repo). CI is unaffected. | It looks like a stray clone. If nobody needs it, delete it yourselves (Claude never touches it); otherwise add `conNetWork/**` to the ESLint ignores. |
+| F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |
 | M1-O5 | Import replaces everything without confirming. Should it ask first, or auto-export a backup? | A two-step confirm like Delete ("Replace all your data with this backup?"). It's consistent, needs no extra download, and is easy to change. *Applied in the fix step unless you say otherwise.* |
 
 ## Won't fix (for now)
@@ -49,9 +51,11 @@ Resolved items move to the table at the bottom, with what changed.
 | M5-E2 | Every question sends the whole network (about 10k tokens at 154 people). | Fine on the free tier; the model needs the data. Trim only if cost matters. |
 | M5-S5 | A crafted contact name could make the answer *sentence* misleading (prompt injection). | Ids are filtered in code and the answer is plain text; the residual risk is wording only. |
 | M5-O5 | On a narrow window the corner answer card can overlap the outer ring. | Desktop-first demo. |
+| F1-O1 | Labels move ahead of gliding nodes for about half a second when a click both pans and re-lays out the map. | Cosmetic; lines already did this. |
+| F1-O2 | A label with no free spot is skipped. | Still in the node's screen-reader label and tooltip; hover or focus always shows it. |
+| F1-O5 | Escape inside the Add connection form not checked live. | Check once by hand: it should close the form, not the card. |
 | M2-E6 | Layout blocks the main thread for about 86 ms at 154 people. | Fine at hackathon scale; move to a Web Worker only above about 400 people. |
 | M2-O2 | Keyboard Tab order goes ring 3 → 1 (it follows paint order). | Fixing it needs a roving focus model for the SVG. The M10 list view is the keyboard-first path. |
-| M2-O3 | Neighbour names can overlap when someone is selected. | Cosmetic; needs a label-placement pass. Revisit in theme step T if time allows. |
 | M2-O4 | 114 unsorted imports form a thick wedge slightly outside ring 3. | M6 "Sort with AI" spreads them; zoom and pan reach them meanwhile. |
 | M3-O6 | Removing the follow-up tag keeps its reminder. | By design: the reminder is a real task. |
 | M4-O1 | The same person with no URL, email or company in two different files is imported twice. | The price of not merging namesakes; the user can delete one. |
@@ -62,6 +66,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| M2-O3 | Neighbour names can overlap when someone is selected. | Fix step 1: all map text is placed by `placeLabels` in screen space, so no two labels overlap (tested; checked in the browser). |
 | M5-S7 | `.env` (holds the Gemini key) was readable by every user account on the Mac. | The team ran `chmod 600 .env` (now `-rw-------`); the server still reads the key. |
 | M6-O1 | A sort could silently skip people. | Post-M6 step: the review says "N people had no suggestion and stay unsorted: …" (checked with a stubbed reply). |
 | M6-I8 | Re-tagged ring-3 people stayed in the old band after a sort. | Post-M6 step: anyone whose ring or tag changed is placed fresh at their new sector; many changes restart the layout hot. Live: 111 sorted Work people, mean angle −92° (sector −90°), all within 60°. |

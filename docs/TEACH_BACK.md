@@ -101,3 +101,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. Why may the demo roster be cached but a real photo never?
 3. The live test first failed with "did not respond", but the real reason was the free-tier quota. What changed so the user now sees the true reason?
 4. Why did the fallback model reject the extract schema, and why is it safe to leave that cap out of what we send Gemini?
+
+## Fix step 1: map labels
+**Map labels, click focus, named connections**
+
+1. Names used to live inside the zoomed group. Why did that make them both overlap and grow with zoom, and what does drawing them in "screen space" change?
+2. `placeLabels` is greedy: most important label first, first free spot wins. Who goes first, and why is it fine that some names get skipped?
+3. Why do labels glide when the layout changes but snap instantly while you zoom or pan?
+4. A link with no name still shows something on the map. Where does "both at Microsoft" come from, and why compute it instead of storing it?

@@ -9,9 +9,11 @@ import {
   addReminder,
   deletePerson,
   deleteReminder,
+  LINK_LABEL_MAX,
   logContact,
   normalizeLink,
   removeLink,
+  renameLink,
   setReminderDone,
   snoozeReminder,
   updatePerson,
@@ -212,6 +214,19 @@ describe('upsertLink', () => {
     expect((await db.links.get(link.id))?.status).toBe('accepted');
     await removeLink(link.id);
     expect(await db.links.count()).toBe(0);
+  });
+
+  it('renameLink trims and caps the name, and an empty one clears it', async () => {
+    const a = await person('A');
+    const b = await person('B');
+    await upsertLink(a.id, b.id, { source: 'user', status: 'accepted', label: 'old' });
+    const link = (await db.links.toArray())[0]!;
+    await renameLink(link.id, '  roommates  ');
+    expect((await db.links.get(link.id))?.label).toBe('roommates');
+    await renameLink(link.id, 'x'.repeat(100));
+    expect((await db.links.get(link.id))?.label).toHaveLength(LINK_LABEL_MAX);
+    await renameLink(link.id, '   ');
+    expect(await db.links.get(link.id)).not.toHaveProperty('label');
   });
 });
 

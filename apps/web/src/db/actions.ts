@@ -265,6 +265,19 @@ export async function removeLink(id: string): Promise<void> {
   await db.links.delete(id);
 }
 
+/** Longest relationship name we keep: short enough to fit on a line on the map. */
+export const LINK_LABEL_MAX = 60;
+
+/**
+ * Bug fix (Oct 17): names a connection ("roommates", "intro'd me to Abbey"). An empty name
+ * clears it (Dexie deletes a field set to undefined), so the map falls back to what the two
+ * people share.
+ */
+export async function renameLink(id: string, label: string): Promise<void> {
+  const clean = label.trim().slice(0, LINK_LABEL_MAX);
+  await db.links.update(id, { label: clean || undefined });
+}
+
 // Step 7. One transaction: a 114-person import lands completely or not at all.
 export async function applyImport(
   plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
