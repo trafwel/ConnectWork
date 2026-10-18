@@ -44,24 +44,24 @@ Requirements: Node 22.13+ (or 24, or 26, which we use) and pnpm 10. Node 20 and 
 
 ```bash
 npm install -g pnpm@10
-git clone https://github.com/trafwel/conNetWork.git connectwork
+git clone https://github.com/trafwel/ConnectWork.git connectwork
 cd connectwork
 pnpm install
 cp .env.example .env     # add your GEMINI_API_KEY from Google AI Studio
 pnpm seed                # generate fictional demo data
-git switch m9-snap        # the newest milestone (see below)
-pnpm install
 pnpm dev                 # app on http://localhost:5173, API on http://localhost:8787/api/…
 ```
 
-**Which branch?** `main` is still the starting point: it only shows a title and "Server ok". The built milestones are on stacked branches (`m1-data` → … → `m9-snap`, pull requests #2–#11), so use the newest one until they're merged. Opening `localhost:8787` itself shows "404 Not Found"; that's normal, because the server only answers under `/api/` (e.g. `/api/health`).
+**Already cloned?** Everything through M10 is merged into `main`, so update with `git switch main && git pull && pnpm install`. (The repo was renamed to `ConnectWork`; the old address still redirects, or run `git remote set-url origin https://github.com/trafwel/ConnectWork.git`.) Opening `localhost:8787` itself shows "404 Not Found"; that's normal, because the server only answers under `/api/` (e.g. `/api/health`).
 
-On the newest branch the app loads a sample network of 40 fictional people on first run. Then try:
+The app loads a sample network of 40 fictional people on first run. Then try:
 
 1. Press **N** to add someone.
 2. **Import** → `demo/Connections.csv` (a fake LinkedIn export).
 3. Ask: *"Who do I know at Microsoft?"*, *"Who should I follow up with this week?"*, *"Who have I lost touch with?"*
-4. **Settings** → Reset demo data at any time.
+4. **Find hidden links**, **Review my week**, and **Snap** (try `demo/roster.pdf`).
+5. Switch **Map / List** in the top bar; click a person to see their connections.
+6. **Settings** → Reset demo data at any time.
 
 Without a Gemini key, everything works except the AI features, which say how to set them up.
 
