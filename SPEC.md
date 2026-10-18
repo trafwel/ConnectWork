@@ -75,7 +75,7 @@ Accounts, cloud sync, any server-side database, mobile app, LinkedIn scraping, O
 | AI | Gemini API, model `gemini-3.8-flash`, via `@google/genai` (server only) |
 | Server | Node 20+ with Hono (`@hono/node-server`) |
 | Hosting | Vultr VM (Ubuntu), Caddy for HTTPS + static files, GoDaddy Registry domain |
-| Tests | Vitest |
+| Tests | Vitest; `fake-indexeddb` (dev only) for database tests in Node |
 | Lint/format | ESLint + Prettier |
 
 Use the latest stable version of each package at install time. If an SDK API differs from what this spec shows, follow the installed SDK's docs and keep the behavior the same.
@@ -607,6 +607,8 @@ Toast: "Imported 312 people · Sort them with AI?" → runs `/api/ai/classify` i
 ### 10.5 Tests (Vitest)
 
 `csv.test.ts`: notes lines skipped; header matched case-insensitively; date parsing; dedupe rules; generic mapping.
+
+`db/actions.test.ts`: every write rule against a real (in-memory) IndexedDB via `fake-indexeddb/auto`, imported first so Dexie runs unchanged. Covers defaults, blank names, primary tag kept in tags, follow-up reminder (once), transaction rollback, delete cleanup, contact logs, reminders, and link rules (normalized, no self/missing, never downgrade).
 
 ---
 

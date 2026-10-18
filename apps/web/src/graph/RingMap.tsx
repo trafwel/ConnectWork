@@ -203,13 +203,8 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
   const zoomed = transform.k !== 1 || transform.x !== 0 || transform.y !== 0;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full w-full overflow-hidden"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape' && selectedId) clearFocus();
-      }}
-    >
+    // Escape is global (App.tsx useHotkey), so the map has no key handler of its own.
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden">
       <svg
         ref={svgRef}
         width={width}

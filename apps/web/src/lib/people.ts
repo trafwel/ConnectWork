@@ -1,5 +1,5 @@
 /**
- * M2/M3 — Person helpers · steps 1–2 done (M2); 3–4 are M3
+ * M2/M3 — Person helpers · done
  *
  * WHAT THIS ACHIEVES
  *   Small shared answers the UI needs everywhere: initials for ring-1 nodes, which
@@ -34,12 +34,19 @@ export function dueReminders(reminders: Reminder[], withinDays = 7, now = new Da
   return reminders.filter((r) => !r.done && -daysSince(r.dueDate, now) <= withinDays);
 }
 
-export function isOverdue(_r: Reminder, _now = new Date()): boolean {
-  // TODO(M3) step 3
-  return false;
+export function isOverdue(r: Reminder, now = new Date()): boolean {
+  return !r.done && daysSince(r.dueDate, now) > 0;
 }
 
-export function describeLastContact(_p: Person, _now = new Date()): string {
-  // TODO(M3) step 4
-  return '';
+const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+
+export function describeLastContact(p: Person, now = new Date()): string {
+  if (!p.lastContact) return 'No contact logged';
+  const days = daysSince(p.lastContact, now);
+  if (days <= 0) return 'Today'; // a future date (bad import) reads as today rather than "-3 days ago"
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return plural(days, 'day');
+  const months = Math.round(days / 30);
+  if (months < 12) return plural(months, 'month');
+  return plural(Math.round(days / 365), 'year');
 }

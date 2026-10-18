@@ -107,3 +107,63 @@ Decision still open: **O5**. Should Import ask for confirmation, or auto-export 
 2. Editing someone's notes doesn't move anyone on the map, but changing their ring does. What makes the difference in the code?
 3. Why are people outside a filter *dimmed* instead of removed from the map?
 4. Why does `PersonNode` receive a "snapped" zoom (1, 1.3 or 2.2) instead of the real zoom number?
+
+## M3
+
+**Every write in `actions.ts`, the person card, quick add, hotkeys** · Oct 17 · branch `m3-person-card`
+
+**How it was checked:** typecheck, lint, tests (new: `normalizeLink`, `isOverdue`, `describeLastContact`), production build. In the browser:
+- Opening John's card narrows the map to 864 px, and John is re-centred at exactly (0, 0).
+- Company typed and saved on Enter. Ring changed with the arrow keys (focus and tab stop follow). The map node's label updates live.
+- Log contact writes a history row, sets `lastContact` to today, and the card says "Today".
+- A field focused but untouched while the value changes elsewhere keeps the **new** value on blur.
+- Giving Abbey `follow-up` creates exactly one reminder 7 days out, even when re-added.
+- Links: stored once with the smaller id first; an AI "suggested" never downgrades an accepted link; links to a missing person and self-links are refused; no orphan contact logs.
+- Remove link → Undo restores it.
+- Delete person (two clicks) removes the person, their links, reminders and logs.
+- Edits survive a reload.
+- Overdue reminder shows "· overdue" at **4.77:1** contrast.
+- Keyboard only: N → name → Enter adds a node; Escape closes the card, then the dialog.
+- No console errors on a clean load.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Checking for unknown tags did one `get` per tag. | **Fixed:** `ensureTags()` uses one `bulkGet`. |
+| E2 | Saving text on every keystroke would mean one write, and one live-query round, per letter. | **Done by design:** save on blur/Enter, so one write per edit. |
+| E3 | Card connections: one query for the links plus one `bulkGet` for the other people (not one `get` per link). | Done. |
+| E4 | `useLiveQuery` returns *new objects for every person* after any edit, so `React.memo` on `PersonNode` can't skip anyone: all nodes re-render per edit. The layout itself is skipped (M2 key). | Open, cheap at 40–150 people. Fix later if needed: a custom memo comparison on the fields a node draws. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Opening the card narrows the map. | **Verified:** centring waits for the layout at the new width (built in M2), and the selected person lands at (0, 0). |
+| I2 | Escape had two owners (the map in M2, and now global). | **Fixed:** one global `useHotkey('Escape')`. Inside a field, the first Escape cancels the edit instead of closing the card. |
+| I3 | The write functions in `actions.ts` had no unit tests: IndexedDB doesn't exist in Node. | **Fixed (team approved):** `fake-indexeddb` as a dev dependency; `db/actions.test.ts` has **18 tests** covering every rule, including a rollback test. Mutation-checked: removing the transaction from `updatePerson` makes that test fail. SPEC.md §3 and §10.5 updated. |
+| I4 | `applyImport` is still a stub. | Expected: M4. |
+| I5 | Testing lesson: in the hidden browser pane, screenshots can show a stale frame and Base UI's focus waits for an animation frame. | Noted: read state with scripts between steps, don't trust a single screenshot. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | `javascript:` URLs in LinkedIn/email (M1 S4). | Still safe: they're shown as **inputs**, never as clickable links. The note stays in the card scaffold. |
+| S2 | Unbounded text would end up in AI summaries (M5). | **Partly fixed:** `maxLength` on every field (name 120, fields 300, notes 5,000, tags 40, reminders 200). **Open, M4/M5:** imports bypass the UI, so the server-side zod schemas must cap lengths too. |
+| S3 | Does M3 send anything out? | No network calls. Notes stay in IndexedDB. |
+| S4 | New tag names typed by the user get `FALLBACK_COLOR`, and colours render through `safeColor` (M2). | OK. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Each field copied the stored value into a draft *once*; a later change from elsewhere was overwritten on the next blur. | **Fixed:** the draft exists only while typing (`EditableText`). Verified. |
+| O2 | Overdue dates in `#D55E00` were about 3.9:1 contrast, and colour was the only signal. | **Fixed:** the theme's destructive colour (4.77:1) plus the word "overdue". |
+| O3 | Removing a link was permanent, and there's no add-link button until M6. | **Fixed:** toast with Undo. |
+| O4 | Double Enter in Quick add, blank names, primary tag missing from `tags`. | **Fixed:** submit guard; `addPerson` rejects blank names; `updatePerson` keeps the old name on blank and always keeps the primary tag in `tags`. |
+| O5 | Delete person has no undo (two-click confirm only). | Open: restoring a person plus links, reminders and logs needs a snapshot. Worth it only if testers delete by mistake. |
+| O6 | Removing the follow-up tag doesn't remove its reminder. | By design: the reminder is a real task the user may still want. |
+| O7 | Dates show as ISO (`2026-10-24`). | Open, cosmetic: step T. |
+
+### Teach-back (open: the team will answer these later)
+1. Why does no component call `db.people.put(...)` directly, even though it would be one line shorter?
+2. What went wrong when a field copied its value into local state *once*, and how does "draft only while typing" fix it?
+3. Why is `deletePerson` one transaction across four tables? What could a user see if it weren't?
+4. Why are links stored with the smaller id first?

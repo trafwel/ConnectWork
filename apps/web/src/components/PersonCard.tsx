@@ -1,5 +1,5 @@
 /**
- * M3 — Person card · Owner: Person A · ~1.5 h
+ * M3 — Person card · done (M7 adds Add to calendar, M8 Draft follow-up)
  *
  * WHAT THIS ACHIEVES
  *   Everything about one person in one panel, editable in place: name, ring, tag,
@@ -18,7 +18,8 @@
  *   2. Put the body in a child component with key={person.id}, so local drafts reset when
  *      you switch people.
  *   3. Text fields (Company, Role, School, Email type=email, LinkedIn type=url): each keeps a
- *      LOCAL draft (useState) and saves on blur or Enter — not on every keystroke:
+ *      LOCAL draft only WHILE EDITING (M3 review: a draft copied once could later overwrite a
+ *      newer value from an import or AI sort) and saves on blur or Enter — not on every keystroke:
  *        onBlur={() => draft !== value && updatePerson(id, { [field]: draft.trim() || undefined })}
  *        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
  *      SECURITY (M1 review): if you ever render email/LinkedIn as a clickable <a href>, allow
@@ -39,7 +40,256 @@
  * Guide: §7.3
  */
 
-export function PersonCard(_props: { personId: string }) {
-  // TODO(M3) steps 1–9
-  return null;
+import { useState, type ComponentProps } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { X } from 'lucide-react';
+import { toast } from 'sonner';
+import type { Person } from '@connectwork/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { deletePerson, logContact, updatePerson } from '@/db/actions';
+import { db } from '@/db/db';
+import { safeColor, tagColor } from '@/lib/colors';
+import { describeLastContact } from '@/lib/people';
+import { sectionHeading } from '@/lib/utils';
+import { useStore } from '@/store/useStore';
+import { PersonLinks } from './PersonLinks';
+import { PersonReminders } from './PersonReminders';
+import { RingPicker } from './RingPicker';
+import { TagSelect } from './TagSelect';
+
+type TextField = 'company' | 'role' | 'school' | 'email' | 'linkedinUrl';
+const FIELDS: Array<{ key: TextField; label: string; type?: string }> = [
+  { key: 'company', label: 'Company' },
+  { key: 'role', label: 'Role' },
+  { key: 'school', label: 'School' },
+  { key: 'email', label: 'Email', type: 'email' },
+  { key: 'linkedinUrl', label: 'LinkedIn', type: 'url' },
+];
+
+export function PersonCard({ personId }: { personId: string }) {
+  const selectPerson = useStore((s) => s.selectPerson);
+  const person = useLiveQuery(() => db.people.get(personId), [personId]);
+  if (!person) return null;
+
+  return (
+    // Step 1
+    <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l bg-background" aria-label={`${person.name} details`}>
+      <div className="flex items-start justify-between gap-2 border-b p-4">
+        <div className="min-w-0 flex-1">
+          <EditableText
+            aria-label="Name"
+            className="h-auto border-transparent px-1 text-lg font-semibold shadow-none hover:border-input"
+            value={person.name}
+            maxLength={120}
+            onSave={(name) => updatePerson(person.id, { name })}
+          />
+          <p className="px-1 text-sm text-muted-foreground">
+            {[person.role, person.company].filter(Boolean).join(' · ') || 'No role or company yet'}
+          </p>
+        </div>
+        <Button variant="ghost" size="icon" aria-label="Close" onClick={() => selectPerson(null)}>
+          <X />
+        </Button>
+      </div>
+      <div className="flex-1 space-y-5 overflow-y-auto p-4">
+        {/* Step 2. key: local state (tag input, delete confirm) resets when you switch people */}
+        <CardBody key={person.id} person={person} />
+      </div>
+    </aside>
+  );
+}
+
+function CardBody({ person }: { person: Person }) {
+  const tags = useLiveQuery(() => db.tags.toArray(), []);
+  const selectPerson = useStore((s) => s.selectPerson);
+  const [newTag, setNewTag] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const extraTags = person.tags.filter((t) => t !== person.primaryTag);
+
+  return (
+    <>
+      {/* Steps 3–4 */}
+      <section className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-2 text-sm">
+        <Label>Ring</Label>
+        <RingPicker value={person.ring} onChange={(ring) => updatePerson(person.id, { ring })} />
+        <Label htmlFor="pc-tag">Tag</Label>
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-2.5 rounded-full" style={{ background: tagColor(tags, person.primaryTag) }} aria-hidden="true" />
+          <TagSelect id="pc-tag" value={person.primaryTag} onChange={(primaryTag) => updatePerson(person.id, { primaryTag })} />
+        </div>
+        {FIELDS.map((f) => (
+          <FieldRow key={f.key} label={f.label} htmlFor={`pc-${f.key}`}>
+            <EditableText
+              id={`pc-${f.key}`}
+              type={f.type}
+              className="h-8"
+              maxLength={300}
+              value={person[f.key] ?? ''}
+              onSave={(v) => updatePerson(person.id, { [f.key]: v.trim() || undefined })}
+            />
+          </FieldRow>
+        ))}
+      </section>
+
+      {/* Step 5 */}
+      <section aria-labelledby="tags-heading" className="space-y-2">
+        <h3 id="tags-heading" className={sectionHeading}>
+          More tags
+        </h3>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {extraTags.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+              <span className="inline-block size-2 rounded-full" style={{ background: safeColor(tagColor(tags, t)) }} aria-hidden="true" />
+              {t}
+              <button
+                type="button"
+                className="ml-0.5 text-muted-foreground hover:text-foreground"
+                aria-label={`Remove tag ${t}`}
+                onClick={() => updatePerson(person.id, { tags: person.tags.filter((x) => x !== t) })}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const t = newTag.trim();
+              if (t && !person.tags.includes(t)) void updatePerson(person.id, { tags: [...person.tags, t] });
+              setNewTag('');
+            }}
+          >
+            <Input
+              list="tag-names"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              placeholder="Add tag"
+              aria-label="Add tag"
+              maxLength={40}
+              className="h-7 w-28 text-xs"
+            />
+            <datalist id="tag-names">
+              {tags?.map((t) => (
+                <option key={t.name} value={t.name} />
+              ))}
+            </datalist>
+          </form>
+        </div>
+      </section>
+
+      {/* Step 6 */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className={sectionHeading}>Last contact</h3>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={async () => {
+              await logContact(person.id);
+              toast.success(`Logged contact with ${person.name}`);
+            }}
+          >
+            Log contact today
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">{describeLastContact(person)}</p>
+      </section>
+
+      {/* Step 7 */}
+      <section className="space-y-1.5">
+        <Label htmlFor="pc-notes" className={sectionHeading}>
+          Notes
+        </Label>
+        <EditableText
+          multiline
+          id="pc-notes"
+          rows={4}
+          maxLength={5000}
+          placeholder="How you met, what you talked about…"
+          value={person.notes ?? ''}
+          onSave={(notes) => updatePerson(person.id, { notes: notes || undefined })}
+        />
+      </section>
+
+      {/* Step 8 */}
+      <PersonReminders personId={person.id} />
+      <PersonLinks personId={person.id} />
+
+      {/* Step 9. Two clicks: a person takes their links, reminders and history with them. */}
+      <section className="border-t pt-4">
+        {confirmDelete ? (
+          <div className="flex items-center gap-2 text-sm">
+            <span>Delete {person.name}?</span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                await deletePerson(person.id);
+                selectPerson(null);
+                toast.success(`Deleted ${person.name}`);
+              }}
+            >
+              Delete
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setConfirmDelete(true)}>
+            Delete person
+          </Button>
+        )}
+      </section>
+    </>
+  );
+}
+
+function FieldRow({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
+  return (
+    <>
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </>
+  );
+}
+
+type EditableTextProps = { value: string; onSave: (v: string) => unknown } & (
+  | ({ multiline?: false } & Omit<ComponentProps<typeof Input>, 'value' | 'onChange'>)
+  | ({ multiline: true } & Omit<ComponentProps<typeof Textarea>, 'value' | 'onChange'>)
+);
+
+/**
+ * Shows the stored value; keeps a draft only while you type, and saves it on blur
+ * (or Enter for single-line fields). A draft that lived longer could overwrite a newer
+ * value written elsewhere (import, AI sort) the next time the field loses focus.
+ */
+function EditableText({ value, onSave, multiline, ...rest }: EditableTextProps) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft !== null && draft !== value) void onSave(draft);
+    setDraft(null);
+  };
+  const shared = {
+    value: draft ?? value,
+    onBlur: commit,
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (e.key === 'Escape' && draft !== null) {
+        e.stopPropagation(); // first Escape cancels the edit; it must not also close the card
+        setDraft(null);
+      } else if (e.key === 'Enter' && !multiline) e.currentTarget.blur();
+    },
+  };
+  return multiline ? (
+    <Textarea
+      {...(rest as Omit<ComponentProps<typeof Textarea>, 'value' | 'onChange'>)}
+      {...shared}
+      onChange={(e) => setDraft(e.target.value)}
+    />
+  ) : (
+    <Input {...(rest as Omit<ComponentProps<typeof Input>, 'value' | 'onChange'>)} {...shared} onChange={(e) => setDraft(e.target.value)} />
+  );
 }
