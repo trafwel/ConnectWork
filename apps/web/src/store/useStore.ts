@@ -89,6 +89,10 @@ export interface UIState {
   weekly: WeeklyState;
   /** Fix step 2: "Move people" edit mode on the map (drag or 1/2/3 to change ring). */
   editRings: boolean;
+  /** M11: the meeting whose prep card is open. */
+  selectedMeetingId: string | null;
+  /** M11: Google Calendar connected (the token itself lives only in lib/googleCalendar.ts). */
+  calendarConnected: boolean;
 
   setView: (view: 'map' | 'list') => void;
   setFilter: (filter: Filter) => void;
@@ -102,6 +106,8 @@ export interface UIState {
   setWeeklyOpen: (open: boolean) => void;
   setWeekly: (patch: Partial<WeeklyState>) => void;
   setEditRings: (on: boolean) => void;
+  openMeeting: (id: string, attendeeIds: string[]) => void;
+  setCalendarConnected: (on: boolean) => void;
 }
 
 // What clearFocus() resets. Kept in one place so the initial state and "clear" can't drift apart.
@@ -109,6 +115,7 @@ const noFocus = {
   selectedPersonId: null,
   highlightIds: new Set<string>(),
   rightPanel: null,
+  selectedMeetingId: null,
   agentAnswer: null,
   agentError: false,
   agentChecked: false,
@@ -129,17 +136,24 @@ export const useStore = create<UIState>((set, get) => ({
   weeklyOpen: false,
   weekly: { status: 'idle', done: [] },
   editRings: false,
+  calendarConnected: false,
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
   // Closing a person card returns to an open review instead of losing it.
-  selectPerson: (id) => set({ selectedPersonId: id, rightPanel: id ? 'person' : get().reviewPayload ? 'review' : null }),
+  // M11: …and to an open meeting prep card (clicking an attendee, then closing, goes back to the brief).
+  selectPerson: (id) =>
+    set({ selectedPersonId: id, rightPanel: id ? 'person' : get().reviewPayload ? 'review' : get().selectedMeetingId ? 'meeting' : null }),
   // A new Set every time: Zustand compares by reference, so mutating the old Set would not re-render.
   setHighlights: (ids) => set({ highlightIds: new Set(ids) }),
   clearFocus: () => set({ ...noFocus, highlightIds: new Set<string>(), rightPanel: get().reviewPayload ? 'review' : null }),
   setAgent: (patch) => set(patch),
   setDialog: (dialog, open) => set({ [DIALOG_FLAG[dialog]]: open }),
   setEditRings: (on) => set({ editRings: on }),
+  // M11: a meeting highlights its attendees (map and list) and opens its prep card.
+  openMeeting: (id, attendeeIds) =>
+    set({ selectedMeetingId: id, selectedPersonId: null, rightPanel: 'meeting', highlightIds: new Set(attendeeIds), weeklyOpen: false }),
+  setCalendarConnected: (on) => set({ calendarConnected: on }),
   openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
   closeReview: () => set({ reviewPayload: null, rightPanel: get().selectedPersonId ? 'person' : null, highlightIds: new Set<string>() }),
   // M8. The panel shows whenever it's open and no review or person card is in front of it.

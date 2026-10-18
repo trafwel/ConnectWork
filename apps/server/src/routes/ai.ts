@@ -44,6 +44,7 @@ import { registerClassify } from './classify';
 import { registerDraft } from './draft';
 import { registerExtract } from './extract';
 import { registerLinks } from './links';
+import { registerMeetingBrief } from './meetingBrief';
 import { structured, summaryIds } from './structured';
 import { registerWeeklyReview } from './weeklyReview';
 
@@ -79,6 +80,7 @@ export function aiRoutes(deps: AppDeps) {
   registerWeeklyReview(routes, deps); // M8
   registerDraft(routes, deps); // M8
   registerExtract(routes, deps); // M9
+  registerMeetingBrief(routes, deps); // M11
 
   return routes;
 }

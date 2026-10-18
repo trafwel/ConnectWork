@@ -20,6 +20,7 @@ Resolved items move to the table at the bottom, with what changed.
 | M1-S4 | `javascript:` URLs in `linkedinUrl` or `email` would run if ever rendered as links. | Both import paths are now closed (CSV: M4-S1; backup: the M1-S2 row schemas drop unsafe links). Still: any milestone that renders them as `<a href>` must allow only `https:`/`mailto:`, because users can *type* anything into the card. |
 | M2-E5 | Main bundle is over Vite's 500 KB warning: 700 KB at M10 (648 KB at M2), because d3 is on the first screen and zod (about 77 KB) arrived with backup validation. | M14 deploy: measure. zod stays in the main bundle (M5 must validate AI replies in the browser); keep snap/calendar behind `import()` like the import dialog. |
 | M2-O5 | Filter tabs have no UI yet (highlights now come from Ask Connectwork, M5). | M7 (filter tabs). |
+| M11-S6 | A strict CSP must allow Google sign-in (`accounts.google.com` script) and the Calendar API (`www.googleapis.com` connect). | M13 (CSP with the deploy). |
 | S-S1 | The no-flash appearance script in `index.html` is inline; a strict CSP would block it. | M13: allow it by hash in the CSP (or move it to a tiny external file). |
 | M5-S9 | The deployed server has no login: anyone who can reach it can spend our Gemini quota (30/min per IP). | M13/M14: serve web and API from one origin behind Caddy (`TRUST_PROXY=1`), and consider a shared demo passcode or lower per-IP limits. |
 | PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 `flag` ✓, fix 2 ✓, M10 `drift` ✓. Any later milestone that draws a new field or prop must add it to `sameNode`, or that node won't update. |
@@ -31,6 +32,8 @@ Resolved items move to the table at the bottom, with what changed.
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
 | F1-I5 | `pnpm lint` fails locally because of the untracked nested `conNetWork/` folder (a second copy of the repo). CI is unaffected. | It looks like a stray clone. If nobody needs it, delete it yourselves (Claude never touches it); otherwise add `conNetWork/**` to the ESLint ignores. |
 | F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |
+| M11-O1 | Real Google sign-in not tested: it needs a Google Cloud OAuth client and test users (human step). | Follow guide §2, put the client id in `.env` as `VITE_GOOGLE_CLIENT_ID`, restart `pnpm dev`, then click "Connect Google Calendar" once. Until then the demo uses sample meetings. |
+| M11-S5 | Scope `calendar.events` can read and write every event (needed for "Add to calendar"). | Keep it for the demo; a read-only scope would drop Google follow-ups. |
 | M10-I7 | In the demo John Park drifts only slightly (210 days vs 180: 93% opacity, a little outward, dotted). | Leave the seed alone (the weekly review relies on it). If you want a stronger visual in the demo, set Settings → Drifting → Ring 2 to **120 days** before presenting, then Reset after. |
 | M10-O3 | Highlighted list rows not yet checked with a screen reader. | Turn on VoiceOver (Cmd+F5), switch to List, ask a question, and listen to a highlighted row: it should say "(in the answer)". |
 | M1-O5 | Import replaces everything without confirming. Should it ask first, or auto-export a backup? | A two-step confirm like Delete ("Replace all your data with this backup?"). It's consistent, needs no extra download, and is easy to change. *Applied in the fix step unless you say otherwise.* |
@@ -56,6 +59,8 @@ Resolved items move to the table at the bottom, with what changed.
 | F1-O1 | Labels move ahead of gliding nodes for about half a second when a click both pans and re-lays out the map. | Cosmetic; lines already did this. |
 | F1-O2 | A label with no free spot is skipped. | Still in the node's screen-reader label and tooltip; hover or focus always shows it. |
 | F1-O5 | Escape inside the Add connection form not checked live. | Check once by hand: it should close the form, not the card. |
+| M11-O2 | "Not in your network → Add" not checked live (every sample attendee matches). | The name is guessed from the email; editable on the card. |
+| M11-O4 | Completing a reminder doesn't delete its Google event. | As specified (stretch: PATCH it). |
 | M10-O2 | The 8 filter tabs are 8 Tab stops before the table. | An arrow-key group would be faster; acceptable for the demo. |
 | M10-O5 | For imported people the AI summary still includes the LinkedIn connect date as last contact, so the model's sentence about "lost touch" could count them. | The highlighted list is computed in code with the gentle rule; the card flags when code changed the model's list. |
 | M10-O6 | Map / List choice isn't remembered after a reload. | UI state by design; easy to persist later. |

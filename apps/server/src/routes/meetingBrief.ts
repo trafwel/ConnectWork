@@ -1,5 +1,5 @@
 /**
- * M11 — POST /api/ai/meeting-brief · Owner: Person B · ~25 min (route only)
+ * M11 — POST /api/ai/meeting-brief · done
  *
  * WHAT THIS ACHIEVES
  *   Before a meeting from Google Calendar (or the sample meetings), the user
@@ -26,10 +26,43 @@
  * Contract: MeetingBriefRequest / MeetingBriefResponse · Guide: §18.3
  */
 import type { Hono } from 'hono';
+import { MeetingBriefRequest, MeetingBriefResponse } from '@connectwork/shared';
 import type { AppDeps } from '../app';
+import { MEETING_BRIEF_SYSTEM } from '../prompts';
+import { structured } from './structured';
 
-export function registerMeetingBrief(_routes: Hono, _deps: AppDeps): void {
-  // TODO(M11) 1: structured(_routes, _deps, { path: '/meeting-brief', request: MeetingBriefRequest,
-  //   response: MeetingBriefResponse, system: MEETING_BRIEF_SYSTEM, thinking: 'low', parts: …, post: … })
-  // TODO(M11) 2: register it from routes/ai.ts.
+export function registerMeetingBrief(routes: Hono, deps: AppDeps): void {
+  // Step 1.
+  structured(routes, deps, {
+    path: '/meeting-brief',
+    request: MeetingBriefRequest,
+    response: MeetingBriefResponse,
+    system: MEETING_BRIEF_SYSTEM,
+    thinking: 'low',
+    parts: (b) => [
+      {
+        text: [
+          `Meeting: ${b.meeting.title} (starts ${b.meeting.start})`,
+          `Attendees you know (JSON):\n${JSON.stringify(b.attendees)}`,
+          `Links between attendees:\n${b.links.join('\n') || 'none'}`,
+          `Open reminders:\n${b.reminders.join('\n') || 'none'}`,
+        ].join('\n\n'),
+      },
+    ],
+    // Step 2. Guardrail in code: one entry per real attendee, trimmed, no empty points.
+    post: (res, b) => {
+      const ids = new Set(b.attendees.map((a) => a.id));
+      const seen = new Set<string>();
+      return {
+        summary: res.summary.trim(),
+        perPerson: res.perPerson
+          .filter((p) => ids.has(p.personId) && !seen.has(p.personId) && seen.add(p.personId))
+          .map((p) => ({
+            personId: p.personId,
+            howYouKnow: p.howYouKnow.trim(),
+            talkingPoints: p.talkingPoints.map((t) => t.trim()).filter(Boolean),
+          })),
+      };
+    },
+  });
 }

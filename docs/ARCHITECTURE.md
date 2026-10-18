@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M10 built** — everything through M9 and the two map fix steps, plus *drift* (people you haven't contacted in a while fade and move outward; limits editable in Settings and used by the AI) and the *list view*, the map's accessible twin. Google Calendar (M11) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M11 built**: everything through M10, plus *meetings*. A strip shows today's and tomorrow's meetings (Google Calendar when connected, read straight from the browser; sample meetings otherwise). Clicking one highlights the attendees and opens an AI prep card, and "Log this meeting" resets their drift. The demo cache (M12) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -21,7 +21,7 @@ flowchart LR
   Browser -->|"/api/health · M0"| Server
   Browser -->|"POST /api/ai/query · M5 (summary, no notes)"| Server
   Server -->|"structured JSON · M5"| Gemini
-  Browser -.->|"direct, token stays in browser · M11"| GCal
+  Browser -->|"direct, token in memory only · M11"| GCal
   Phone -.-> Photon -.->|"M16"| Server
   Server -.->|"relay texts to the open tab · M16"| Browser
   Server -.->|"conversation only · M17"| Backboard
@@ -60,6 +60,7 @@ flowchart LR
     Weekly["Weekly review · Draft a message<br/><small>WeeklyReview, PersonCard · M8</small>"]:::built
     Snap["Snap to add<br/><small>SnapDialog (lazy), lib/image.ts · M9</small>"]:::built
     List["List view<br/><small>ListView · sortable table, same filters + highlights · M10</small>"]:::built
+    Meet["Meetings · prep card<br/><small>MeetingStrip, MeetingPrepCard, lib/meetings.ts, googleCalendar.ts · M11</small>"]:::built
   end
 
   Layout["Ring layout<br/><small>graph/layout.ts · d3-force, settled before paint · M2</small>"]:::built
@@ -86,7 +87,7 @@ flowchart LR
   App -->|"selected person → card"| Card
   Card -->|"select, close"| Store
   Tabs["Filter tabs · Due panel<br/><small>FilterTabs, RemindersPanel · M7</small>"]:::built
-  Ics["Calendar export<br/><small>lib/ics.ts (lazy chunk), addToCalendar · M7</small>"]:::built
+  Ics["Calendar export<br/><small>lib/ics.ts (lazy chunk), addToCalendar · M7<br/>one reminder → Google Calendar when connected · M11</small>"]:::built
   IcsFile[/".ics file<br/><small>opens in Google / Apple / Outlook</small>"/]:::built
   Tabs -->|"setFilter"| Store
   Tabs -->|"Done, Snooze"| Actions
@@ -95,6 +96,9 @@ flowchart LR
   Ics --> IcsFile
   App -->|"due / overdue sets → flags; drift levels → offset, fading"| Map
   App -->|"view = list"| List
+  Meet -->|"openMeeting: highlights + prep card"| Store
+  Meet -->|"replaceMeetings, Log this meeting"| Actions
+  Meet -->|"POST /meeting-brief"| Api
   List -->|"select, sort, filter"| Store
   Chrome -->|"drift limits (DriftSettings)"| Actions
   Card -->|"read: useLiveQuery"| DB
@@ -135,7 +139,7 @@ flowchart LR
   Links["POST /api/ai/links<br/><small>no self / unknown / existing pairs · M6</small>"]:::built
   WeeklyR["POST /api/ai/weekly-review · /draft<br/><small>actions must match candidates · M8</small>"]:::built
   Extract["POST /api/ai/extract<br/><small>image/PDF → people · only the demo roster cached · M9</small>"]:::built
-  Routes["POST /api/ai/* (more)<br/><small>routes/* · M11</small>"]:::planned
+  Brief["POST /api/ai/meeting-brief<br/><small>known attendees only · ids filtered · M11</small>"]:::built
   Helper["Route helper<br/><small>routes/structured.ts · validate, cache, retry, guardrails, safe errors · R</small>"]:::built
   Cache["Demo cache<br/><small>cache.ts · record / replay · M5</small>"]:::built
   GeminiH["Gemini helper<br/><small>schema · retry · fallback chain · 60 s budget · gemini.ts · M5</small>"]:::built
@@ -149,13 +153,13 @@ flowchart LR
   Limit --> Links
   Limit --> WeeklyR
   Limit --> Extract
-  Limit -.-> Routes
+  Limit --> Brief
   Query --> Helper
   Classify --> Helper
   Links --> Helper
   WeeklyR --> Helper
   Extract --> Helper
-  Routes -.-> Helper
+  Brief --> Helper
   Helper --> Cache
   Helper --> GeminiH
   Helper --> Prompts
@@ -196,7 +200,8 @@ flowchart LR
 | Fix 1 | Map labels (no overlap, zoom-proof), click focus, named connections, Add connection | ✅ built ([review](REVIEWS.md#fix-step-1-map-labels)) |
 | Fix 2 | Ripple reminder style, "Move people" edit mode (drag or keys to change ring) | ✅ built ([review](REVIEWS.md#fix-step-2-map-features)) |
 | M10 | Drift on the map, drift limits in Settings, list view, keyboard path | ✅ built ([review](REVIEWS.md#m10)) |
-| M11–M14 | Google Calendar, demo cache, deploy | ⬜ |
+| M11 | Google Calendar (browser only), sample meetings, meeting strip, prep card, Log this meeting | ✅ built ([review](REVIEWS.md#m11)) |
+| M12–M14 | Demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -218,3 +223,4 @@ flowchart LR
 | Oct 17 | Fix 1 | Browser: the ring map gains a screen-space label layer (`ScreenLabels.tsx` + pure `labels.ts`); the person card can add and rename connections through `actions.ts` (`upsertLink`, new `renameLink`). No new arrows: same store, same database. Status: fix 1 ✅, fix 2 (ripple pulse, drag-to-ring) next. |
 | Oct 17 | Fix 2 | Browser: Appearance gains Reminders (Flag/Ripple, an `<html>` attribute + CSS); the ring map gains "Move people" (`useRingDrag.ts`, an `editRings` flag in the UI state), which writes ring changes through `actions.ts` (`updatePerson`). No new arrows. Status: fix 2 ✅, M10 next. |
 | Oct 17 | M10 | Browser: new List view box (App → List → UI state); App computes each person's drift once and feeds the map (offset, fading) and list; Settings writes the drift limits through `actions.ts`; Summary + guardrails now names the single drift rule (`drift.ts`, `useDriftThresholds`). Server: `/query` takes optional limits. Status: M10 ✅, M11 next. |
+| Oct 17 | M11 | Big picture: browser ↔ Google Calendar is built (direct, token in memory). Browser: new Meetings box (strip + prep card) that opens meetings through the UI state, writes through `actions.ts` and calls `/meeting-brief`; calendar export sends one reminder to Google when connected. Server: `/meeting-brief` replaces the planned "more routes" box. Status: M11 ✅, M12 next. |

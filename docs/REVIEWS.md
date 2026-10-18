@@ -744,3 +744,63 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#fix-step-2-map-features).
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m10).
 
+## M11
+
+**Google Calendar and meeting prep** · Oct 17 · branch `m11-calendar` (on `main`)
+
+**What it does**
+- **Meeting strip** under the top bar: today's and tomorrow's meetings, each with the initials of the people you know. Without Google it shows the **sample meetings** from `demo/calendar-events.json`, labelled as samples.
+- **Click a meeting:** its attendees are highlighted (map and list), and a **prep card** opens with an AI brief (summary, how you know each person, up to 3 talking points) and each attendee's open follow-ups.
+- **Log this meeting** counts as contact today for every attendee, so they stop drifting.
+- **"Not in your network":** an attendee email you don't know gets an **Add** button.
+- **Google Calendar (optional):** "Connect Google Calendar" appears once `VITE_GOOGLE_CLIENT_ID` is set. Meetings are read **straight from the browser**, and the token lives **in memory only**. "Add to calendar" on one reminder then creates a Google event (saved, so it isn't duplicated); otherwise it still downloads an .ics file.
+
+**How it was checked:** typecheck, lint, 151 tests, production build. The 10 new tests cover attendee matching (email, unique name, no namesake guessing), sample times, Google events (all-day and cancelled skipped, you left out), the follow-up event body, time labels, the today/tomorrow window, the brief request (attendees, links between them, open reminders only), and the server route (unknown and duplicate ids dropped, trimmed). In the browser on the seed data:
+- three sample chips, with attendees matched;
+- "Coffee with John" (3:30 PM today) highlighted John (39 of 40 dimmed) and opened his card. The live brief mentions the **career-fair follow-up** and **UW**;
+- Log this meeting: John is no longer drifting (Drifting 5 → 4), with a toast;
+- Reset demo data afterwards restored the seed and the samples (after a fix, I4).
+
+**Not checked live:** the real Google sign-in and calendar calls. They need an OAuth client and test users, which is a human step (guide §2). The mapping code they feed is unit-tested.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Google's sign-in script is about 90 KB and only some users connect. | Loaded **on demand** at the first Connect click, not in index.html. |
+| E2 | The sample meetings file. | A separate 0.5 KB chunk, fetched only when samples are shown. |
+| E3 | Reopening a prep card would ask Gemini again. | Briefs are cached per meeting + attendee set for the session. |
+| E4 | The strip could refetch on every edit (the people list changes on any write). | It reloads only when the connection, people's emails, or an emptied table changes. |
+| E5 | Main bundle 714 KB (+14). | M2-E5 (measure at deploy). |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | **Vite never read our `.env`:** it looks in `apps/web`, but ours is at the repo root, so `VITE_GOOGLE_CLIENT_ID` (and `VITE_API_BASE`) were ignored. | **Fixed:** `envDir` is the repo root and `envPrefix: 'VITE_'`, so only `VITE_*` values reach the bundle. Checked: the built bundle contains no API-key pattern (the text "GEMINI_API_KEY" appears only in the existing banner message). |
+| I2 | UI state: a meeting must coexist with person cards, Escape and highlights. | `openMeeting` highlights attendees and opens the card. Clicking an attendee opens their person card, and closing it returns to the brief. Escape (clearFocus) closes everything. |
+| I3 | "Add to calendar" (M7) should use Google when connected. | One reminder → Google event, with its id saved so it isn't duplicated. Export all stays a file. If Google refuses, the .ics file downloads instead. |
+| I4 | **Live bug:** Settings → Reset demo data clears the meetings table too, and the strip didn't reload (emails unchanged). | **Fixed:** an emptied table also triggers a reload. Checked: chips 3 → reset → 3. |
+| I5 | `db.meetings` holds one set at a time (Google's or the samples). | Real calendar data doesn't outlive the connection: after a reload, the samples replace it. |
+| I6 | Drift (M10). | Log this meeting uses `logContact('meeting', title)`, so drift, the Drifting tab and the weekly review follow. Checked live. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | The Google token. | Kept in a module variable only, with an expiry and a minute of margin. A 401 forgets it; Disconnect also revokes it at Google. The store only knows "connected: yes/no". |
+| S2 | Calendar data and our server. | The browser fetches events directly from Google; our server never sees the calendar. Only a prep request reaches it: known attendees (with notes), links between them, their reminders and the meeting title. |
+| S3 | **Free tier = fake data only.** A real meeting's brief would send real people's notes. | **Guarded in code:** on the free tier, the card makes no AI call for a non-sample meeting and explains why. Sample meetings still work. |
+| S4 | A meeting title comes from whoever sent the invite (prompt injection). | The prompt treats titles and notes as data. The server keeps only real attendee ids, and the client renders plain text. Residual risk: wording only. |
+| S5 | Scope `calendar.events` can read and write all events (needed to create follow-ups). | As specified. A narrower read-only scope would lose "Add to calendar". Listed for the team. |
+| S6 | A strict CSP (M13) will need to allow `accounts.google.com` (script) and `www.googleapis.com` (connect). | Noted for M13. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Real Google sign-in not tested. | Human step: create the OAuth client (guide §2), set `VITE_GOOGLE_CLIENT_ID`, restart `pnpm dev`, then connect once. |
+| O2 | "Not in your network → Add" not checked live (every sample attendee matches). | The name is a guess from the email ("kai.larsen" → "Kai Larsen"); the user can edit it. |
+| O3 | All-day events are skipped. | By design: they're holidays, birthdays and our own follow-ups, not meetings. |
+| O4 | Completing a reminder doesn't delete its Google event. | As specified (stretch: PATCH it). |
+| O5 | The brief effect deliberately depends only on who is in the meeting. | Commented in code, so a live-query refresh doesn't re-ask Gemini. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m11).
+
