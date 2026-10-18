@@ -58,7 +58,6 @@ Resolved items move to the table at the bottom, with what changed.
 | M5-O5 | On a narrow window the corner answer card can overlap the outer ring. | Desktop-first demo. |
 | F1-O1 | Labels move ahead of gliding nodes for about half a second when a click both pans and re-lays out the map. | Cosmetic; lines already did this. |
 | F1-O2 | A label with no free spot is skipped. | Still in the node's screen-reader label and tooltip; hover or focus always shows it. |
-| F1-O5 | Escape inside the Add connection form not checked live. | Check once by hand: it should close the form, not the card. |
 | M11-O2 | "Not in your network → Add" not checked live (every sample attendee matches). | The name is guessed from the email; editable on the card. |
 | M11-O4 | Completing a reminder doesn't delete its Google event. | As specified (stretch: PATCH it). |
 | M13-S5 | The CSP still allows inline *styles* (`'unsafe-inline'` in style-src). | Needed for React style attributes and toast styles; style injection is far less dangerous than script injection. |
@@ -77,6 +76,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| F1-O5 | Escape inside Add connection not checked live. | Bug pass: checked; it closes only the form. |
 | S-S1 | The inline no-flash theme script would be blocked by a strict CSP. | M13: allowed by its SHA-256 hash in the Caddyfile CSP (no `'unsafe-inline'` scripts); `scripts/deploy.test.ts` fails if the script changes without the hash. Checked in the browser via `pnpm preview:prod`. |
 | M11-S6 | A strict CSP must allow Google sign-in and the Calendar API. | M13: `accounts.google.com` and `www.googleapis.com` only; Google's sign-in script loads under the policy (checked). |
 | M5-I5 | "Lost touch" thresholds lived in the prompt and in `lib/drift.ts`. | M10: limits are editable in Settings and sent with each question when they differ from the defaults; the prompt uses the given limits. Server-tested. |
