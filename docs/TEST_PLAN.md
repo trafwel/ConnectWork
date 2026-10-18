@@ -2,7 +2,7 @@
 
 Every feature built so far, as steps and what you should see. Generated from [`testing/connectwork-test-run.html`](testing/connectwork-test-run.html) (the same tests as an interactive checklist; the team copy with shared results is a private claude.ai artifact).
 
-**Before you start:** run `pnpm dev`, open http://localhost:5173, and use **Settings → Reset demo data**. Import tests use `demo/Connections.csv`. The AI runs on Gemini's free tier, so use the fictional demo data only. Demo dates are relative to today.
+**Before you start:** get the newest milestone branch (`git fetch origin && git switch m8-weekly && pnpm install`). `main` only shows the starting screen until the milestone PRs are merged. Then run `pnpm dev`, open http://localhost:5173, and use **Settings → Reset demo data**. The server lives at `localhost:8787/api/…`; its root address answering 404 is normal. Import tests use `demo/Connections.csv`. The AI runs on Gemini's free tier, so use the fictional demo data only. Demo dates are relative to today.
 
 | Section | Tests |
 | --- | --- |
