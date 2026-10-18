@@ -198,7 +198,7 @@ Use demo/Connections.csv from the repo.
 2. Drop demo/Connections.csv on the box (or click to choose it)
 
 **You should see**
-- “120 people found in your LinkedIn export · 114 new people · 6 already here”
+- “30 people found in your LinkedIn export · 24 new people · 6 already here”
 
 ### Import lands on the outer ring `m4-import`
 

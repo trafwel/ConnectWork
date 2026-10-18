@@ -59,6 +59,8 @@ interface Props {
   drift?: number;
   /** Declutter (Oct 18): an outer-ring person nobody is looking at: smaller, softer, no outline. */
   recede?: boolean;
+  /** Motion (Oct 18): fading out while flying into a group node (Groups view). */
+  vanish?: boolean;
   onSelect: (id: string) => void;
   /** Hover or keyboard focus, so RingMap shows this name even where it's crowded. */
   onHover: (id: string | null) => void;
@@ -70,7 +72,7 @@ interface Props {
   onSetRing?: (id: string, ring: Ring) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, recede = false, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
+function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, recede = false, vanish = false, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
   const r = NODE_RADIUS[person.ring];
   // Polish (Oct 18, from a team screenshot): a grayed-out person drops every decoration (ripple,
   // flag, drift ring, highlight). Their pulsing halos were the clutter around a selection. The
@@ -94,9 +96,11 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       // Step 1: a CSS transform (not the x/y attributes) so layout changes animate.
       style={{
         // M10 step 5: fades to half at full drift. Polish (Oct 18): grayed-out people fade further.
-        opacity: dimmed ? 0.12 : 1 - 0.5 * drift,
+        opacity: vanish ? 0 : dimmed ? 0.12 : 1 - 0.5 * drift,
         transform: `translate(${x}px, ${y}px)`,
-        transition: dragging ? 'opacity 200ms' : 'opacity 200ms, transform 450ms ease-out',
+        // Motion (Oct 18): a little slower fades, so focus changes read as motion, not a cut.
+        transition: dragging ? 'opacity 300ms' : 'opacity 300ms, transform 450ms ease-out',
+        pointerEvents: vanish ? 'none' : undefined,
       }}
       onClick={(e) => {
         e.stopPropagation(); // the map's own click clears the selection
@@ -125,7 +129,21 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       {drift > 0 && !selected && !quiet && <circle r={r + 2.5} fill="none" stroke={T.ink} strokeWidth={1.2} strokeDasharray="2 3" pointerEvents="none" />}
       {/* M7: the pulse lives on this inner group, because the outer <g>'s transform is the position. */}
       <g className={flag && !quiet ? 'cw-pulse' : undefined}>
-        <circle r={recede ? r * 0.8 : r} fill={color} fillOpacity={recede ? 0.55 : 1} stroke={recede ? 'none' : T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
+        {/* Motion: receding is a CSS scale + fade, so it animates both ways. */}
+        <circle
+          r={r}
+          fill={color}
+          stroke={T.nodeStroke}
+          strokeWidth={T.nodeStrokeWidth}
+          style={{
+            transform: recede ? 'scale(0.8)' : 'scale(1)',
+            transformBox: 'fill-box',
+            transformOrigin: 'center',
+            fillOpacity: recede ? 0.55 : 1,
+            strokeOpacity: recede ? 0 : 1,
+            transition: 'transform 300ms ease-out, fill-opacity 300ms, stroke-opacity 300ms',
+          }}
+        />
       </g>
       {flag && !quiet && <Ripple r={r} overdue={flag === 'overdue'} />}
       {flag && !quiet && <Flag r={r} overdue={flag === 'overdue'} />}
@@ -191,6 +209,7 @@ function sameNode(a: Props, b: Props): boolean {
     a.flag === b.flag && // M7 (PX-I1: every new prop must be compared here)
     a.drift === b.drift && // M10
     a.recede === b.recede && // declutter
+    a.vanish === b.vanish && // motion
     a.onSelect === b.onSelect &&
     a.onHover === b.onHover &&
     a.editing === b.editing && // fix step 2

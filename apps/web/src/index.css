@@ -244,6 +244,21 @@
 
 /* M7: reminder flags pulse (scale 1 → 1.15 → 1, 1.6 s). Runs on an INNER <g>: the node's own
    transform is its position. Off for anyone who asked their OS for reduced motion. */
+/* Motion (Oct 18): a group node grows in as its people gather into it. */
+@keyframes cw-pop {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+.cw-pop {
+  animation: cw-pop 450ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* Reduce Motion: every map transition and animation stops (the app still works the same). */
+@media (prefers-reduced-motion: reduce) {
+  svg *, .cw-pop { transition: none !important; animation: none !important; }
+}
+
 @keyframes cw-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.15); }

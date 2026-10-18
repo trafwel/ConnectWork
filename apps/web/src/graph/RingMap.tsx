@@ -90,6 +90,19 @@ import { useRingDrag } from './useRingDrag';
 import { mapTheme as T } from './theme';
 
 const RINGS: Ring[] = [1, 2, 3];
+
+/** Motion (Oct 18): who is flying out of / into a group node right now. */
+interface Motion {
+  key: string;
+  clusterAt: Map<string, { x: number; y: number }>;
+  visible: Set<string>;
+  enter: Map<string, { x: number; y: number }>;
+  leave: Map<string, { x: number; y: number }>;
+  /** Still flying out: their names and lines wait until they land. */
+  arriving: Set<string>;
+  stamp: number;
+}
+const REDUCED_MOTION = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 const RING_NAMES: Record<Ring, string> = { 1: 'Close (ring 1)', 2: 'Regular (ring 2)', 3: 'Wider (ring 3)' };
 
 interface Props {
@@ -318,8 +331,52 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
   const ringOf = (id: string) => byId.get(id)?.ring;
   const anyGroupOpen = grouped && expandedGroups.size > 0;
 
+  // Motion (Oct 18): people fly OUT of a group node when it opens (and when switching to Map) and
+  // fly INTO it when it closes (and when switching to Groups), instead of popping in and out.
+  // Derived state, updated during render when what's visible changes (React's "adjust state when
+  // a prop changes" pattern); the effect below lets the CSS transitions run, then clears it.
+  const visibleKey = grouped ? `g:${[...expandedGroups].join(',')}|${selectedId ?? ''}` : 'map';
+  const [motion, setMotion] = useState<Motion | null>(null);
+  if (positions.size > 0 && (!motion || motion.key !== visibleKey)) {
+    const clusterAt = new Map((grouping?.clusters ?? []).map((c) => [c.tag, { x: c.x, y: c.y }]));
+    const visibleIds = new Set(visiblePeople.map((p) => p.id));
+    const enter = new Map<string, { x: number; y: number }>();
+    const leave = new Map<string, { x: number; y: number }>();
+    if (motion && !REDUCED_MOTION) {
+      for (const id of visibleIds) {
+        const from = motion.visible.has(id) ? undefined : motion.clusterAt.get(byId.get(id)?.primaryTag ?? '');
+        if (from) enter.set(id, from);
+      }
+      for (const id of motion.visible) {
+        const to = visibleIds.has(id) ? undefined : clusterAt.get(byId.get(id)?.primaryTag ?? '');
+        if (to) leave.set(id, to);
+      }
+    }
+    setMotion({ key: visibleKey, clusterAt, visible: visibleIds, enter, leave, arriving: new Set(enter.keys()), stamp: (motion?.stamp ?? 0) + 1 });
+  }
+  const motionStamp = motion?.stamp ?? 0;
+  const moving = Boolean(motion && (motion.enter.size || motion.leave.size || motion.arriving.size));
+  useEffect(() => {
+    if (!moving) return;
+    // The browser paints people at the group node first, THEN (40 ms later) at their places, so
+    // the 450 ms CSS transform transition carries them out. A timer, not animation frames: frames
+    // stall in background tabs and would leave people parked at the node. After the transition
+    // the leavers are removed.
+    const release = setTimeout(() => setMotion((m) => (m && m.stamp === motionStamp ? { ...m, enter: new Map() } : m)), 40);
+    const done = setTimeout(() => setMotion((m) => (m && m.stamp === motionStamp ? { ...m, leave: new Map(), arriving: new Set() } : m)), 520);
+    return () => {
+      clearTimeout(release);
+      clearTimeout(done);
+    };
+  }, [moving, motionStamp]);
+
   // Ring 3 first so closer people draw on top. Sorted once per data change, not per zoom frame.
-  const drawOrder = useMemo(() => [...visiblePeople].sort((a, b) => b.ring - a.ring), [visiblePeople]);
+  // Motion: people flying into a group are still drawn until they arrive.
+  const drawOrder = useMemo(() => {
+    const leaving = [...(motion?.leave.keys() ?? [])].flatMap((id) => byId.get(id) ?? []);
+    return [...visiblePeople, ...leaving].sort((a, b) => b.ring - a.ring);
+  }, [visiblePeople, motion, byId]);
+  const labelPeople = useMemo(() => (motion?.arriving.size ? visiblePeople.filter((p) => !motion.arriving.has(p.id)) : visiblePeople), [visiblePeople, motion]);
 
   // Step 8c. Center the selected person once per selection and map size, but only on a layout
   // computed for THIS size (opening the card narrows the map and the layout recomputes).
@@ -367,7 +424,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
   const labels = useScreenLabels({
     transform,
     zooming,
-    people: visiblePeople,
+    people: labelPeople,
     byId,
     links: shownLinks.personLinks,
     clusters: grouping?.clusters,
@@ -416,7 +473,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
 
           <g aria-hidden="true">
             {/* Declutter: only close people's lines, or lines in focus (see linkIsShown). */}
-            {shownLinks.personLinks.filter((l) => linkIsShown(l, ringOf, selectedId, focusIds)).map((l) => {
+            {shownLinks.personLinks.map((l) => {
               const a = positions.get(l.fromId);
               const b = positions.get(l.toId);
               if (!a || !b) return null;
@@ -429,6 +486,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                   to={b}
                   dimmed={dimmedIds.has(l.fromId) || dimmedIds.has(l.toId)}
                   emphasis={emphasis}
+                  hidden={!linkIsShown(l, ringOf, selectedId, focusIds) || Boolean(motion?.arriving.has(l.fromId) || motion?.arriving.has(l.toId))}
                 />
               );
             })}
@@ -464,7 +522,8 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
               moves their DOM element, and Chrome then sends the follow-up mousedown to the parent <g>,
               which d3-zoom's filter doesn't see as a person and pans the map (found in testing). */}
           {(dragPos ? [...drawOrder.filter((p) => p.id !== dragId), ...drawOrder.filter((p) => p.id === dragId)] : drawOrder).map((p) => {
-            const pos = positions.get(p.id);
+            const flying = motion?.enter.get(p.id) ?? motion?.leave.get(p.id);
+            const pos = flying ?? positions.get(p.id);
             if (!pos) return null;
             return (
               <PersonNode
@@ -478,6 +537,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
                 drift={driftStep(filterContext.drift?.get(p.id) ?? 0)}
+                vanish={Boolean(flying)}
                 recede={p.ring === 3 && p.id !== selectedId && p.id !== hoverId && !highlightIds.has(p.id) && !neighborIds.has(p.id)}
                 onSelect={onSelectNode}
                 onHover={setHoverId}

@@ -2,9 +2,9 @@
  * M4 — Import dialog · done (gets a "Sort with AI" action in M6)
  *
  * WHAT THIS ACHIEVES
- *   Drag in a CSV and see exactly what will happen ("120 people found in your LinkedIn
+ *   Drag in a CSV and see exactly what will happen ("30 people found in your LinkedIn
  *   export") before importing, and a clear summary afterwards
- *   ("Imported 114 people · 6 already here").
+ *   ("Imported 24 people · 6 already here").
  *
  * HOW IT FITS
  *   Opened from the top bar (store.importOpen). Uses lib/csv.ts and applyImport
@@ -31,7 +31,8 @@
  *      and a longer duration (15 s) when there are new people.
  *
  * DONE WHEN
- *   - demo/Connections.csv → 114 new people in ring 3 (6 were already in the seed);
+ *   - demo/Connections.csv → 24 new people in ring 3 (6 were already in the seed; the export was
+ *     cut from 120 to 30 rows for the demo on Oct 18);
  *     importing it again adds 0.
  *
  * Guide: §8.2

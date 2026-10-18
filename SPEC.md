@@ -752,7 +752,7 @@ Build in order. After each milestone: `pnpm typecheck && pnpm test && pnpm build
 | M1 | Data + seed | `pnpm seed` writes `demo/*`. First load seeds Dexie; reload keeps data; Settings → Delete everything clears it. |
 | M2 | Ring map (F1) | Seed renders in 3 rings, clustered by tag, no node overlap, pan/zoom works, click opens PersonCard. |
 | M3 | Quick add + PersonCard (F2, F15) | `N` → type name → Enter adds a node in under 10 s; card edits persist after reload. |
-| M4 | CSV import (F3) | Importing `demo/Connections.csv` adds ~120 people to ring 3; re-import adds 0 (dedupe); `csv.test.ts` passes. |
+| M4 | CSV import (F3) | Importing `demo/Connections.csv` adds ~24 people to ring 3 (export cut from ~120 to 30 rows for the demo, Oct 18); re-import adds 0 (dedupe); `csv.test.ts` passes. |
 | M5 | AI query (F4) | "Who do I know at Microsoft?" returns a sentence and highlights exactly the Microsoft people; unknown ids are dropped; 429 shows a friendly message. |
 | — | **Devpost draft** | Submit draft by 9:30 PM Saturday regardless of progress. |
 | M6 | Auto-sort + links (F8, F7) | After import, "Sort with AI" shows a ReviewSheet; Accept all updates rings/tags. Links suggestion finds Abbey ↔ John with an evidence label. |

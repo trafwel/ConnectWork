@@ -207,8 +207,9 @@ const reminders: SeedReminder[] = [
 writeFileSync(`${OUT}seed.json`, JSON.stringify({ people, links, reminders }, null, 2) + '\n');
 
 // ---------------------------------------------------------------------------
-// Connections.csv — fake LinkedIn export (~120 rows, a few overlap the seed)
+// Connections.csv — fake LinkedIn export (30 rows, 6 overlap the seed)
 // ---------------------------------------------------------------------------
+const DEMO_CSV_ROWS = 30;
 const csvEscape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 const linkedinDate = (daysAgo: number) => {
   const d = new Date(Date.UTC(2026, 9, 17) - daysAgo * 86400000);
@@ -240,7 +241,10 @@ const csv = [
   '"When exporting your connection data, you may notice that some of the email addresses are missing. You will only see email addresses for connections who have allowed their connections to see or download their email address using this setting https://www.linkedin.com/psettings/privacy/email. You can learn more here https://www.linkedin.com/help/linkedin/answer/261"',
   '',
   'First Name,Last Name,URL,Email Address,Company,Position,Connected On',
-  ...rows.map((r) => r.map(csvEscape).join(',')),
+  // Demo size (Oct 18): 120 rows made the map too crowded to present, so only the first 30 are
+  // written (the 6 seed overlaps + 24 new). All 120 are still generated so the random sequence,
+  // and with it every other demo file, stays byte-identical.
+  ...rows.slice(0, DEMO_CSV_ROWS).map((r) => r.map(csvEscape).join(',')),
 ].join('\n');
 writeFileSync(`${OUT}Connections.csv`, csv + '\n');
 
@@ -293,5 +297,5 @@ writeFileSync(`${OUT}roster.pdf`, await pdf.save());
 
 console.log(
   `demo/: seed.json (${people.length} people, ${links.length} links, ${reminders.length} reminders), ` +
-    `Connections.csv (${rows.length} rows), calendar-events.json (${calendar.length}), roster.pdf (${roster.length})`,
+    `Connections.csv (${Math.min(rows.length, DEMO_CSV_ROWS)} rows), calendar-events.json (${calendar.length}), roster.pdf (${roster.length})`,
 );

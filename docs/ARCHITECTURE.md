@@ -243,3 +243,4 @@ flowchart LR
 | Oct 18 | Groups view | Browser: new Groups view box (App → Groups → UI state): the ring map with each tag collapsed into one node, opened on click; links between hidden people merge into count-weighted edges. Same layout, store and database. |
 | Oct 18 | M14 | Browser: Month view box (App → Month → UI state): a 6-week grid of open reminders and meetings; clicking a day highlights those people on the map. Status: M14 ✅. |
 | Oct 18 | M16 | Big picture: phone → Photon → server → open tab is built (solid). Server: texting agent + relay hub built. Browser: relay client built, writes through `actions.ts`. Status: M16 ✅; M17 skipped. |
+| Oct 18 | Motion | No new boxes or arrows: the ring map now animates its own changes (nodes and lines move by CSS transforms; Groups gather into and spread out of their group node). Demo export cut to 30 rows (64 people); demo cache re-recorded. |
