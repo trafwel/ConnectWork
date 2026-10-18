@@ -145,8 +145,8 @@ function show(text: string, reply: string, ids: string[]) {
 export async function answer(req: RelayRequest): Promise<RelayReply> {
   const { intent } = req;
   const [people, links, reminders, thresholds] = await Promise.all([db.people.toArray(), db.links.toArray(), db.reminders.toArray(), readDriftThresholds()]);
-  const done = (text: string, personIds: string[] = []): RelayReply => {
-    const out = clip(text);
+  const done = (text: string, personIds: string[] = [], max?: number): RelayReply => {
+    const out = clip(text, max);
     show(req.text, out, personIds);
     return { id: req.id, text: out, personIds };
   };
@@ -159,6 +159,10 @@ export async function answer(req: RelayRequest): Promise<RelayReply> {
       const res = await askQuery(q, buildSummary(people, links, reminders), undefined, driftDays);
       if (!res.ok) return done(res.message);
       const ids = answerIds(q, people, res.data.personIds, res.data.filterHint, (p) => driftLevel(p, new Date(), thresholds) > 0);
+      // Oct 18: "text me Lena's items" sent AS a text. The reply already is a text, so it carries
+      // the message the model wrote (textMe), not the "I'm texting you…" sentence meant for the
+      // search bar. 600 characters, the schema's cap for textMe.
+      if (res.data.textMe) return done(res.data.textMe, ids, 600);
       return done(res.data.answer, ids);
     }
     case 'add_person': {

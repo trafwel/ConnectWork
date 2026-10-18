@@ -1244,3 +1244,4 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
   - The tab then stops for good (no reconnect, no watchdog), and Settings → Texting agent says "Another tab took over texting… Save the token again here to take it back".
 - **Checked live:** two tabs, then exactly two stream connections and no reconnect fight. The first tab shows "Another tab took over", the second "Connected". Also a new relay test.
 - **Checks:** typecheck, lint, 220 tests (+1), build.
+- **Also (Oct 18):** "Text me M. Richard Hurtz's information" sent *as a text* got "I am texting you … now" and no details. Over iMessage the reply already is the text, so the relay now replies with the model's `textMe` message (up to 600 characters) when there is one, instead of the search bar's one-line sentence.
