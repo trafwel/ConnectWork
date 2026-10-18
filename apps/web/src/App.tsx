@@ -1,5 +1,5 @@
 /**
- * App shell · M8 state (grows in every milestone)
+ * App shell · M9 state (grows in every milestone)
  *
  * WHAT THIS DOES NOW (M3)
  *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar
@@ -9,6 +9,7 @@
  *   M6: "Find hidden links", and the review sheet on the right for AI suggestions.
  *   M7: filter tabs on the left, reminder flags on the map, the Due panel on the right.
  *   M8: "Review my week" → the weekly plan panel; "Draft a message" on each person card.
+ *   M9: "Snap" → photo/PDF → people in the review sheet (lazy-loaded, shares the CSV chunk).
  *   Step S: Appearance (Neutral/Atlas × System/Light/Dark) via lib/appearance.ts.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
@@ -22,6 +23,11 @@
  *       1. On mount, call ensureSeeded() (db/seed.ts) and keep a `ready` flag.
  *       2. Replace this page with the layout: <TopBar> on top, <main> below,
  *          <QuickAdd />
+      {snapLoaded && (
+        <Suspense fallback={null}>
+          <SnapDialog />
+        </Suspense>
+      )}
       {importLoaded && (
         <Suspense fallback={null}>
           <ImportDialog />
@@ -55,7 +61,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarCheck, Plus, Upload, Waypoints } from 'lucide-react';
+import { CalendarCheck, Camera, Plus, Upload, Waypoints } from 'lucide-react';
 import { AgentAnswer } from '@/components/AgentAnswer';
 import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
@@ -81,6 +87,8 @@ import { useHotkey } from '@/lib/useHotkey';
 import { useStore } from '@/store/useStore';
 
 // Loaded the first time Import is opened: keeps Papa Parse and the dialog out of the main bundle (M4-E5).
+// M9: also lazy — it imports lib/csv.ts (Papa Parse), which must stay out of the main bundle.
+const SnapDialog = lazy(() => import('@/components/SnapDialog').then((m) => ({ default: m.SnapDialog })));
 const ImportDialog = lazy(() => import('@/components/ImportDialog').then((m) => ({ default: m.ImportDialog })));
 
 export default function App() {
@@ -99,6 +107,9 @@ export default function App() {
   // Once loaded, the dialog stays mounted so its close animation can play.
   const [importLoaded, setImportLoaded] = useState(false);
   if (importOpen && !importLoaded) setImportLoaded(true);
+  const snapOpen = useStore((s) => s.snapOpen);
+  const [snapLoaded, setSnapLoaded] = useState(false);
+  if (snapOpen && !snapLoaded) setSnapLoaded(true);
 
   // Step 8. Stable handlers, so useHotkey doesn't re-add its listener every render.
   const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
@@ -150,6 +161,9 @@ export default function App() {
         <Button size="sm" variant="outline" onClick={() => void findHiddenLinks()}>
           <Waypoints /> Find hidden links
         </Button>
+        <Button size="sm" variant="outline" onClick={() => setDialog('snap', true)}>
+          <Camera /> Snap
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setDialog('import', true)}>
           <Upload /> Import
         </Button>
@@ -191,6 +205,11 @@ export default function App() {
         ) : null}
       </div>
       <QuickAdd />
+      {snapLoaded && (
+        <Suspense fallback={null}>
+          <SnapDialog />
+        </Suspense>
+      )}
       {importLoaded && (
         <Suspense fallback={null}>
           <ImportDialog />
