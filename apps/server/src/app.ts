@@ -35,12 +35,15 @@ import { env } from './env';
 import { geminiGenerate, type Generate } from './gemini';
 import { rateLimit } from './rateLimit';
 import { aiRoutes } from './routes/ai';
+import { relayRoutes, type RelayHub } from './photon/relay';
 
 export interface AppDeps {
   /** Gemini caller (M5); null when no GEMINI_API_KEY is set. */
   generate: Generate | null;
   /** Demo reply cache (M5/M12). */
   cache: DemoCache | null;
+  /** M16: relay to the open browser tab; set only when the texting agent runs. */
+  hub?: RelayHub;
 }
 
 // Step 1
@@ -74,8 +77,17 @@ export function createApp(deps: AppDeps) {
       tier: env.geminiTier,
       cache: env.demoCache,
       aiConfigured: Boolean(deps.generate),
+      // M16: whether texts can be answered right now (the agent runs and a tab is listening).
+      texting: deps.hub ? (deps.hub.connected ? 'tab connected' : 'waiting for a tab') : 'off',
     }),
   );
+
+  // M16 step 6. The relay only exists when the texting agent runs AND a relay token is set.
+  if (deps.hub && env.relayToken) {
+    const relay = new Hono();
+    relayRoutes(deps.hub, relay, env.relayToken);
+    app.route('/api/relay', relay);
+  }
 
   // Step 3. Only the AI routes are limited; health stays free.
   app.use('/api/ai/*', rateLimit(30, 60_000, { trustProxy: env.trustProxy }));

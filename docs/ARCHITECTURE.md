@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M13 built (deploy config; going live is a human step)**: everything through M12, plus the production setup. Caddy serves the built app over HTTPS with a strict Content-Security-Policy and forwards `/api` to the API, which listens on 127.0.0.1 only. There's a runbook ([DEPLOY.md](DEPLOY.md)), an update script, and `pnpm preview:prod` to try the same headers locally. The VM, domain and DNS are human steps. Month view (M14) and the side tracks are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M16 built**: everything through M14 and the polish steps, plus the *texting agent*. Text the Photon iMessage line; the server (allow-listed senders only) asks Gemini what the text means and relays it over Server-Sent Events to your open Connectwork tab. The tab answers from its own data, then the reply is texted back, signed "— Connectwork (AI)". The network never reaches the server. Backboard memory (M17) is skipped; VEYZL (M15) waits on its GitHub App. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -25,8 +25,8 @@ flowchart LR
   Browser -->|"POST /api/ai/query · M5 (summary, no notes)"| Server
   Server -->|"structured JSON · M5"| Gemini
   Browser -->|"direct, token in memory only · M11"| GCal
-  Phone -.-> Photon -.->|"M16"| Server
-  Server -.->|"relay texts to the open tab · M16"| Browser
+  Phone -->|"iMessage"| Photon -->|"allow-listed texts · M16"| Server
+  Server -->|"relay texts to the open tab (SSE) · M16"| Browser
   Server -.->|"conversation only · M17"| Backboard
   GitHub -.->|"every pull request · M15"| VEYZL
 
@@ -73,7 +73,7 @@ flowchart LR
   Summary["Summary + guardrails<br/><small>lib/graphSummary.ts, exactMatch.ts · M5<br/>drift.ts + useDriftThresholds: one drift rule for map, list, AI · M10</small>"]:::built
   Api["API client<br/><small>lib/api.ts · typed results, re-validates · M5<br/>offline fallback: lib/offlineCache.ts · M12</small>"]:::built
   Recording[/"Recorded demo answers<br/><small>demo/demo-cache.json · bundled as a lazy chunk · M12</small>"/]:::built
-  Relay["Texting relay client · M16"]:::planned
+  Relay["Texting relay client<br/><small>lib/relayClient.ts, textAgent.ts, Settings → AgentConnection · M16</small>"]:::built
 
   App -->|"ensureSeeded() on mount"| Seed
   App -->|"people, links, tags, reminders: useLiveQuery"| DB
@@ -133,7 +133,7 @@ flowchart LR
   Snap -->|"aiPost /extract (≤1600 px JPEG or PDF)"| Api
   Snap -->|"findMatch → openReview"| Store
   Snap -->|"accept → planImport, applyImport"| Actions
-  Relay -.->|"answers from local data"| DB
+  Relay -->|"answers from local data; add / remind / log through actions"| DB
 
   classDef built fill:#e6f2ec,stroke:#2e7d5b,stroke-width:2px,color:#1d2a24;
   classDef planned fill:#f6f7f6,stroke:#9aa39c,stroke-dasharray:5 4,color:#56635b;
@@ -155,8 +155,8 @@ flowchart LR
   Cache["Demo cache<br/><small>cache.ts · record / replay · M5 · checked end to end M12</small>"]:::built
   GeminiH["Gemini helper<br/><small>schema · retry · fallback chain · 60 s budget · gemini.ts · M5</small>"]:::built
   Prompts["Prompts<br/><small>prompts.ts · DATA_FORMAT, QUERY done</small>"]:::built
-  Agent["Texting agent<br/><small>photon/agent.ts · M16</small>"]:::planned
-  Hub["Relay hub (SSE)<br/><small>photon/relay.ts · M16</small>"]:::planned
+  Agent["Texting agent<br/><small>photon/agent.ts, intent.ts · allow-list, signed replies · M16</small>"]:::built
+  Hub["Relay hub (SSE)<br/><small>photon/relay.ts · token, one tab, 20 s timeout · M16</small>"]:::built
   Gemini["Gemini API"]:::external
 
   Limit --> Query
@@ -175,8 +175,8 @@ flowchart LR
   Helper --> GeminiH
   Helper --> Prompts
   GeminiH -->|"3.8-flash → 3.6-flash → 3.5-flash-lite"| Gemini
-  Agent -.->|"intent"| GeminiH
-  Agent -.-> Hub
+  Agent -->|"intent"| GeminiH
+  Agent --> Hub
 
   classDef built fill:#e6f2ec,stroke:#2e7d5b,stroke-width:2px,color:#1d2a24;
   classDef planned fill:#f6f7f6,stroke:#9aa39c,stroke-dasharray:5 4,color:#56635b;
@@ -215,7 +215,8 @@ flowchart LR
 | M12 | Demo hardening: record / replay checked, browser offline fallback, DEMO_DAY runbook | ✅ built ([review](REVIEWS.md#m12)) |
 | M13 | Deploy config: Caddyfile (HTTPS, CSP, caching), hardened systemd unit, update script, DEPLOY.md, `preview:prod` | ✅ built ([review](REVIEWS.md#m13)) · going live is a human step |
 | M14 | Month view: reminders and meetings by day; a day click highlights its people | ✅ built ([review](REVIEWS.md#m14)) |
-| M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
+| M16 | Texting agent on Photon iMessage: allow-list, Gemini intent, SSE relay to the open tab, answers from local data | ✅ built ([review](REVIEWS.md#m16)) |
+| M15, M17 | VEYZL (waits on its GitHub App), Backboard memory (skipped) | ⬜ |
 
 ## Changelog
 
@@ -241,3 +242,4 @@ flowchart LR
 | Oct 17 | M13 | Big picture: Caddy on the VM sits between the browser and the server in production (dotted until the VM and domain exist; config is in `deploy/`). Server: listens on 127.0.0.1 there (HOST), trusts Caddy's X-Forwarded-For. Status: M13 ✅ (config), live deploy = human step, M14 next. |
 | Oct 18 | Groups view | Browser: new Groups view box (App → Groups → UI state): the ring map with each tag collapsed into one node, opened on click; links between hidden people merge into count-weighted edges. Same layout, store and database. |
 | Oct 18 | M14 | Browser: Month view box (App → Month → UI state): a 6-week grid of open reminders and meetings; clicking a day highlights those people on the map. Status: M14 ✅. |
+| Oct 18 | M16 | Big picture: phone → Photon → server → open tab is built (solid). Server: texting agent + relay hub built. Browser: relay client built, writes through `actions.ts`. Status: M16 ✅; M17 skipped. |

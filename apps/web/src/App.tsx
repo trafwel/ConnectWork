@@ -90,6 +90,7 @@ import { localDate, today } from '@/lib/dates';
 import { driftLevel } from '@/lib/drift';
 import { dueReminders, isOverdue } from '@/lib/people';
 import { useDriftThresholds } from '@/lib/useDriftThresholds';
+import { resumeRelay } from '@/lib/relayClient';
 import { useHotkey } from '@/lib/useHotkey';
 import { useStore } from '@/store/useStore';
 
@@ -134,6 +135,11 @@ export default function App() {
   const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
   useHotkey('n', openQuickAdd);
   useHotkey('Escape', onEscape); // ignored while typing or with a dialog open
+
+  // M16 step 5: reconnect to the texting agent with the token saved on this device.
+  useEffect(() => {
+    void resumeRelay();
+  }, []);
 
   useEffect(() => {
     ensureSeeded()

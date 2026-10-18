@@ -322,6 +322,15 @@ export async function connectPeople(a: string, b: string, label?: string): Promi
   });
 }
 
+/**
+ * M16: the texting agent's relay token for THIS browser (a device secret, like a session).
+ * Not in backups: BACKUP_META_KEYS doesn't list it. `null` forgets it.
+ */
+export async function setRelayToken(token: string | null): Promise<void> {
+  if (token === null) await db.meta.delete('relayToken');
+  else await db.meta.put({ key: 'relayToken', value: token.trim() });
+}
+
 /** Longest relationship name we keep: short enough to fit on a line on the map. */
 export const LINK_LABEL_MAX = 60;
 

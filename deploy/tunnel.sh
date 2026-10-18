@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 
 pnpm build
 
-(cd apps/server && HOST=127.0.0.1 PORT=8788 DEMO_CACHE=replay exec pnpm exec tsx src/index.ts) &
+(cd apps/server && HOST=127.0.0.1 PORT=8788 DEMO_CACHE=replay TEXTING_AGENT=0 exec pnpm exec tsx src/index.ts) &
 API_PID=$!
 PREVIEW_PORT=4173 API=http://127.0.0.1:8788 pnpm preview:prod &
 WEB_PID=$!

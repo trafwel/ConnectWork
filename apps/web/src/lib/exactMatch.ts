@@ -80,3 +80,18 @@ export function exactMatches(question: string, people: Person[]): string[] {
   // Step 4
   return people.filter((p) => named.has(norm(p.company ?? '')) || named.has(norm(p.school ?? ''))).map((p) => p.id);
 }
+
+/**
+ * M16: who an answer is about, decided by CODE (shared by Ask Connectwork and the texting agent,
+ * so a texted answer highlights exactly what a typed one would):
+ *   - "lost touch" → the exact drift rule, not the model's list;
+ *   - otherwise the model's ids that exist locally and are grounded in the named company/school,
+ *     plus every exact company/school match.
+ */
+export function answerIds(question: string, people: Person[], modelIds: string[], filterHint: 'none' | 'due' | 'drifting', isDrifting: (p: Person) => boolean): string[] {
+  const local = new Set(people.map((p) => p.id));
+  const known = modelIds.filter((id) => local.has(id));
+  if (filterHint === 'drifting') return people.filter(isDrifting).map((p) => p.id);
+  return [...new Set([...groundModelIds(question, people, known), ...exactMatches(question, people)])];
+}
+

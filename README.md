@@ -26,7 +26,7 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 | Drift: people you haven't talked to in a while fade outward | ✅ M10 |
 | Google Calendar sync and meeting prep | ✅ M11 |
 | Demo that survives bad Wi-Fi: recorded AI answers, replayed by the server or by the browser | ✅ M12 |
-| Text Connectwork from iMessage (Photon 2.0) — your open tab answers from local data | 🚧 M16 |
+| Text Connectwork from iMessage (Photon 2.0) — your open tab answers from local data | ✅ M16 |
 | The texting agent remembers the conversation (Backboard) | 🚧 M17 |
 | Every pull request audited by VEYZL (EU AI Act, NIST AI RMF, ISO/IEC 42001) — see [AI governance](docs/AI_GOVERNANCE.md) | 🚧 M15 |
 

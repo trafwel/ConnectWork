@@ -96,6 +96,9 @@ export interface UIState {
   calendarConnected: boolean;
 
   setView: (view: 'map' | 'groups' | 'list' | 'month') => void;
+  /** M16: this tab's connection to the texting agent's relay. */
+  relayStatus: 'off' | 'connecting' | 'connected' | 'error';
+  setRelayStatus: (s: 'off' | 'connecting' | 'connected' | 'error') => void;
   /** Groups view: tags the user opened. Kept while switching views. */
   expandedGroups: Set<string>;
   toggleGroup: (tag: string) => void;
@@ -145,6 +148,7 @@ export const useStore = create<UIState>((set, get) => ({
   editRings: false,
   calendarConnected: false,
   expandedGroups: new Set<string>(),
+  relayStatus: 'off',
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
@@ -162,6 +166,7 @@ export const useStore = create<UIState>((set, get) => ({
   openMeeting: (id, attendeeIds) =>
     set({ selectedMeetingId: id, selectedPersonId: null, rightPanel: 'meeting', highlightIds: new Set(attendeeIds), weeklyOpen: false }),
   setCalendarConnected: (on) => set({ calendarConnected: on }),
+  setRelayStatus: (relayStatus) => set({ relayStatus }),
   // A new Set each time (Zustand compares by reference).
   toggleGroup: (tag) => {
     const next = new Set(get().expandedGroups);

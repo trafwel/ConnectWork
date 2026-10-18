@@ -40,7 +40,7 @@ import { db } from '@/db/db';
 import { askQuery } from '@/lib/api';
 import { driftLevel, isDefaultThresholds } from '@/lib/drift';
 import { readDriftThresholds } from '@/lib/useDriftThresholds';
-import { exactMatches, groundModelIds } from '@/lib/exactMatch';
+import { answerIds } from '@/lib/exactMatch';
 import { buildSummary } from '@/lib/graphSummary';
 import { useStore } from '@/store/useStore';
 
@@ -98,12 +98,10 @@ export function AgentBar() {
     //   - "lost touch" → the exact drift rule, not the model's list;
     //   - otherwise model ids that exist locally and are grounded in the named company/school,
     //     plus every exact company/school match.
+    // (M16: the rule lives in answerIds, shared with the texting agent.)
     const local = new Set(people.map((p) => p.id));
     const modelIds = new Set(result.data.personIds.filter((id) => local.has(id)));
-    const ids =
-      result.data.filterHint === 'drifting'
-        ? people.filter((p) => driftLevel(p, new Date(), thresholds) > 0).map((p) => p.id)
-        : [...new Set([...groundModelIds(q, people, result.data.personIds.filter((id) => local.has(id))), ...exactMatches(q, people)])];
+    const ids = answerIds(q, people, result.data.personIds, result.data.filterHint, (p) => driftLevel(p, new Date(), thresholds) > 0);
     // M5-O2: if code changed the model's list, the card says so (its sentence may miscount).
     const checked = ids.length !== modelIds.size || ids.some((id) => !modelIds.has(id));
     setAgent({ agentBusy: false, agentAnswer: result.data.answer, agentChecked: checked });

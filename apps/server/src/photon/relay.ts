@@ -1,5 +1,5 @@
 /**
- * M16 — Relay between the texting agent and the user's open browser tab · Owner: Person B · ~1 h
+ * M16 — Relay between the texting agent and the user's open browser tab · done
  *
  * WHAT THIS ACHIEVES
  *   Keeps our local-first promise while adding a texting agent. The network
@@ -42,28 +42,122 @@
  *
  * Contract: RelayRequest / RelayReply · Guide: docs/IMPLEMENTATION_GUIDE.md §23
  */
-import type { Hono } from 'hono';
-import type { RelayReply, RelayRequest } from '@connectwork/shared';
+import { timingSafeEqual } from 'node:crypto';
+import type { Context, Hono } from 'hono';
+import { streamSSE, type SSEStreamingApi } from 'hono/streaming';
+import { z } from 'zod';
+import { RelayReply, type RelayRequest } from '@connectwork/shared';
+import { env } from '../env';
+
+interface Pending {
+  resolve: (reply: RelayReply | null) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
 
 export class RelayHub {
+  // Step 1. One browser at a time (a newer tab replaces the older one) + replies we're waiting for.
+  private stream: SSEStreamingApi | null = null;
+  private readonly pending = new Map<string, Pending>();
+  private notify: ((text: string) => Promise<void>) | null = null;
+
   /** True while a browser tab is subscribed. */
   get connected(): boolean {
-    // TODO(M16) step 1
-    return false;
+    return this.stream !== null && !this.stream.aborted && !this.stream.closed;
   }
 
-  /** Forward a text to the browser and wait for its reply; null if no tab is open or it times out. */
-  async ask(_request: RelayRequest, _timeoutMs = 20_000): Promise<RelayReply | null> {
-    // TODO(M16) step 3
-    return null;
+  /** Step 2 helper: the newest tab wins; the old stream is closed so it stops pinging. */
+  attach(stream: SSEStreamingApi): void {
+    if (this.stream && this.stream !== stream) void this.stream.close();
+    this.stream = stream;
+  }
+
+  detach(stream: SSEStreamingApi): void {
+    if (this.stream === stream) this.stream = null;
+  }
+
+  /** Step 3. Forward a text to the browser and wait for its reply; null if no tab is open or it times out. */
+  async ask(request: RelayRequest, timeoutMs = 20_000): Promise<RelayReply | null> {
+    const stream = this.connected ? this.stream : null;
+    if (!stream) return null;
+    return new Promise<RelayReply | null>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(request.id);
+        resolve(null);
+      }, timeoutMs);
+      this.pending.set(request.id, { resolve, timer });
+      stream.writeSSE({ event: 'request', data: JSON.stringify(request), id: request.id }).catch(() => {
+        clearTimeout(timer);
+        this.pending.delete(request.id);
+        resolve(null);
+      });
+    });
+  }
+
+  /** Step 4 helper: the browser's answer. False when nobody is waiting for that id (late or unknown). */
+  resolve(reply: RelayReply): boolean {
+    const p = this.pending.get(reply.id);
+    if (!p) return false;
+    clearTimeout(p.timer);
+    this.pending.delete(reply.id);
+    p.resolve(reply);
+    return true;
   }
 
   /** The agent registers how to text the owner (used by /notify, e.g. the weekly digest). */
-  onNotify(_send: (text: string) => Promise<void>): void {
-    // TODO(M16) step 5
+  onNotify(send: (text: string) => Promise<void>): void {
+    this.notify = send;
+  }
+
+  /** Step 5 helper. False when no agent is running to send it. */
+  async sendToOwner(text: string): Promise<boolean> {
+    if (!this.notify) return false;
+    await this.notify(text);
+    return true;
   }
 }
 
-export function relayRoutes(_hub: RelayHub, _routes: Hono): void {
-  // TODO(M16) steps 2, 4, 5 — then mount from app.ts (step 6)
+/** Constant-time token check: the comparison takes as long whether 1 or 40 characters match. */
+export function tokenMatches(given: string | undefined, expected: string): boolean {
+  if (!expected || !given) return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+const NotifyBody = z.object({ text: z.string().trim().min(1).max(1200) });
+
+/** Steps 2, 4, 5. Mounted by app.ts under /api/relay, only when RELAY_TOKEN is set (step 6). */
+export function relayRoutes(hub: RelayHub, routes: Hono, token: string = env.relayToken): void {
+  // EventSource can't set headers, so the stream accepts ?token= as well as the Authorization header.
+  const authorized = (c: Context, allowQuery = false) =>
+    tokenMatches(c.req.header('authorization')?.replace(/^Bearer\s+/i, ''), token) || (allowQuery && tokenMatches(c.req.query('token'), token));
+
+  routes.get('/stream', (c) => {
+    if (!authorized(c, true)) return c.json({ error: 'unauthorized', message: 'Wrong relay token' }, 401);
+    return streamSSE(c, async (stream) => {
+      hub.attach(stream);
+      stream.onAbort(() => hub.detach(stream));
+      await stream.writeSSE({ event: 'ready', data: '{}' });
+      // Pings keep proxies (Caddy, Cloudflare) from closing an idle stream.
+      while (!stream.aborted && !stream.closed) {
+        await stream.sleep(25_000);
+        if (!stream.aborted && !stream.closed) await stream.writeSSE({ event: 'ping', data: '{}' }).catch(() => undefined);
+      }
+      hub.detach(stream);
+    });
+  });
+
+  routes.post('/reply', async (c) => {
+    if (!authorized(c)) return c.json({ error: 'unauthorized', message: 'Wrong relay token' }, 401);
+    const parsed = RelayReply.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'bad_request', message: 'Invalid reply' }, 400);
+    return hub.resolve(parsed.data) ? c.json({ ok: true }) : c.json({ error: 'not_found', message: 'No text is waiting for that reply' }, 404);
+  });
+
+  routes.post('/notify', async (c) => {
+    if (!authorized(c)) return c.json({ error: 'unauthorized', message: 'Wrong relay token' }, 401);
+    const parsed = NotifyBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'bad_request', message: 'Invalid text' }, 400);
+    return (await hub.sendToOwner(parsed.data.text)) ? c.json({ ok: true }) : c.json({ error: 'ai_unavailable', message: 'The texting agent is not running' }, 503);
+  });
 }

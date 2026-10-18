@@ -988,3 +988,55 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 
 **Checks:** typecheck, lint, 180 tests (new: pills along a line, `connectPeople`, repeatable import ids, summary order), build.
 
+## M16
+
+**Texting agent on Photon (iMessage)** · Oct 18 · branch `m16-texting` (on `polish`)
+
+**What it does:** text the Photon line (shared Pro number +1 628 789 5362) from an allow-listed phone:
+- *"who do I know at Microsoft?"*, *"met Sarah Kim from Stripe"*, *"remind me to email John Friday"*, *"had coffee with Abbey"*, *"what's due?"*, *"help"*.
+- The server ignores strangers completely. For allowed senders, Gemini parses the intent; code checks names and dates.
+- The text and intent go over **Server-Sent Events to your open Connectwork tab**, which answers from **its own IndexedDB** using the app's own flows (the same highlight rule as Ask Connectwork, now shared in `answerIds`), writes through `actions.ts`, and shows the exchange on the map.
+- The reply is texted back, signed **"— Connectwork (AI)"**. Tab closed → "Open Connectwork on your laptop…". The network never reaches the server.
+
+**How it was checked:** typecheck, lint, 195 tests. 15 are new:
+- relay: a wrong token gives 401; no tab → `null` at once; a full stream → request → reply round trip; timeout; notify;
+- intent: date guardrail, fallbacks, context;
+- allow-list: phone formats, Apple-ID email, strangers;
+- textAgent: name resolution, "which one?", digest without notes, SMS length.
+
+**Live:**
+- the Photon echo test reached the bot;
+- then **"Who do I know at Microsoft?" texted from the owner's phone came back as an answer**, and the laptop tab showed *Texted: "Who do I know at Microsoft?" → You know 8 people at Microsoft…* with 11 people highlighted.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | The Spectrum SDK is large. | Loaded only by a server with Photon credentials (dynamic import); the CSV matcher (Papa Parse) loads in the tab only when a text adds someone. |
+| E2 | One Gemini call to parse the intent, plus one for a query (the same call as Ask). | Writes (add / remind / log) need no second AI call. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Two servers read the same `.env` here (dev 8787, laptop tunnel 8788), so both would subscribe and compete for texts. The scaffold's echo bot would also compete. | `TEXTING_AGENT=0` turns the agent off on a server (the tunnel script sets it). The echo bot is stopped. |
+| I2 | The relay is mounted only when the agent runs AND `RELAY_TOKEN` is set; `/api/health` reports `texting: off / waiting for a tab / tab connected`. | Checked live. |
+| I3 | A texted answer must match a typed one. | The highlight rule is now one function (`answerIds`) used by AgentBar and the relay client. |
+| I4 | **Photon setup gotcha (fixed by the owner):** texts weren't delivered until the owner's phone was enrolled on the project (dashboard → avatar → phone, then refresh the setup page). `photon spectrum users list` shows it. | Documented here; the shared number doesn't appear in `lines list` (Pro shared pool). |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | Strangers. | Only `AGENT_ALLOWED_SENDERS` get anything (no reply, no answer); the log shows only the last 4 digits. Tested. |
+| S2 | Relay endpoints. | Bearer token, compared in constant time (`timingSafeEqual`); EventSource uses `?token=`, and our log records the path without the query. A newer tab replaces the old one. |
+| S3 | Message text. | Never logged (only platform, intent, latency, outcome). The server holds a text only in memory while the tab answers (20 s). |
+| S4 | Transparency. | Every reply is signed "— Connectwork (AI)". Writes are reported in the reply ("Added…", "Reminder set…", "Logged…"). |
+| S5 | Free tier. | Texts and their parsed intent go to Gemini. On the free tier, text only about the fictional demo people (same rule as the rest of the app). |
+| S6 | Secrets. | The Photon project ID/secret, the allow-listed number and the relay token live only in the git-ignored `.env` (`chmod 600`). Tests use a fictional 555 number. The token reached the test tab through a one-shot local server, so it never appeared in logs or chat. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Only "who do I know…" was tested from a real phone. Add / remind / log / digest are unit-tested in parts but not texted live. | Try them in the demo dry run. |
+| O2 | The agent lives on the laptop (dev server). Close the laptop or the tab and texts get the polite "open Connectwork" reply. | By design (local-first). The VM deploy would run it there, with the tab still on the laptop. |
+| O3 | M17 (Backboard memory) is skipped, so "her/him" in a follow-up text isn't resolved across texts. | Team decision (skip). |
+| O4 | "Text me this" from the weekly review isn't wired to the UI yet (`notifyOwner` exists, and the server's notify route is tested). | Small follow-up. |
+

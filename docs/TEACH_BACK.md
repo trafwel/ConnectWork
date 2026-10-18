@@ -158,3 +158,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 1. Why does the grid always have 42 days, and why does it start on a Monday?
 2. Clicking a day reuses the highlight + answer card from Ask Connectwork. What do we gain by reusing it instead of building a new "day" panel?
 
+## M16
+**Texting agent**
+
+1. When you text "who do I know at Microsoft?", which machine answers it, and why doesn't the server just answer from a copy of your network?
+2. What does a stranger who texts the number get back, and why is "nothing at all" the right answer?
+3. Why do the relay endpoints need a token, and why is it compared with `timingSafeEqual` instead of `===`?
+4. Two servers read our `.env`. What goes wrong if both run the agent, and what stops that?
+

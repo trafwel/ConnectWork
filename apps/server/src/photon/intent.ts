@@ -1,5 +1,5 @@
 /**
- * M16 — What did the text mean? · Owner: Person B · ~25 min
+ * M16 — What did the text mean? · done
  *
  * WHAT THIS ACHIEVES
  *   Turns free-form texts into actions: "who do I know at Stripe?" (query),
@@ -29,15 +29,46 @@
  *
  * Contract: AgentIntent · Prompt: INTENT_SYSTEM · Guide: §23
  */
-import type { AgentIntent } from '@connectwork/shared';
-import type { Generate } from '../gemini';
+import { AgentIntent } from '@connectwork/shared';
+import { AiError, callStructured, type Generate } from '../gemini';
+import { INTENT_SYSTEM } from '../prompts';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Step 2. A due date the browser can trust: a real YYYY-MM-DD, from today to a year ahead. */
+export function cleanDueDate(date: string | undefined, today: string): string | undefined {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined;
+  const d = Date.parse(`${date}T00:00:00Z`);
+  const t = Date.parse(`${today}T00:00:00Z`);
+  if (Number.isNaN(d) || new Date(d).toISOString().slice(0, 10) !== date) return undefined; // e.g. 2026-02-30
+  return d >= t && d <= t + 365 * DAY_MS ? date : undefined;
+}
 
 export async function parseIntent(
-  _generate: Generate,
+  generate: Generate,
   text: string,
-  _recentContext?: string,
-  _today: string = new Date().toISOString().slice(0, 10),
+  recentContext?: string,
+  today: string = new Date().toISOString().slice(0, 10),
 ): Promise<AgentIntent> {
-  // TODO(M16) steps 1–3
-  return { intent: 'query', question: text };
+  let intent: AgentIntent;
+  try {
+    // Step 1.
+    intent = await callStructured(generate, {
+      system: INTENT_SYSTEM,
+      thinking: 'low',
+      schema: AgentIntent,
+      parts: [{ text: `Today is ${today}.\n` + (recentContext ? `Recent conversation:\n${recentContext}\n\n` : '') + `Text: ${text}` }],
+    });
+  } catch (e) {
+    // Step 3. Still answer something: the browser treats it as a question.
+    if (e instanceof AiError) return { intent: 'query', question: text };
+    throw e;
+  }
+  // Step 2. Guardrails in code.
+  if (intent.person) intent.person = { ...intent.person, name: intent.person.name.trim() };
+  if (intent.target) intent.target = { ...intent.target, personName: intent.target.personName.trim(), dueDate: cleanDueDate(intent.target.dueDate, today) };
+  if (intent.intent === 'query' && !intent.question?.trim()) intent.question = text;
+  if ((intent.intent === 'remind' || intent.intent === 'log_contact') && !intent.target?.personName) return { intent: 'query', question: text };
+  if (intent.intent === 'add_person' && !intent.person?.name) return { intent: 'query', question: text };
+  return intent;
 }

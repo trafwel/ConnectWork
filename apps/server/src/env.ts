@@ -60,6 +60,12 @@ export const env = {
   /** Only these sender ids may talk to the agent; strangers texting the number are ignored. */
   agentAllowedSenders: (process.env.AGENT_ALLOWED_SENDERS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   relayToken: process.env.RELAY_TOKEN ?? '',
+  /**
+   * M16: run the texting agent in THIS server (default yes when Photon is configured). Set
+   * TEXTING_AGENT=0 on a second server that reads the same .env (e.g. the laptop tunnel), or two
+   * servers would compete for the same texts.
+   */
+  textingAgent: process.env.TEXTING_AGENT?.trim() !== '0',
   backboardApiKey: process.env.BACKBOARD_API_KEY ?? '',
   backboardAssistantId: process.env.BACKBOARD_ASSISTANT_ID ?? '',
   veyzlApiKey: process.env.VEYZL_API_KEY ?? '',
