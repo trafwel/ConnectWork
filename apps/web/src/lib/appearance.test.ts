@@ -3,9 +3,11 @@ import { DEFAULT_APPEARANCE, parseAppearance, resolveDark } from './appearance';
 
 describe('appearance', () => {
   it('parses saved choices and falls back to defaults for anything unexpected', () => {
-    expect(parseAppearance('{"style":"atlas","mode":"dark","reminders":"ripple"}')).toEqual({ style: 'atlas', mode: 'dark', reminders: 'ripple' });
+    expect(parseAppearance('{"style":"atlas","mode":"dark","reminders":"ripple"}')).toEqual({ style: 'atlas', mode: 'dark', reminders: 'ripple', photos: true });
     // A save from before the Reminders choice existed keeps its style and gets Flag.
-    expect(parseAppearance('{"style":"atlas","mode":"dark"}')).toEqual({ style: 'atlas', mode: 'dark', reminders: 'flag' });
+    expect(parseAppearance('{"style":"atlas","mode":"dark"}')).toEqual({ style: 'atlas', mode: 'dark', reminders: 'flag', photos: true });
+    // Oct 18: photos are on unless turned off; older saves have no field.
+    expect(parseAppearance('{"photos":false}').photos).toBe(false);
     expect(parseAppearance('{"style":"spiderweb"}').style).toBe('spiderweb');
     expect(parseAppearance('{"style":"phantom"}').style).toBe('phantom');
     expect(parseAppearance(null)).toEqual(DEFAULT_APPEARANCE);

@@ -25,7 +25,7 @@
  *
  * Guide: docs/IMPLEMENTATION_GUIDE.md §5.1
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
@@ -71,6 +71,7 @@ type SeedPerson = {
   metDaysAgo?: number;
   lastContactDaysAgo?: number;
   notes?: string;
+  photo?: string;
 };
 
 const people: SeedPerson[] = [];
@@ -211,6 +212,12 @@ const seedPeople = people.filter((p) => {
   return n <= (RING3_KEEP[p.primaryTag] ?? 0);
 });
 const kept = new Set(seedPeople.map((p) => p.id));
+
+// Oct 18: profile pictures. Mockup portraits from randomuser.me (made for demos), one per seed
+// person, saved under apps/web/public/avatars/<id>.jpg so they ship with the app and work
+// offline. Imported and snapped people get none, like a real LinkedIn export.
+const AVATARS = fileURLToPath(new URL('../apps/web/public/avatars/', import.meta.url));
+for (const p of seedPeople) if (existsSync(`${AVATARS}${p.id}.jpg`)) p.photo = `/avatars/${p.id}.jpg`;
 
 // A few more links inside groups among close people (rings 1–2): those are the lines the map
 // draws by default, so the groups read as groups. Fixed pairs (no random numbers) for the same

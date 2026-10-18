@@ -144,6 +144,17 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
                 { value: 'ripple', label: 'Ripple' },
               ]}
             />
+            {/* Oct 18: profile pictures on the map, with the group color kept as a ring. */}
+            <span>Photos</span>
+            <Segmented
+              label="Profile pictures on the map"
+              value={appearance.photos ? 'on' : 'off'}
+              onChange={(v) => onAppearance({ photos: v === 'on' })}
+              options={[
+                { value: 'on', label: 'On' },
+                { value: 'off', label: 'Off' },
+              ]}
+            />
           </div>
         </section>
 

@@ -39,7 +39,7 @@
  */
 import { memo } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import type { Person, Ring } from '@connectwork/shared';
+import { isSafePhoto, type Person, type Ring } from '@connectwork/shared';
 import { readableOn } from '@/lib/colors';
 import { initials } from '@/lib/people';
 import { NODE_RADIUS } from './layout';
@@ -74,6 +74,12 @@ interface Props {
 
 function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, recede = false, vanish = false, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
   const r = NODE_RADIUS[person.ring];
+  // Oct 18: a profile picture inside the group-color circle, so the color stays as a ring around
+  // it. Rings 1–2 only (an outer-ring dot is too small for a face). Settings → Photos hides them
+  // with CSS (`.cw-photo`), so toggling re-renders nothing.
+  const photo = r >= 14 && isSafePhoto(person.photo) ? person.photo : undefined;
+  const pr = r - 2.5;
+  const clipId = `cw-photo-${person.id}`;
   // Polish (Oct 18, from a team screenshot): a grayed-out person drops every decoration (ripple,
   // flag, drift ring, highlight). Their pulsing halos were the clutter around a selection. The
   // screen-reader label still says "follow-up due" / "drifting".
@@ -144,11 +150,19 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
             transition: 'transform 300ms ease-out, fill-opacity 300ms, stroke-opacity 300ms',
           }}
         />
+        {photo && (
+          <g className="cw-photo" pointerEvents="none">
+            <clipPath id={clipId}>
+              <circle r={pr} />
+            </clipPath>
+            <image href={photo} x={-pr} y={-pr} width={pr * 2} height={pr * 2} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clipId})`} />
+          </g>
+        )}
       </g>
       {flag && !quiet && <Ripple r={r} overdue={flag === 'overdue'} />}
       {flag && !quiet && <Flag r={r} overdue={flag === 'overdue'} />}
       {person.ring === 1 && (
-        <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
+        <text className={photo ? 'cw-photo-initials' : undefined} textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}
         </text>
       )}
@@ -200,6 +214,7 @@ function sameNode(a: Props, b: Props): boolean {
     p.ring === q.ring &&
     p.primaryTag === q.primaryTag &&
     p.company === q.company &&
+    p.photo === q.photo && // Oct 18
     a.x === b.x &&
     a.y === b.y &&
     a.color === b.color &&

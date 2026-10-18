@@ -30,10 +30,12 @@ export interface Appearance {
   style: Style;
   mode: Mode;
   reminders: ReminderStyle;
+  /** Oct 18: profile pictures on the map (people who have one; the group color stays as a ring). */
+  photos: boolean;
 }
 
 export const APPEARANCE_KEY = 'cw-appearance';
-export const DEFAULT_APPEARANCE: Appearance = { style: 'neutral', mode: 'system', reminders: 'flag' };
+export const DEFAULT_APPEARANCE: Appearance = { style: 'neutral', mode: 'system', reminders: 'flag', photos: true };
 
 /** Anything unexpected (missing, corrupted, an old format) falls back to the defaults. */
 export function parseAppearance(raw: string | null): Appearance {
@@ -43,6 +45,7 @@ export function parseAppearance(raw: string | null): Appearance {
       style: STYLES.find((s) => s === v.style) ?? 'neutral',
       mode: v.mode === 'light' || v.mode === 'dark' ? v.mode : 'system',
       reminders: v.reminders === 'ripple' ? 'ripple' : 'flag', // older saves have no field: Flag
+      photos: v.photos !== false, // on unless turned off
     };
   } catch {
     return DEFAULT_APPEARANCE;
@@ -56,6 +59,7 @@ const systemDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').mat
 export function applyAppearance(a: Appearance, root: HTMLElement = document.documentElement): void {
   root.dataset.style = a.style;
   root.dataset.reminders = a.reminders;
+  root.dataset.photos = a.photos ? 'on' : 'off'; // CSS shows or hides the photos: nothing re-renders
   root.classList.toggle('dark', resolveDark(a.mode, systemDark()));
   root.style.colorScheme = resolveDark(a.mode, systemDark()) ? 'dark' : 'light'; // native scrollbars, form controls
 }

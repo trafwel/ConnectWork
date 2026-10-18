@@ -30,6 +30,20 @@ const safeUrl = text(300)
   .optional()
   .transform((v) => (v && /^(https?:\/\/|[^:/?#]+(\/|$))/i.test(v.trim()) ? v : undefined));
 
+/**
+ * Oct 18: the only photos we draw: our bundled demo portraits, or a small image stored inline.
+ * An http(s) address would make the browser fetch from a third party (a tracking pixel in a
+ * backup file), so it's dropped, like unsafe links.
+ */
+export const PHOTO_MAX = 300_000;
+export function isSafePhoto(v: unknown): v is string {
+  return (
+    typeof v === 'string' &&
+    v.length <= PHOTO_MAX &&
+    (/^\/avatars\/[\w-]{1,64}\.(jpe?g|png|webp)$/.test(v) || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(v))
+  );
+}
+
 export const PersonRow = z.object({
   id,
   name: z.string().trim().min(1).max(120),
@@ -47,6 +61,10 @@ export const PersonRow = z.object({
   source: z.enum(['manual', 'linkedin', 'snap', 'seed']),
   createdAt: text(40),
   pin: z.object({ angle: z.number().min(-7).max(7), dist: z.number().min(0).max(1) }).optional(),
+  photo: z
+    .string()
+    .optional()
+    .transform((v) => (isSafePhoto(v) ? v : undefined)),
 }) satisfies z.ZodType<Person, unknown>;
 
 export const LinkRow = z.object({

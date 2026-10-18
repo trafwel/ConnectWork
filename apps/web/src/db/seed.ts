@@ -83,13 +83,33 @@ let seeding: Promise<void> | null = null;
 /** Seeds the demo once per browser. Safe to call any number of times. */
 export function ensureSeeded(): Promise<void> {
   seeding ??= (async () => {
-    if (await db.meta.get('seeded')) return;
+    if (await db.meta.get('seeded')) return backfillSeedPhotos();
     await writeSeed();
   })().catch((err: unknown) => {
     seeding = null; // remember success, not failure: the next call tries again
     throw err;
   });
   return seeding;
+}
+
+/**
+ * Oct 18: browsers seeded before profile pictures existed get the demo portraits once, without a
+ * reset (which would wipe the user's own edits). Only original demo people (source 'seed', same
+ * id) with no photo yet; anything the user changed or added is left alone.
+ */
+async function backfillSeedPhotos(): Promise<void> {
+  if (await db.meta.get('seedPhotos')) return;
+  const { people } = await loadDemo(); // before the transaction (see loadDemo)
+  const photos = new Map(people.flatMap((p) => (p.photo ? [[p.id, p.photo] as const] : [])));
+  await db.transaction('rw', [db.people, db.meta], async () => {
+    await db.people
+      .where('id')
+      .anyOf([...photos.keys()])
+      .modify((p) => {
+        if (p.source === 'seed' && !p.photo) p.photo = photos.get(p.id);
+      });
+    await db.meta.put({ key: 'seedPhotos', value: true });
+  });
 }
 
 // Step 4. Not wrapped in its own transaction on purpose: Dexie joins the caller's

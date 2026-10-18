@@ -1259,3 +1259,26 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **Contrast** (every text pair ≥ 4.5:1): light body 14.1, muted 6.5; dark body 16.2, muted 8.0; primary buttons 10.5 / 11.0.
 
 **Checked:** screenshots in both modes on `localhost:5173`; typecheck, lint, tests, build.
+
+## Profile pictures (Oct 18)
+
+**Team request:** "Add profile picture support as an option you can toggle in the menu, but keep the categorical color as an outline and pull free stock images to fill in."
+
+**What changed and why**
+- **Data:** `Person.photo` is a bundled demo portrait (`/avatars/<id>.jpg`) or a photo the user added, stored inline as a small JPEG data URL.
+  - **Safety check:** `isSafePhoto` (shared) allows only those two forms, so a backup file can't make the browser fetch an outside address (a tracking pixel). Backup import drops anything else and keeps the person (tested).
+- **Map:** the photo is clipped inside the group-color circle, 2.5 px smaller, so the category color stays as a ring around the face.
+  - Rings 1–2 only; an outer-ring dot is too small for a face.
+  - `sameNode` compares `photo`, so a new photo redraws the node.
+- **Toggle:** Settings → Appearance → **Photos: On / Off** (on by default). It sets `data-photos` on `<html>`, and CSS hides the photos and brings the initials back, so toggling re-renders nothing.
+- **Card:** a Photo row with **Add / Change photo** and **Remove**. The file never leaves the browser: it's center-cropped and shrunk to 160 px on a canvas (about 8 KB).
+- **Stock images:** 27 mockup portraits from randomuser.me (made for demos, credits in `public/avatars/CREDITS.md`), one per seed person, chosen to fit each first name. They ship with the app (188 KB in total), so they work offline and pass the CSP (`img-src 'self'`). Imported and snapped people get none, like a real LinkedIn export.
+- **Existing browsers** get the portraits once on load (`backfillSeedPhotos`), with no reset: only original demo people who have no photo yet; the user's own edits are untouched.
+- **Not sent to the AI:** `buildSummary` never includes photos.
+
+**Checked live (`localhost:5173`):**
+- The backfill gave 27 of 27 demo people a portrait; 22 faces drawn (rings 1–2) with color rings.
+- Photos Off → 0 faces, initials back. On → 22.
+- Uploading through the card stored an 8 KB JPEG data URL.
+
+**Checks:** typecheck, lint, 223 tests (+3: `isSafePhoto` accepts and refuses, backup row drops an unsafe photo; appearance default), build (the avatars ship in `dist/avatars`).
