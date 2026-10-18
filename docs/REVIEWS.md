@@ -804,3 +804,55 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m10).
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m11).
 
+## M12
+
+**Demo hardening: recorded answers, replay, offline** · Oct 17 · branch `m12-demo-cache` (on `m11-calendar`)
+
+**What it does**
+- **Record → replay** (built in M5, now checked end to end). With `DEMO_CACHE=record` the server saves each AI answer; with `replay` it serves them without calling Gemini.
+- **Offline fallback in the browser (new).** When the server can't be reached, or it says the AI is unavailable or rate-limited, the app looks the request up in the bundled recording and shows the answer with a "Showing a saved demo answer" note. Real errors (e.g. a 400) are never hidden.
+- **Same key on both sides.** The server hashes the request after its schema has parsed it (the question is trimmed, for example), so the browser parses with the same shared schema first. `cacheKeyAsync` (Web Crypto, in `@connectwork/shared`) is tested to equal the server's `cacheKey` (node:crypto).
+- **Runbook:** [DEMO_DAY.md](DEMO_DAY.md) covers the judging-morning routine, the exact order, how to check, and running a second copy on other ports.
+- The README feature table now shows M2–M12 as built.
+
+**How it was checked:** typecheck, lint, 161 tests (10 new: the server and browser keys agree for 5 bodies; the schema-parsed key; offline answers when the network is down, Gemini is unavailable or the proxy returns an error page; real errors and unrecorded questions still fail honestly), production build.
+
+**Live, end to end**, on a second copy (server :8788, web :5174) so the team's `pnpm dev` was untouched, using demo data:
+1. **Record:** "Who do I know at Microsoft?" (4.6 s) and the Coffee with John brief (1.8 s) were logged as `cache=miss`, and `demo/demo-cache.json` got 2 entries.
+2. **Replay:** the same two logged `cache=hit` (4 ms and 3 ms); the question round trip took 0.3 s in the browser.
+3. **Server stopped:** `/api/health` returned 502 from the proxy. The question still showed its answer with 4 people highlighted and the "saved demo answer" note, and John's brief loaded from the recording. An unrecorded question said "Can't reach the Connectwork server." (that wording was improved during the check).
+
+The test recording was deleted afterwards: its keys contain today's dates, so the real recording happens on judging morning.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Bundling the recording into the main JS would cost every visitor. | `import.meta.glob` makes it a lazy chunk, fetched only when a fallback is needed. With no recording, nothing is bundled and the build still works. |
+| E2 | Replay latency. | 3–4 ms on the server, about 0.3 s in the browser (vs 4–75 s live on the free tier). |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | The browser must compute the server's key exactly. | Same shared canonical JSON, the same parse-then-hash order, and a test that the two implementations agree. |
+| I2 | When the server is down, the Vite dev proxy answers 502 with an HTML page (not a network error). | Treated as "unreachable": try the recording, otherwise say "Can't reach the Connectwork server." Tested. |
+| I3 | Running a recording server without disturbing the normal one. | `API_PROXY_TARGET` (Vite) and `PORT` (server); documented in DEMO_DAY.md. |
+| I4 | A recording only matches the same requests in the same order (each step changes the next request's data). | DEMO_DAY.md gives the exact order and says not to touch the data between recording and presenting. A miss still falls back to live Gemini when online. |
+| I5 | The README feature table still said 🚧 for features already on main. | Updated (judges may read it). |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | The recording ships in the web bundle and contains AI answers that name people. | Record with the **fictional** demo data only (DEMO_DAY.md says so). Keys are hashes and reveal nothing about requests. |
+| S2 | A replayed answer could be mistaken for a live one. | Every offline answer shows a toast saying it's saved. Server replay is a deliberate demo mode (`cache` is visible in `/api/health`). |
+| S3 | A tampered recording could inject anything. | Offline answers are validated with the same zod schema as live ones and rendered as text; the browser's guardrails (ids that exist locally) still apply. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | The full scripted run (import → sort → … → snap) hasn't been recorded yet. | It must be recorded on judging morning anyway (date-dependent keys). Import, Sort and Snap need file pickers, so it's a person's 10 minutes. See DEMO_DAY.md. |
+| O2 | Offline answers only cover recorded requests. | By design; unrecorded ones fail with a clear message. |
+| O3 | The Vite glob reads the recording when the dev server starts. | DEMO_DAY.md restarts `pnpm dev` between record and replay; a deploy rebuilds. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m12).
+

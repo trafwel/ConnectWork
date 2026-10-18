@@ -15,3 +15,14 @@ export function canonicalJson(value: unknown): string {
   }
   return JSON.stringify(value);
 }
+
+/**
+ * M12 — the demo-cache key, computed with Web Crypto so it runs in the BROWSER (and in Node,
+ * which has the same API). Must equal the server's cacheKey() (node:crypto) byte for byte:
+ * SHA-256 of `${route}\n${canonicalJson(body)}` as lowercase hex. cache.test.ts checks both agree.
+ */
+export async function cacheKeyAsync(route: string, body: unknown): Promise<string> {
+  const bytes = new TextEncoder().encode(`${route}\n${canonicalJson(body)}`);
+  const hash = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}

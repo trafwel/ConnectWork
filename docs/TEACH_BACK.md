@@ -134,3 +134,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 3. On the free tier, why does a real meeting get no AI brief while a sample meeting does?
 4. Vite wasn't reading our `.env` at all. Why was pointing it at the repo root safe, even though that file also holds `GEMINI_API_KEY`?
 
+## M12
+**Demo hardening**
+
+1. A recorded answer is found by a hash of the request. Why must the browser parse the request with the zod schema before hashing it, and what would break if it didn't?
+2. Why must the recording be made on the morning we present, in the same order as the demo?
+3. When the server is stopped, the browser doesn't get a network error. What does it get, and how does the app still find the saved answer?
+4. Why is the recording loaded as a separate chunk instead of being imported directly?
+
