@@ -45,7 +45,7 @@
  * Contract: RelayRequest / RelayReply · Guide: §23
  */
 import { RelayRequest, type RelayReply } from '@connectwork/shared';
-import { addPerson, addReminder, logContact } from '@/db/actions';
+import { addPerson, addReminder, logContact, markDueTexted } from '@/db/actions';
 import { db } from '@/db/db';
 import { useStore } from '@/store/useStore';
 import { askQuery } from './api';
@@ -53,7 +53,7 @@ import { addDays, formatDate, isoDate, today } from './dates';
 import { driftLevel, isDefaultThresholds } from './drift';
 import { answerIds } from './exactMatch';
 import { buildSummary } from './graphSummary';
-import { clip, digestText, HELP_TEXT, resolvePerson, whichOne } from './textAgent';
+import { clip, digestText, dueText, HELP_TEXT, resolvePerson, whichOne } from './textAgent';
 import { readDriftThresholds } from './useDriftThresholds';
 import { weeklyCandidates } from './weeklyCandidates';
 
@@ -63,26 +63,64 @@ const BASE: string = import.meta.env.VITE_API_BASE ?? '/api';
 
 /** Step 1. Returns a disconnect function. EventSource reconnects on its own after a drop. */
 export function connectRelay(token: string, onStatus: (status: RelayStatus) => void): () => void {
-  const es = new EventSource(`${BASE}/relay/stream?token=${encodeURIComponent(token)}`);
-  onStatus('connecting');
-  es.addEventListener('ready', () => onStatus('connected'));
-  es.addEventListener('request', (e) => {
-    const parsed = RelayRequest.safeParse(JSON.parse((e as MessageEvent<string>).data || 'null'));
-    if (!parsed.success) return; // ignore anything that isn't a valid request
-    void (async () => {
-      const reply = await answer(parsed.data).catch((): RelayReply => ({ id: parsed.data.id, text: 'Sorry, something went wrong on my side. Try again in a moment.', personIds: [] }));
-      // Step 4.
-      await fetch(`${BASE}/relay/reply`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify(reply),
-      }).catch(() => undefined);
-    })();
-  });
-  // A wrong token (401) closes the stream for good; a network drop retries ("connecting").
-  es.onerror = () => onStatus(es.readyState === EventSource.CLOSED ? 'error' : 'connecting');
+  let es: EventSource | null = null;
+  let retry: ReturnType<typeof setTimeout> | undefined;
+  let delay = 2000;
+  let stopped = false;
+  let heardAt = Date.now();
+  const open = () => {
+    es?.close();
+    es = new EventSource(`${BASE}/relay/stream?token=${encodeURIComponent(token)}`);
+    heardAt = Date.now();
+    onStatus('connecting');
+    es.addEventListener('ready', () => {
+      delay = 2000;
+      heardAt = Date.now();
+      onStatus('connected');
+    });
+    // The server pings every 25 s. Oct 18: when the server restarted behind the dev proxy, the
+    // proxy kept the browser's side of the stream open, so no error ever fired and texts went
+    // unanswered. Silence for a minute now counts as a dead stream.
+    es.addEventListener('ping', () => {
+      heardAt = Date.now();
+    });
+    es.addEventListener('request', (e) => {
+      const parsed = RelayRequest.safeParse(JSON.parse((e as MessageEvent<string>).data || 'null'));
+      if (!parsed.success) return; // ignore anything that isn't a valid request
+      void (async () => {
+        const reply = await answer(parsed.data).catch((): RelayReply => ({ id: parsed.data.id, text: 'Sorry, something went wrong on my side. Try again in a moment.', personIds: [] }));
+        // Step 4.
+        await fetch(`${BASE}/relay/reply`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify(reply),
+        }).catch(() => undefined);
+      })();
+    });
+    // A network drop retries by itself ("connecting"). A response that isn't an event stream
+    // closes the EventSource for good: a wrong token (401), but also the dev proxy's error page
+    // while the server restarts. Oct 18: that left texting silently dead until a reload, so a
+    // closed stream now reopens with a growing delay (2 s up to a minute) until stopped.
+    es.onerror = () => {
+      if (es?.readyState !== EventSource.CLOSED) {
+        onStatus('connecting');
+        return;
+      }
+      onStatus('error');
+      if (stopped) return;
+      retry = setTimeout(open, delay);
+      delay = Math.min(delay * 2, 60_000);
+    };
+  };
+  open();
+  const watchdog = setInterval(() => {
+    if (!stopped && Date.now() - heardAt > 60_000) open();
+  }, 15_000);
   return () => {
-    es.close();
+    stopped = true;
+    clearTimeout(retry);
+    clearInterval(watchdog);
+    es?.close();
     onStatus('off');
   };
 }
@@ -169,17 +207,43 @@ export async function notifyOwner(token: string, text: string): Promise<void> {
   if (!res.ok) throw new Error('The texting agent is not running');
 }
 
+/**
+ * Oct 18 (team request: "Photon should message you if something is due"). Texts the owner what's
+ * due today or overdue, at most once a day per device: when the tab connects, and hourly after
+ * that so a new day is noticed. `force` (Settings → "Text me what's due") skips the daily guard.
+ */
+export async function textDue(force = false): Promise<'sent' | 'nothing_due' | 'already_sent' | 'no_token'> {
+  const token = (await db.meta.get('relayToken'))?.value;
+  if (typeof token !== 'string' || !token) return 'no_token';
+  const day = today();
+  if (!force && (await db.meta.get('dueTextedOn'))?.value === day) return 'already_sent';
+  const [people, reminders] = await Promise.all([db.people.toArray(), db.reminders.toArray()]);
+  const text = dueText(reminders, people);
+  if (!text) return 'nothing_due';
+  await notifyOwner(token, text);
+  await markDueTexted(day);
+  return 'sent';
+}
+
 // Step 5 (App + Settings). One connection per tab: starting again replaces the old one.
 let stop: (() => void) | null = null;
+let dueTimer: ReturnType<typeof setInterval> | undefined;
 
 export function startRelay(token: string): void {
-  stop?.();
-  stop = connectRelay(token, (status) => useStore.getState().setRelayStatus(status));
+  stopRelay();
+  stop = connectRelay(token, (status) => {
+    useStore.getState().setRelayStatus(status);
+    if (status === 'connected') void textDue().catch(() => undefined);
+  });
+  dueTimer = setInterval(() => {
+    if (useStore.getState().relayStatus === 'connected') void textDue().catch(() => undefined);
+  }, 60 * 60 * 1000);
 }
 
 export function stopRelay(): void {
   stop?.();
   stop = null;
+  clearInterval(dueTimer);
 }
 
 /** App start: reconnect with the token saved on this device, if any. */

@@ -1164,3 +1164,16 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - Suggested link on the map: 0 drawn with the hidden-links review closed, 1 while open, 0 after closing.
 
 **Checks:** typecheck, lint, 210 tests (+8: the cleanEdits guard, planEdits, the route guardrail), build.
+
+### Follow-up (Oct 18): Photon texts you when something is due; the texting tab reconnects
+
+- **Due texts.** The server could already text the owner (`/relay/notify`), but nothing in the app used it. The tab now texts you what's **due today or overdue**:
+  - **When:** at most once a day per device, when it connects, and hourly after that so a new day is noticed. Settings → Texting agent → **Text me what's due** sends it immediately.
+  - **What it contains:** names and how late only, never the reminder notes, like the weekly digest. The text is built by `dueText` (pure, tested), and `markDueTexted` stores the day through `actions.ts`.
+- **Reconnect bug fixed.** When the dev server restarted, the Vite proxy kept the browser's event stream open, so no error fired and texts went unanswered until someone reloaded the tab. The relay client now:
+  - reopens a closed stream with a growing delay (2 s up to a minute);
+  - treats a minute without the server's 25-second ping as a dead stream.
+- **Checked live:**
+  - Server restarted: the tab reconnected on its own after 55 s (before the fix, it stayed disconnected).
+  - Tab reloaded: it connected and sent the due text to the allow-listed number (the server accepted the send).
+- **Checks:** typecheck, lint, 212 tests (+2 for `dueText`), build.
