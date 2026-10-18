@@ -69,15 +69,19 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity, zoomTransform, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
-import { Maximize, Move } from 'lucide-react';
+import { ArrowLeft, Maximize, Move } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Link, Person, Ring, Tag } from '@connectwork/shared';
 import { Button } from '@/components/ui/button';
-import { updatePerson } from '@/db/actions';
+import { Segmented } from '@/components/Segmented';
+import { Input } from '@/components/ui/input';
+import { connectPeople, removeLink, updatePerson } from '@/db/actions';
 import { safeColor, tagColor } from '@/lib/colors';
 import { DRIFT_OFFSET, driftStep } from '@/lib/drift';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
+import { ClusterNode } from './ClusterNode';
+import { aggregateLinks, buildClusters, type Endpoint } from './groups';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
 import { PersonNode } from './PersonNode';
@@ -93,6 +97,8 @@ interface Props {
   links: Link[];
   tags: Tag[];
   filterContext: FilterContext;
+  /** Groups view (Oct 18): each tag collapses into one node until opened. */
+  grouped?: boolean;
 }
 
 /** Step 1. Measure on mount, then follow resizes (the observer alone is silent in background tabs). */
@@ -115,7 +121,7 @@ function useSize<E extends HTMLElement>() {
 }
 
 
-export function RingMap({ people, links, tags, filterContext }: Props) {
+export function RingMap({ people, links, tags, filterContext, grouped = false }: Props) {
   const [containerRef, { width, height }] = useSize<HTMLDivElement>();
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -158,7 +164,39 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
     [byId],
   );
   const { drag, begin: beginDrag, consumeClick } = useRingDrag(svgRef, g, moveToRing);
-  const onSelectNode = useCallback((id: string) => !consumeClick() && selectPerson(id), [consumeClick, selectPerson]);
+  // Polish (Oct 18): edit mode has two tools. Move (drag or 1/2/3, fix step 2) and Connect: click
+  // (or Enter on) one person, then another, optionally name it → connectPeople, with Undo. The team
+  // found no way to link people by hand on the map (the card's "Add connection" was too hidden).
+  const [tool, setTool] = useState<'move' | 'connect'>('move');
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [pendingPair, setPendingPair] = useState<[string, string] | null>(null);
+  const connecting = editing && tool === 'connect';
+  const onSelectNode = useCallback(
+    (id: string) => {
+      if (consumeClick()) return;
+      if (!connecting) return void selectPerson(id);
+      if (!connectFrom || connectFrom === id) return setConnectFrom(connectFrom === id ? null : id);
+      setPendingPair([connectFrom, id]);
+    },
+    [consumeClick, selectPerson, connecting, connectFrom],
+  );
+  const toggleEditing = () => {
+    setTool('move');
+    setConnectFrom(null);
+    setPendingPair(null);
+    setEditing(!editing);
+  };
+  const finishConnect = async (label: string) => {
+    const pair = pendingPair;
+    setPendingPair(null);
+    setConnectFrom(null);
+    if (!pair) return;
+    const [a, b] = pair.map((id) => byId.get(id)?.name ?? 'them');
+    const res = await connectPeople(pair[0], pair[1], label);
+    if (!res) return;
+    if (!res.created) toast(`${a} and ${b} were already connected${label.trim() ? ': name updated' : ''}`);
+    else toast.success(`Connected ${a} and ${b}`, { action: { label: 'Undo', onClick: () => void removeLink(res.id) } });
+  };
   // The dragged person (and their lines and name) follow the pointer.
   const dragId = drag?.id;
   const dragPos = drag?.pos;
@@ -249,8 +287,36 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
     return out;
   }, [people, selectedId, neighborIds, highlightIds, filter, filterContext]);
 
+  // Groups view (Oct 18). Closed groups become one node at their members' centre; the selected
+  // person's group always opens (their card is showing, so they must be visible). Links between
+  // hidden people merge into one count-weighted edge per pair of endpoints.
+  const expandedGroups = useStore((s) => s.expandedGroups);
+  const toggleGroup = useStore((s) => s.toggleGroup);
+  const collapseGroups = useStore((s) => s.collapseGroups);
+  const collapseLastGroup = useStore((s) => s.collapseLastGroup);
+  const grouping = useMemo(
+    () => (grouped ? buildClusters(people, positions, expandedGroups, new Set(selectedId ? [selectedId] : [])) : null),
+    [grouped, people, positions, expandedGroups, selectedId],
+  );
+  const visiblePeople = grouping?.visible ?? people;
+  const shownLinks = useMemo(() => (grouping ? aggregateLinks(links, grouping.groupOf) : { personLinks: links, edges: [] }), [grouping, links]);
+  const clusterStats = useMemo(() => {
+    const out = new Map<string, { highlighted: number; due: number; drifting: number; dimmed: boolean }>();
+    for (const c of grouping?.clusters ?? []) {
+      const ids = c.memberIds;
+      out.set(c.tag, {
+        highlighted: ids.filter((id) => highlightIds.has(id)).length,
+        due: ids.filter((id) => filterContext.dueIds.has(id)).length,
+        drifting: ids.filter((id) => filterContext.driftingIds.has(id)).length,
+        dimmed: ids.every((id) => dimmedIds.has(id)),
+      });
+    }
+    return out;
+  }, [grouping, highlightIds, filterContext, dimmedIds]);
+  const endpoint = (e: Endpoint) => (e.kind === 'group' ? grouping?.clusters.find((c) => c.tag === e.tag) : positions.get(e.id));
+
   // Ring 3 first so closer people draw on top. Sorted once per data change, not per zoom frame.
-  const drawOrder = useMemo(() => [...people].sort((a, b) => b.ring - a.ring), [people]);
+  const drawOrder = useMemo(() => [...visiblePeople].sort((a, b) => b.ring - a.ring), [visiblePeople]);
 
   // Step 8c. Center the selected person once per selection and map size, but only on a layout
   // computed for THIS size (opening the card narrows the map and the layout recomputes).
@@ -276,9 +342,10 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
   const labels = useScreenLabels({
     transform,
     zooming,
-    people,
+    people: visiblePeople,
     byId,
-    links,
+    links: shownLinks.personLinks,
+    clusters: grouping?.clusters,
     positions,
     ringAnchors,
     center,
@@ -323,7 +390,28 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
           </g>
 
           <g aria-hidden="true">
-            {links.map((l) => {
+            {/* Groups view: one line per pair of endpoints; thicker = more connections behind it. */}
+            {shownLinks.edges.map((e) => {
+              const a = endpoint(e.from);
+              const b = endpoint(e.to);
+              if (!a || !b) return null;
+              return (
+                <line
+                  key={e.key}
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke={e.suggested ? T.suggestedLink : T.link}
+                  strokeWidth={1 + Math.log2(e.count) * 1.2}
+                  strokeDasharray={e.suggested ? T.suggestedDash : undefined}
+                  opacity={selectedId ? 0.15 : 0.5}
+                >
+                  <title>{`${e.count} ${e.count === 1 ? 'connection' : 'connections'}`}</title>
+                </line>
+              );
+            })}
+            {shownLinks.personLinks.map((l) => {
               const a = positions.get(l.fromId);
               const b = positions.get(l.toId);
               if (!a || !b) return null;
@@ -348,6 +436,23 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
             </text>
           </g>
 
+          {/* Groups view: closed groups, under the people of open ones. */}
+          {grouping?.clusters.map((c) => {
+            const st = clusterStats.get(c.tag)!;
+            return (
+              <ClusterNode
+                key={c.tag}
+                cluster={c}
+                color={tagColor(tags, c.tag)}
+                highlighted={st.highlighted}
+                due={st.due}
+                drifting={st.drifting}
+                dimmed={st.dimmed}
+                onToggle={toggleGroup}
+              />
+            );
+          })}
+
           {/* The dragged person draws last (on top), but only once they MOVE: re-ordering on the press itself
               moves their DOM element, and Chrome then sends the follow-up mousedown to the parent <g>,
               which d3-zoom's filter doesn't see as a person and pans the map (found in testing). */}
@@ -361,7 +466,7 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
                 x={pos.x}
                 y={pos.y}
                 color={tagColor(tags, p.primaryTag)}
-                selected={selectedId === p.id}
+                selected={selectedId === p.id || (connecting && connectFrom === p.id)}
                 highlighted={highlightIds.has(p.id)}
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
@@ -370,7 +475,7 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
                 onHover={setHoverId}
                 editing={editing}
                 dragging={drag?.id === p.id && !!drag.pos}
-                onDragStart={beginDrag}
+                onDragStart={connecting ? undefined : beginDrag}
                 onSetRing={moveToRing}
               />
             );
@@ -381,13 +486,46 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
         <ScreenLabels labels={labels.placed} fontSize={labels.fontSize} animate={labels.animate} />
       </svg>
 
-      <Legend tags={tags} />
+      {/* Polish (Oct 18): a visible way back out of an opened group (Escape does the same). */}
+      {grouped && expandedGroups.size > 0 && (
+        <Button variant="outline" size="sm" className="absolute top-3 right-3" onClick={collapseLastGroup} aria-keyshortcuts="Escape">
+          <ArrowLeft /> Back (close {[...expandedGroups].at(-1)})
+        </Button>
+      )}
+      {grouped ? (
+        <GroupPanel people={people} tags={tags} open={grouping ? new Set(grouping.visible.map((p) => p.primaryTag)) : new Set()} onToggle={toggleGroup} onCloseAll={collapseGroups} />
+      ) : (
+        <Legend tags={tags} />
+      )}
       {editing && (
-        <p role="status" className="absolute top-3 left-1/2 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
-          {drag?.pos && drag.ring
-            ? `Drop to move ${byId.get(drag.id)?.name ?? 'them'} to ${RING_NAMES[drag.ring]}`
-            : 'Drag a person to another ring · or focus them and press 1, 2 or 3 · Esc to finish'}
-        </p>
+        <div className="absolute top-3 left-1/2 flex w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col items-center gap-1.5">
+          <Segmented
+            label="Edit tool"
+            value={tool}
+            onChange={(t) => {
+              setTool(t);
+              setConnectFrom(null);
+              setPendingPair(null);
+            }}
+            options={[
+              { value: 'move', label: 'Move' },
+              { value: 'connect', label: 'Connect' },
+            ]}
+          />
+          {pendingPair ? (
+            <ConnectForm a={byId.get(pendingPair[0])?.name ?? ''} b={byId.get(pendingPair[1])?.name ?? ''} onDone={finishConnect} onCancel={() => setPendingPair(null)} />
+          ) : (
+            <p role="status" className="rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
+              {connecting
+                ? connectFrom
+                  ? `Now click who ${byId.get(connectFrom)?.name ?? 'they'} knows · click them again to cancel`
+                  : 'Click a person, then the person they know (or focus and press Enter) · Esc to finish'
+                : drag?.pos && drag.ring
+                  ? `Drop to move ${byId.get(drag.id)?.name ?? 'them'} to ${RING_NAMES[drag.ring]}`
+                  : 'Drag a person to another ring · or focus them and press 1, 2 or 3 · Esc to finish'}
+            </p>
+          )}
+        </div>
       )}
       <div className="absolute right-3 bottom-3 flex flex-col items-end gap-2">
         {zoomed && (
@@ -395,10 +533,88 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
             <Maximize /> Reset view
           </Button>
         )}
-        <Button variant={editing ? 'default' : 'outline'} size="sm" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-          <Move /> {editing ? 'Done moving' : 'Move people'}
+        <Button variant={editing ? 'default' : 'outline'} size="sm" aria-pressed={editing} onClick={toggleEditing}>
+          <Move /> {editing ? 'Done editing' : 'Edit map'}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Polish (Oct 18): name the new connection (optional), right where the two people were picked. */
+function ConnectForm({ a, b, onDone, onCancel }: { a: string; b: string; onDone: (label: string) => void; onCancel: () => void }) {
+  const [label, setLabel] = useState('');
+  return (
+    <form
+      className="flex items-center gap-1.5 rounded-md border bg-background/95 px-2 py-1.5 text-xs shadow-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onDone(label);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation(); // cancel this pair, stay in edit mode
+          onCancel();
+        }
+      }}
+    >
+      <span className="whitespace-nowrap">
+        Connect <b>{a}</b> and <b>{b}</b>
+      </span>
+      <Input
+        autoFocus
+        value={label}
+        maxLength={60}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="How do they know each other? (optional)"
+        aria-label={`Relationship between ${a} and ${b}`}
+        className="h-7 w-64 text-xs"
+      />
+      <Button type="submit" size="xs">
+        Connect
+      </Button>
+      <Button type="button" size="xs" variant="ghost" onClick={onCancel}>
+        Cancel
+      </Button>
+    </form>
+  );
+}
+
+/**
+ * Groups view: the legend becomes the list of groups, each a button that opens or closes it
+ * (the keyboard and list path for the map's group nodes, and the way to close an open group).
+ */
+function GroupPanel({ people, tags, open, onToggle, onCloseAll }: { people: Person[]; tags: Tag[]; open: Set<string>; onToggle: (tag: string) => void; onCloseAll: () => void }) {
+  const counts = new Map<string, number>();
+  for (const p of people) counts.set(p.primaryTag, (counts.get(p.primaryTag) ?? 0) + 1);
+  return (
+    <div className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-md border bg-background/90 px-3 py-2 text-xs">
+      <div className="mb-1 flex items-center justify-between gap-4">
+        <span className="font-medium">Groups</span>
+        {open.size > 0 && (
+          <button className="text-muted-foreground underline-offset-2 hover:underline" onClick={onCloseAll}>
+            Close all
+          </button>
+        )}
+      </div>
+      {/* Wraps instead of a fixed 3-column grid: with a side panel open the map is narrow and names got cut off. */}
+      <ul className="flex flex-wrap gap-x-1 gap-y-0.5" aria-label="Groups">
+        {[...counts].map(([tag, n]) => (
+          <li key={tag}>
+            <button
+              aria-expanded={open.has(tag)}
+              onClick={() => onToggle(tag)}
+              className={`flex items-center gap-1.5 rounded-sm px-1 py-0.5 whitespace-nowrap hover:bg-muted ${open.has(tag) ? 'font-medium' : ''}`}
+            >
+              <span className="inline-block size-2.5 rounded-full" style={{ background: tagColor(tags, tag) }} aria-hidden="true" />
+              {tag} <span className="text-muted-foreground tabular-nums">{n}</span>
+              <span className="text-muted-foreground" aria-hidden="true">
+                {open.has(tag) ? '▾' : '▸'}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

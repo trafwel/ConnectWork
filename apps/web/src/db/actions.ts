@@ -48,7 +48,7 @@
 import type { ContactLog, Link, Meeting, Person, Reminder, Ring } from '@connectwork/shared';
 import { FALLBACK_COLOR } from '@/lib/colors';
 import { addDays, isoDate, today } from '@/lib/dates';
-import { newId } from '@/lib/ids';
+import { newId, stableId } from '@/lib/ids';
 import { db } from './db';
 
 const inDays = (days: number) => isoDate(addDays(new Date(), days));
@@ -299,6 +299,38 @@ export async function setReminderCalendarEvent(id: string, calendarEventId: stri
   await db.reminders.update(id, { calendarEventId });
 }
 
+/**
+ * Polish (Oct 18): the map's Connect tool. Links two people as an accepted user link, naming it
+ * if a name is given. Says whether it CREATED the link, so Undo removes only what it added: an
+ * existing link is kept (an AI suggestion is promoted to accepted; a new name replaces the old).
+ */
+export async function connectPeople(a: string, b: string, label?: string): Promise<{ id: string; created: boolean } | null> {
+  const [fromId, toId] = normalizeLink(a, b);
+  if (fromId === toId) return null;
+  const name = label?.trim().slice(0, LINK_LABEL_MAX) || undefined;
+  return db.transaction('rw', [db.people, db.links], async () => {
+    const [from, to] = await db.people.bulkGet([fromId, toId]);
+    if (!from || !to) return null;
+    const existing = await db.links.where('fromId').equals(fromId).filter((l) => l.toId === toId).first();
+    if (existing) {
+      await db.links.update(existing.id, { status: 'accepted', ...(name ? { label: name } : {}), ...(existing.status === 'suggested' ? { source: 'user' as const } : {}) });
+      return { id: existing.id, created: false };
+    }
+    const id = newId('l');
+    await db.links.add({ id, fromId, toId, source: 'user', status: 'accepted', label: name });
+    return { id, created: true };
+  });
+}
+
+/**
+ * M16: the texting agent's relay token for THIS browser (a device secret, like a session).
+ * Not in backups: BACKUP_META_KEYS doesn't list it. `null` forgets it.
+ */
+export async function setRelayToken(token: string | null): Promise<void> {
+  if (token === null) await db.meta.delete('relayToken');
+  else await db.meta.put({ key: 'relayToken', value: token.trim() });
+}
+
 /** Longest relationship name we keep: short enough to fit on a line on the map. */
 export const LINK_LABEL_MAX = 60;
 
@@ -319,11 +351,19 @@ export async function applyImport(
   defaultTag: string,
 ): Promise<string[]> {
   const createdAt = new Date().toISOString();
+  // Polish (Oct 18): repeatable ids (see stableId), so a re-import makes the same AI requests and
+  // the recorded demo answers match. A clash (same key twice in one file) falls back to random.
+  const used = new Set<string>();
+  const idFor = (d: Partial<Person> & { name: string }) => {
+    const key = (d.linkedinUrl || d.email || `${d.name}|${d.company ?? ''}`).trim().toLowerCase();
+    const id = stableId('p', key);
+    return used.has(id) ? newId('p') : (used.add(id), id);
+  };
   const people: Person[] = plan.toAdd.map((d) => {
     const tags = d.tags?.length ? d.tags : [defaultTag];
     return {
       ...d,
-      id: newId('p'),
+      id: idFor(d),
       name: d.name.trim(),
       ring: d.ring ?? 3, // unsorted imports start on the outer ring; M6 sorts them
       primaryTag: tags[0]!,
@@ -334,6 +374,11 @@ export async function applyImport(
     };
   });
   await db.transaction('rw', [db.people, db.tags], async () => {
+    // An id already in the database (e.g. someone deleted and re-imported) gets a fresh random one.
+    const taken = await db.people.bulkGet(people.map((p) => p.id));
+    taken.forEach((t, i) => {
+      if (t) people[i]!.id = newId('p');
+    });
     await db.people.bulkAdd(people);
     await db.people.bulkUpdate(plan.toUpdate.map(({ id, patch }) => ({ key: id, changes: patch })));
     await ensureTags(people.flatMap((p) => p.tags));

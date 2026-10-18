@@ -1,5 +1,5 @@
 /**
- * M16 — Browser side of the texting agent · Owner: Person B · ~1 h
+ * M16 — Browser side of the texting agent · done
  *
  * WHAT THIS ACHIEVES
  *   The open Connectwork tab becomes the agent's brain: texts relayed from the
@@ -44,21 +44,147 @@
  *
  * Contract: RelayRequest / RelayReply · Guide: §23
  */
-import type { RelayReply, RelayRequest } from '@connectwork/shared';
+import { RelayRequest, type RelayReply } from '@connectwork/shared';
+import { addPerson, addReminder, logContact } from '@/db/actions';
+import { db } from '@/db/db';
+import { useStore } from '@/store/useStore';
+import { askQuery } from './api';
+import { addDays, formatDate, isoDate, today } from './dates';
+import { driftLevel, isDefaultThresholds } from './drift';
+import { answerIds } from './exactMatch';
+import { buildSummary } from './graphSummary';
+import { clip, digestText, HELP_TEXT, resolvePerson, whichOne } from './textAgent';
+import { readDriftThresholds } from './useDriftThresholds';
+import { weeklyCandidates } from './weeklyCandidates';
 
 export type RelayStatus = 'off' | 'connecting' | 'connected' | 'error';
 
-export function connectRelay(_token: string, _onStatus: (status: RelayStatus) => void): () => void {
-  // TODO(M16) step 1 — returns a disconnect function
-  return () => {};
+const BASE: string = import.meta.env.VITE_API_BASE ?? '/api';
+
+/** Step 1. Returns a disconnect function. EventSource reconnects on its own after a drop. */
+export function connectRelay(token: string, onStatus: (status: RelayStatus) => void): () => void {
+  const es = new EventSource(`${BASE}/relay/stream?token=${encodeURIComponent(token)}`);
+  onStatus('connecting');
+  es.addEventListener('ready', () => onStatus('connected'));
+  es.addEventListener('request', (e) => {
+    const parsed = RelayRequest.safeParse(JSON.parse((e as MessageEvent<string>).data || 'null'));
+    if (!parsed.success) return; // ignore anything that isn't a valid request
+    void (async () => {
+      const reply = await answer(parsed.data).catch((): RelayReply => ({ id: parsed.data.id, text: 'Sorry, something went wrong on my side. Try again in a moment.', personIds: [] }));
+      // Step 4.
+      await fetch(`${BASE}/relay/reply`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify(reply),
+      }).catch(() => undefined);
+    })();
+  });
+  // A wrong token (401) closes the stream for good; a network drop retries ("connecting").
+  es.onerror = () => onStatus(es.readyState === EventSource.CLOSED ? 'error' : 'connecting');
+  return () => {
+    es.close();
+    onStatus('off');
+  };
 }
 
-export async function answer(_request: RelayRequest): Promise<RelayReply> {
-  // TODO(M16) steps 2–3
-  throw new Error('TODO(M16): answer is not implemented yet');
+/** Step 3. The map shows who the text was about, and the answer card shows the exchange. */
+function show(text: string, reply: string, ids: string[]) {
+  const s = useStore.getState();
+  s.setHighlights(ids);
+  s.setAgent({ agentAnswer: `Texted: "${clip(text, 80)}" → ${reply}`, agentError: false, agentChecked: false });
 }
 
-export async function notifyOwner(_token: string, _text: string): Promise<void> {
-  // TODO(M16) step 5
-  throw new Error('TODO(M16): notifyOwner is not implemented yet');
+/** Step 2. Answer one text from THIS browser's data, using the app's own flows. */
+export async function answer(req: RelayRequest): Promise<RelayReply> {
+  const { intent } = req;
+  const [people, links, reminders, thresholds] = await Promise.all([db.people.toArray(), db.links.toArray(), db.reminders.toArray(), readDriftThresholds()]);
+  const done = (text: string, personIds: string[] = []): RelayReply => {
+    const out = clip(text);
+    show(req.text, out, personIds);
+    return { id: req.id, text: out, personIds };
+  };
+  const one = (name: string | undefined) => resolvePerson(name ?? '', people);
+
+  switch (intent.intent) {
+    case 'query': {
+      const q = intent.question?.trim() || req.text;
+      const driftDays = isDefaultThresholds(thresholds) ? undefined : { ring1: thresholds[1], ring2: thresholds[2] };
+      const res = await askQuery(q, buildSummary(people, links, reminders), undefined, driftDays);
+      if (!res.ok) return done(res.message);
+      const ids = answerIds(q, people, res.data.personIds, res.data.filterHint, (p) => driftLevel(p, new Date(), thresholds) > 0);
+      return done(res.data.answer, ids);
+    }
+    case 'add_person': {
+      const d = intent.person!;
+      // Loaded on demand: the matcher lives with the CSV code (and Papa Parse).
+      const { findMatch } = await import('./csv');
+      const existing = findMatch(people, { name: d.name, company: d.company, role: d.role, school: d.school });
+      if (existing) return done(`${existing.name} is already in your network${existing.company ? ` (${existing.company})` : ''}.`, [existing.id]);
+      const person = await addPerson({
+        name: d.name,
+        ring: 3,
+        primaryTag: d.company ? 'Work' : d.school ? 'School' : 'Friends',
+        company: d.company,
+        role: d.role,
+        school: d.school,
+        notes: d.note,
+        lastContact: today(),
+      });
+      return done(`Added ${person.name}${d.company ? ` (${d.company})` : ''} to your map, ring 3. Move them closer anytime.`, [person.id]);
+    }
+    case 'remind': {
+      const r = one(intent.target?.personName);
+      if (r.kind === 'none') return done(`I couldn't find ${intent.target?.personName ?? 'that person'} in your network.`);
+      if (r.kind === 'many') return done(whichOne(r.people), r.people.map((p) => p.id));
+      const due = intent.target?.dueDate ?? isoDate(addDays(new Date(), 7));
+      await addReminder(r.person.id, due, intent.target?.note?.trim() || 'Follow up');
+      return done(`Reminder set: follow up with ${r.person.name} on ${formatDate(due)}.`, [r.person.id]);
+    }
+    case 'log_contact': {
+      const r = one(intent.target?.personName);
+      if (r.kind === 'none') return done(`I couldn't find ${intent.target?.personName ?? 'that person'} in your network.`);
+      if (r.kind === 'many') return done(whichOne(r.people), r.people.map((p) => p.id));
+      await logContact(r.person.id, 'message');
+      return done(`Logged: you talked to ${r.person.name} today, so they won't drift.`, [r.person.id]);
+    }
+    case 'digest': {
+      const c = weeklyCandidates(people, links, reminders, new Date(), thresholds);
+      const ids = c.flatMap((x) => ('personId' in x ? [x.personId] : x.kind === 'intro' ? x.personIds : [x.fromId, x.toId]));
+      return done(digestText(c, people), [...new Set(ids)]);
+    }
+    case 'help':
+      return done(HELP_TEXT);
+    default:
+      return done(`I can answer questions about your network, add people, set reminders and log contact. ${HELP_TEXT}`);
+  }
 }
+
+/** Step 5. Text the owner (e.g. "Text me this" on the weekly review). */
+export async function notifyOwner(token: string, text: string): Promise<void> {
+  const res = await fetch(`${BASE}/relay/notify`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error('The texting agent is not running');
+}
+
+// Step 5 (App + Settings). One connection per tab: starting again replaces the old one.
+let stop: (() => void) | null = null;
+
+export function startRelay(token: string): void {
+  stop?.();
+  stop = connectRelay(token, (status) => useStore.getState().setRelayStatus(status));
+}
+
+export function stopRelay(): void {
+  stop?.();
+  stop = null;
+}
+
+/** App start: reconnect with the token saved on this device, if any. */
+export async function resumeRelay(): Promise<void> {
+  const token = (await db.meta.get('relayToken'))?.value;
+  if (typeof token === 'string' && token) startRelay(token);
+}
+

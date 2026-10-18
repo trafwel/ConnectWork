@@ -908,3 +908,135 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m12).
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 
+## Groups view
+
+**Tags collapse into one node; click to open** · Oct 18 · branch `groups-view` (on `m13-deploy`) · team request
+
+**What it does:** a third view, **Map | Groups | List**. Each tag (Work, School, …) becomes one node in its color, sized by how many people it holds, with the count inside and the tag's name as a label. Click it (or Enter) to open it: its people appear exactly where they sit on the normal map. A **Groups panel** (bottom-left, replacing the legend) opens and closes each group and has "Close all". Links between hidden people merge into one line per pair of endpoints; thicker means more connections, and dashed means some are AI suggestions.
+
+**How it was checked:** typecheck, lint, 172 tests (4 new: clusters at their members' centre and sized by count; the selected person's group opens by itself; links merge with a count, links inside a closed group drop out, and visible people keep their own links), build. In the browser on the seed data:
+- 5 groups, named and in their sectors;
+- each group's screen-reader label sums its people's signals ("Work group, 12 people, 2 with a follow-up due, 2 drifting");
+- opening Work showed its 12 people and their links, and the panel marked it open; Close all closed it;
+- choosing John in the List then switching to Groups opened School by itself, with his card and his "both School" link label.
+
+### Review
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Cost. | Groups reuse the normal force layout (no second simulation); clusters, merged links and per-group counts are memoized on their inputs. |
+| I1 | A selected person inside a closed group would be invisible. | Their group opens automatically while they're selected. AI-answer highlights don't open groups; the group gets a dashed highlight ring and "N in the answer" in its label instead. |
+| I2 | Labels. | Group names go through the same no-overlap screen-space layer (fix 1) and keep people's names off their circles. |
+| I3 | All 25 seed links are within one tag, so the demo shows no merged lines until people are linked across tags (e.g. accepting Abbey ↔ John). | By design; the merging is unit-tested. |
+| A1 | Accessibility. | Group nodes are buttons with `aria-expanded`; the Groups panel is the keyboard and list path; color isn't the only signal (names, counts, labels). |
+| O1 | A group opened only because its person is selected shows as open in the panel; "Close all" can't close it while they're selected. | Minor; closing the card closes it. |
+
+## M14
+
+**Month view** · Oct 18 · branch `m14-month` (on `groups-view`)
+
+**What it does:** a fourth view, **Map | Groups | List | Month**: a 6-week, Monday-first grid. Each day lists open follow-ups (overdue ones in red, also labelled "overdue") and meetings with their time, up to 3 then "+N more". Previous / Today / Next buttons; today is outlined. Clicking a day highlights its people on the map and says why on the answer card.
+
+**How it was checked:** typecheck, lint, 175 tests (3 new: the grid is 42 days, Monday first, starting on the 1st when the month starts on a Monday; items land on their local day, overdue is marked, done reminders and deleted people are skipped), build. In the browser: October 2026 showed Lena (Oct 14) and Maya (Oct 16) as overdue, John's follow-up plus Coffee with John today (Oct 18), and the two sample meetings on Oct 19. Clicking Oct 19 switched to the map with Abbey, Leo, Ethan and Kai highlighted and "Monday, October 19: 4 people with something planned."
+
+### Review
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | **Bug found along the way (from M10):** the List view's `flex flex-col` edit had landed in a code COMMENT in App.tsx, not on `<main>`, so the table couldn't scroll in its own area. | **Fixed:** the real `<main>` is a column in List and Month (comment restored). Checked: the list scrolls (671 of 1465 px) and the page doesn't. |
+| I2 | Meetings only exist for today and tomorrow (Google or samples), so later days show reminders only. | By design (M11 fetches two days). |
+| A1 | Accessibility. | Every day is a button whose label reads the date and its items; empty days are disabled; today has `aria-current="date"`; overdue is in words, not only red. |
+| E1 | The grid is 42 small objects, computed per render; items-by-day is memoized on the data. | Fine. |
+
+## Bug pass (Oct 18)
+
+**The whole demo story end to end, plus the everyday actions** · branch `bugfix-pass` (on `m14-month`)
+
+**Run in the browser, live Gemini, demo data only:**
+- **Reset → Import** `demo/Connections.csv`: 120 found, 114 new, 6 already here.
+- **Sort with AI → Accept all:** 114 applied. All went to Work, which is right: the imported rows are all professionals. 8 moved to ring 2. Drifting stayed at 5, so LinkedIn connect dates aren't counted as contact (M10).
+- **"Who do I know at Microsoft?"** highlighted 11 people, Abbey included.
+- **Find hidden links:** **Abbey ↔ John came first at 90%** ("both UW, both Microsoft"). It took **about 65 s** on the live free tier with 154 people, so record it on demo morning ([DEMO_DAY.md](DEMO_DAY.md)).
+- **Review my week:** 4 follow-ups and 2 reconnects, with drafts. Approve works (clipboard refusal handled).
+- **Snap** `roster.pdf`: 8 officers, nothing saved until accepted.
+- **Groups view after linking:** merged lines appear (Work–School "5 connections").
+- **Quick add** (N), **delete + Undo**, and the **Due panel → Snooze** all work.
+- **Escape inside Add connection** closes only the form, with the card staying open (F1-O5, now checked).
+- Dark mode in the Groups view looks right. No runtime errors were caught during the run.
+
+| | Bug | Fix |
+| --- | --- | --- |
+| B1 | The List view's table couldn't scroll in its own area (the M10 layout change had landed in a code comment). | Fixed in M14 (#20). |
+| B2 | The Groups panel used a fixed 3-column grid; with a side panel open, group names were cut off ("Friend…"). | It wraps now. |
+| B3 | With the weekly review open, clicking the **Due** tab changed the filter but kept showing the weekly review (it ranks above the Due panel), so the Due panel was unreachable. | Clicking Due closes the weekly review and any person card. Checked: the Due panel opens; Snooze works. |
+
+**Not bugs (checked):**
+- The model's sentence said "10 people" with 11 highlighted: the card's own count is right.
+- Weekly dates a day later than earlier screens: Reset demo data re-anchors the seed to today.
+- The view switch's highlight seemed to lag: CSS transitions don't run in a hidden browser pane.
+
+## Polish (Oct 18)
+
+**Clutter, Connect tool, Back for groups, true-black dark mode, speed for the demo** · branch `polish` (on `bugfix-pass`) · from a team screenshot and notes
+
+| | What | Change | Checked |
+| --- | --- | --- | --- |
+| C1 | Clutter around a selected person (team screenshot): two "worked together" pills stacked on each other, and grayed-out people still pulsing (ripple, flags, drift rings). | Pills can slide **along their own line** (tested), so two lines leaving one person no longer stack. Grayed-out people drop every decoration and fade further (0.12); other lines fade to 0.04. Screen-reader labels unchanged. | Browser: Samuel selected → pills 46 px apart, 0 decorated grayed-out nodes. |
+| C2 | No way to link two people on the map by hand. | **Edit map → Connect**: click (or Enter on) one person, then another, and optionally name it. `connectPeople` runs in one transaction and says whether it created the link, so **Undo** removes only that link. An AI suggestion is promoted; a self-link is refused. Tested. | Browser: Yuna → Nora "roommates" connected; Theo → Priya connected, then Undo (37 → 36 links). |
+| C3 | No "back" out of an opened group. | **Back (close Work)** button top-right while a group is open; **Escape** closes the last opened group too (after closing a card or answer first). | Browser: Back closed Friends, then School; Escape closed the last. |
+| C4 | Dark mode should be black. | Both dark palettes use a #000 background (cards and panels lift slightly so their edges show). | Browser: body background rgb(0, 0, 0). |
+| S1 | **Speed for the video.** Interactions with 155 people are quick (selecting about 47 ms, switching views 5–14 ms, zoom about 9 ms per frame). One-off 50–75 ms tasks come from the layout re-running when the card opens. The **AI** was the problem: live sort 30–48 s, hidden links 15–65 s, weekly 32 s. | See S2. | — |
+| S2 | **Bug: the demo recording could never replay after an import.** Imported people got random ids, and the summary listed links in database-id order (random for AI-added links), so every Reset + Import made different requests. | Imported ids are now **repeatable** (`stableId` from LinkedIn URL / email / name + company; never reuses a taken id; tested), and the summary has a **fixed order** (tested). A fresh recording of the whole pitch flow is in `demo/demo-cache.json`. | Replay after Reset demo data: **sort, ask, links, brief and weekly all `cache=hit`, about 0.1 s each**. |
+
+**Checks:** typecheck, lint, 180 tests (new: pills along a line, `connectPeople`, repeatable import ids, summary order), build.
+
+## M16
+
+**Texting agent on Photon (iMessage)** · Oct 18 · branch `m16-texting` (on `polish`)
+
+**What it does:** text the Photon line (shared Pro number +1 628 789 5362) from an allow-listed phone:
+- *"who do I know at Microsoft?"*, *"met Sarah Kim from Stripe"*, *"remind me to email John Friday"*, *"had coffee with Abbey"*, *"what's due?"*, *"help"*.
+- The server ignores strangers completely. For allowed senders, Gemini parses the intent; code checks names and dates.
+- The text and intent go over **Server-Sent Events to your open Connectwork tab**, which answers from **its own IndexedDB** using the app's own flows (the same highlight rule as Ask Connectwork, now shared in `answerIds`), writes through `actions.ts`, and shows the exchange on the map.
+- The reply is texted back, signed **"— Connectwork (AI)"**. Tab closed → "Open Connectwork on your laptop…". The network never reaches the server.
+
+**How it was checked:** typecheck, lint, 195 tests. 15 are new:
+- relay: a wrong token gives 401; no tab → `null` at once; a full stream → request → reply round trip; timeout; notify;
+- intent: date guardrail, fallbacks, context;
+- allow-list: phone formats, Apple-ID email, strangers;
+- textAgent: name resolution, "which one?", digest without notes, SMS length.
+
+**Live:**
+- the Photon echo test reached the bot;
+- then **"Who do I know at Microsoft?" texted from the owner's phone came back as an answer**, and the laptop tab showed *Texted: "Who do I know at Microsoft?" → You know 8 people at Microsoft…* with 11 people highlighted.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | The Spectrum SDK is large. | Loaded only by a server with Photon credentials (dynamic import); the CSV matcher (Papa Parse) loads in the tab only when a text adds someone. |
+| E2 | One Gemini call to parse the intent, plus one for a query (the same call as Ask). | Writes (add / remind / log) need no second AI call. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Two servers read the same `.env` here (dev 8787, laptop tunnel 8788), so both would subscribe and compete for texts. The scaffold's echo bot would also compete. | `TEXTING_AGENT=0` turns the agent off on a server (the tunnel script sets it). The echo bot is stopped. |
+| I2 | The relay is mounted only when the agent runs AND `RELAY_TOKEN` is set; `/api/health` reports `texting: off / waiting for a tab / tab connected`. | Checked live. |
+| I3 | A texted answer must match a typed one. | The highlight rule is now one function (`answerIds`) used by AgentBar and the relay client. |
+| I4 | **Photon setup gotcha (fixed by the owner):** texts weren't delivered until the owner's phone was enrolled on the project (dashboard → avatar → phone, then refresh the setup page). `photon spectrum users list` shows it. | Documented here; the shared number doesn't appear in `lines list` (Pro shared pool). |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | Strangers. | Only `AGENT_ALLOWED_SENDERS` get anything (no reply, no answer); the log shows only the last 4 digits. Tested. |
+| S2 | Relay endpoints. | Bearer token, compared in constant time (`timingSafeEqual`); EventSource uses `?token=`, and our log records the path without the query. A newer tab replaces the old one. |
+| S3 | Message text. | Never logged (only platform, intent, latency, outcome). The server holds a text only in memory while the tab answers (20 s). |
+| S4 | Transparency. | Every reply is signed "— Connectwork (AI)". Writes are reported in the reply ("Added…", "Reminder set…", "Logged…"). |
+| S5 | Free tier. | Texts and their parsed intent go to Gemini. On the free tier, text only about the fictional demo people (same rule as the rest of the app). |
+| S6 | Secrets. | The Photon project ID/secret, the allow-listed number and the relay token live only in the git-ignored `.env` (`chmod 600`). Tests use a fictional 555 number. The token reached the test tab through a one-shot local server, so it never appeared in logs or chat. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Only "who do I know…" was tested from a real phone. Add / remind / log / digest are unit-tested in parts but not texted live. | Try them in the demo dry run. |
+| O2 | The agent lives on the laptop (dev server). Close the laptop or the tab and texts get the polite "open Connectwork" reply. | By design (local-first). The VM deploy would run it there, with the tab still on the laptop. |
+| O3 | M17 (Backboard memory) is skipped, so "her/him" in a follow-up text isn't resolved across texts. | Team decision (skip). |
+| O4 | "Text me this" from the weekly review isn't wired to the UI yet (`notifyOwner` exists, and the server's notify route is tested). | Small follow-up. |
+

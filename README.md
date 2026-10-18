@@ -26,7 +26,7 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 | Drift: people you haven't talked to in a while fade outward | ✅ M10 |
 | Google Calendar sync and meeting prep | ✅ M11 |
 | Demo that survives bad Wi-Fi: recorded AI answers, replayed by the server or by the browser | ✅ M12 |
-| Text Connectwork from iMessage (Photon 2.0) — your open tab answers from local data | 🚧 M16 |
+| Text Connectwork from iMessage (Photon 2.0) — your open tab answers from local data | ✅ M16 |
 | The texting agent remembers the conversation (Backboard) | 🚧 M17 |
 | Every pull request audited by VEYZL (EU AI Act, NIST AI RMF, ISO/IEC 42001) — see [AI governance](docs/AI_GOVERNANCE.md) | 🚧 M15 |
 
@@ -113,6 +113,7 @@ docs/            Implementation guide
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — living architecture graph: what's built and what's planned
 - [`docs/GEMINI.md`](docs/GEMINI.md) — how Connectwork uses Gemini, and a recipe for adding AI features
+- [`docs/PITCH.md`](docs/PITCH.md) — the 3-minute pitch: timed script, demo cues, backup lines, likely questions
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — put it on our domain (VM, Caddy, HTTPS, security headers); `pnpm preview:prod` to try the production setup locally
 - [`docs/DEMO_DAY.md`](docs/DEMO_DAY.md) — judging morning: record the AI answers, check replay and the offline fallback
 - [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — manual test plan (52 tests, M1–M9); interactive checklist in [`docs/testing/`](docs/testing/connectwork-test-run.html)

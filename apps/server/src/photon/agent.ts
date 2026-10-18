@@ -1,5 +1,5 @@
 /**
- * M16 — Connectwork texting agent on Photon 2.0 · Owner: Person B · ~1.5 h
+ * M16 — Connectwork texting agent on Photon 2.0 · done
  *
  * WHAT THIS ACHIEVES
  *   Connectwork lives where you already talk. Text the agent's iMessage line
@@ -56,8 +56,12 @@
  *
  * Guide: docs/IMPLEMENTATION_GUIDE.md §23
  */
+import { randomUUID } from 'node:crypto';
+import type { AgentIntent } from '@connectwork/shared';
+import { env } from '../env';
 import type { Generate } from '../gemini';
 import type { AgentMemory } from '../backboard';
+import { parseIntent } from './intent';
 import type { RelayHub } from './relay';
 
 export interface AgentDeps {
@@ -67,7 +71,76 @@ export interface AgentDeps {
   memory?: AgentMemory;
 }
 
-export async function startTextingAgent(_deps: AgentDeps): Promise<void> {
-  // TODO(M16) steps 1–11
-  throw new Error('TODO(M16): startTextingAgent is not implemented yet');
+export const SIGNATURE = '\n— Connectwork (AI)';
+export const TAB_CLOSED = "Open Connectwork on your laptop and I'll check your network.";
+
+/**
+ * Step 4. Is this sender on AGENT_ALLOWED_SENDERS? Phone numbers compare by their last 10 digits,
+ * so "+1 (503) …", "+1503…" and an "any;-;+1503…" chat id all match; Apple-ID emails compare
+ * case-insensitively.
+ */
+export function isAllowedSender(senderId: string | undefined, allowed: readonly string[]): boolean {
+  if (!senderId) return false;
+  const id = senderId.toLowerCase();
+  const digits = id.replace(/\D/g, '');
+  return allowed.some((a) => {
+    const want = a.trim().toLowerCase();
+    if (want.includes('@')) return id.includes(want);
+    const wantDigits = want.replace(/\D/g, '');
+    return wantDigits.length >= 7 && digits.length >= 7 && digits.slice(-10) === wantDigits.slice(-10);
+  });
+}
+
+/** Only the last 4 digits, so the log helps set up the allow-list without recording a number. */
+const masked = (id?: string) => (id ? `…${id.replace(/\D/g, '').slice(-4) || 'email'}` : 'unknown');
+
+export async function startTextingAgent(deps: AgentDeps): Promise<void> {
+  // Steps 1–2. Imported here, not at the top: only a server with Photon credentials loads the SDK.
+  const { Spectrum } = await import('spectrum-ts');
+  const { imessage } = await import('spectrum-ts/providers/imessage');
+  const app = await Spectrum({
+    projectId: env.photonProjectId,
+    projectSecret: env.photonProjectSecret,
+    providers: [imessage.config()],
+  });
+  console.log(`Texting agent on Photon (iMessage): ${env.agentAllowedSenders.length} allowed sender(s), replies come from the open Connectwork tab`);
+
+  // Step 10. Text the owner (first allowed sender), e.g. the weekly digest from the browser.
+  const owner = env.agentAllowedSenders[0];
+  if (owner) {
+    deps.hub.onNotify(async (text) => {
+      const im = imessage(app);
+      const space = await im.space.create(await im.user(owner));
+      await space.send(text + SIGNATURE);
+    });
+  }
+
+  // Step 3. One bad text must never stop the loop.
+  for await (const [space, message] of app.messages) {
+    const started = Date.now();
+    try {
+      // Step 4. Strangers learn nothing: no reply at all. Read receipts and the like are ignored.
+      if (message.content.type !== 'text') continue;
+      if (!isAllowedSender(message.sender?.id, env.agentAllowedSenders)) {
+        console.log(`agent: ignored a text from a sender not on AGENT_ALLOWED_SENDERS (${masked(message.sender?.id)})`);
+        continue;
+      }
+      const text = message.content.text.slice(0, 2000);
+      const senderId = message.sender!.id;
+      // Steps 5–6.
+      const context = await deps.memory?.recall(senderId);
+      const intent: AgentIntent = deps.generate ? await parseIntent(deps.generate, text, context) : { intent: 'query', question: text };
+      // Step 7.
+      const reply = await deps.hub.ask({ id: randomUUID(), platform: message.platform, text, intent, receivedAt: new Date().toISOString() });
+      // Step 8. Always signed: people should know they're talking to an AI.
+      const out = reply ? reply.text : TAB_CLOSED;
+      await space.send(out + SIGNATURE);
+      // Step 9.
+      if (reply) await deps.memory?.save(senderId, text, reply.text);
+      // Step 11. Never the text.
+      console.log(`agent: ${message.platform} ${intent.intent} ${reply ? 'answered by tab' : 'no tab open'} ${Date.now() - started}ms`);
+    } catch (e) {
+      console.error(`agent: error after ${Date.now() - started}ms: ${e instanceof Error ? e.message : 'unknown'}`);
+    }
+  }
 }

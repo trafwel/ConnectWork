@@ -44,6 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { db } from '@/db/db';
 import type { Appearance } from '@/lib/appearance';
 import { addToCalendar } from '@/lib/addToCalendar';
+import { AgentConnection } from './AgentConnection';
 import { DriftSettings } from './DriftSettings';
 import { Segmented } from './Segmented';
 import { deleteEverything, exportAll, importBackup, resetDemoData } from '@/db/seed';
@@ -144,6 +145,8 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
         <AboutYou />
 
         <DriftSettings />
+
+        <AgentConnection />
 
         <section className="space-y-2">
           <h3 className="text-sm font-medium">Your data</h3>
