@@ -81,7 +81,7 @@ import { DRIFT_OFFSET, driftStep } from '@/lib/drift';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
 import { ClusterNode } from './ClusterNode';
-import { aggregateLinks, buildClusters, type Endpoint } from './groups';
+import { aggregateLinks, buildClusters, groupConnections, linkIsShown } from './groups';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
 import { PersonNode } from './PersonNode';
@@ -313,13 +313,38 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     }
     return out;
   }, [grouping, highlightIds, filterContext, dimmedIds]);
-  const endpoint = (e: Endpoint) => (e.kind === 'group' ? grouping?.clusters.find((c) => c.tag === e.tag) : positions.get(e.id));
+  // Declutter (Oct 18): people in focus get their lines drawn even on the outer ring.
+  const focusIds = useMemo(() => new Set([...highlightIds, ...(hoverId ? [hoverId] : [])]), [highlightIds, hoverId]);
+  const ringOf = (id: string) => byId.get(id)?.ring;
+  const anyGroupOpen = grouped && expandedGroups.size > 0;
 
   // Ring 3 first so closer people draw on top. Sorted once per data change, not per zoom frame.
   const drawOrder = useMemo(() => [...visiblePeople].sort((a, b) => b.ring - a.ring), [visiblePeople]);
 
   // Step 8c. Center the selected person once per selection and map size, but only on a layout
   // computed for THIS size (opening the card narrows the map and the layout recomputes).
+  // Declutter: opening a group zooms the map to fit its people; closing it zooms back out.
+  const openTag = grouped ? ([...expandedGroups].at(-1) ?? null) : null;
+  const zoomedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const svg = svgRef.current;
+    const behavior = zoomRef.current;
+    if (!svg || !behavior || layout.width !== width || layout.height !== height || !width) return;
+    if (openTag && zoomedFor.current !== openTag) {
+      const pts = people.filter((p) => p.primaryTag === openTag).flatMap((p) => positions.get(p.id) ?? []);
+      if (!pts.length) return;
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+      const k = Math.max(0.8, Math.min(2.5, (width - 140) / (x1 - x0 + 60), (height - 140) / (y1 - y0 + 60)));
+      zoomTo(svg, behavior, { x: width / 2 - k * ((x0 + x1) / 2), y: height / 2 - k * ((y0 + y1) / 2), k });
+      zoomedFor.current = openTag;
+    } else if (!openTag && zoomedFor.current) {
+      zoomTo(svg, behavior, { x: 0, y: 0, k: 1 });
+      zoomedFor.current = null;
+    }
+  }, [openTag, people, positions, layout.width, layout.height, width, height]);
+
   const centeredFor = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedId) {
@@ -390,28 +415,8 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
           </g>
 
           <g aria-hidden="true">
-            {/* Groups view: one line per pair of endpoints; thicker = more connections behind it. */}
-            {shownLinks.edges.map((e) => {
-              const a = endpoint(e.from);
-              const b = endpoint(e.to);
-              if (!a || !b) return null;
-              return (
-                <line
-                  key={e.key}
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke={e.suggested ? T.suggestedLink : T.link}
-                  strokeWidth={1 + Math.log2(e.count) * 1.2}
-                  strokeDasharray={e.suggested ? T.suggestedDash : undefined}
-                  opacity={selectedId ? 0.15 : 0.5}
-                >
-                  <title>{`${e.count} ${e.count === 1 ? 'connection' : 'connections'}`}</title>
-                </line>
-              );
-            })}
-            {shownLinks.personLinks.map((l) => {
+            {/* Declutter: only close people's lines, or lines in focus (see linkIsShown). */}
+            {shownLinks.personLinks.filter((l) => linkIsShown(l, ringOf, selectedId, focusIds)).map((l) => {
               const a = positions.get(l.fromId);
               const b = positions.get(l.toId);
               if (!a || !b) return null;
@@ -448,6 +453,8 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                 due={st.due}
                 drifting={st.drifting}
                 dimmed={st.dimmed}
+                muted={anyGroupOpen}
+                connections={groupConnections(c.tag, shownLinks.edges)}
                 onToggle={toggleGroup}
               />
             );
@@ -471,6 +478,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
                 drift={driftStep(filterContext.drift?.get(p.id) ?? 0)}
+                recede={p.ring === 3 && p.id !== selectedId && p.id !== hoverId && !highlightIds.has(p.id) && !neighborIds.has(p.id)}
                 onSelect={onSelectNode}
                 onHover={setHoverId}
                 editing={editing}
@@ -642,13 +650,16 @@ function Legend({ tags }: { tags: Tag[] }) {
  * prefers reduced motion or the tab is hidden (animation frames are paused there).
  */
 function panTo(svg: SVGSVGElement, behavior: ZoomBehavior<SVGSVGElement, unknown>, pos: { x: number; y: number }, width: number, height: number) {
-  const from = zoomTransform(svg);
-  const k = from.k;
-  const to = { x: width / 2 - k * pos.x, y: height / 2 - k * pos.y };
-  const apply = (x: number, y: number) => select(svg).call(behavior.transform, zoomIdentity.translate(x, y).scale(k));
+  const k = zoomTransform(svg).k;
+  zoomTo(svg, behavior, { x: width / 2 - k * pos.x, y: height / 2 - k * pos.y, k });
+}
 
+/** Declutter: animate to any view (translate + zoom). panTo is the keep-the-zoom case. */
+function zoomTo(svg: SVGSVGElement, behavior: ZoomBehavior<SVGSVGElement, unknown>, to: { x: number; y: number; k: number }) {
+  const from = zoomTransform(svg);
+  const apply = (x: number, y: number, k: number) => select(svg).call(behavior.transform, zoomIdentity.translate(x, y).scale(k));
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || document.hidden) {
-    apply(to.x, to.y);
+    apply(to.x, to.y, to.k);
     return;
   }
   const duration = 450;
@@ -657,7 +668,7 @@ function panTo(svg: SVGSVGElement, behavior: ZoomBehavior<SVGSVGElement, unknown
   const step = (now: number) => {
     const t = Math.min(1, (now - start) / duration);
     const e = ease(t);
-    apply(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e);
+    apply(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e, from.k + (to.k - from.k) * e);
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);

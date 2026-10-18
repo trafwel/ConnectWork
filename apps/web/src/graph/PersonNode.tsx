@@ -57,6 +57,8 @@ interface Props {
   flag?: 'due' | 'overdue';
   /** M10: 0 = in touch … 1 = twice past the limit (rounded to 1/20 by RingMap). */
   drift?: number;
+  /** Declutter (Oct 18): an outer-ring person nobody is looking at: smaller, softer, no outline. */
+  recede?: boolean;
   onSelect: (id: string) => void;
   /** Hover or keyboard focus, so RingMap shows this name even where it's crowded. */
   onHover: (id: string | null) => void;
@@ -68,7 +70,7 @@ interface Props {
   onSetRing?: (id: string, ring: Ring) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
+function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, recede = false, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
   const r = NODE_RADIUS[person.ring];
   // Polish (Oct 18, from a team screenshot): a grayed-out person drops every decoration (ripple,
   // flag, drift ring, highlight). Their pulsing halos were the clutter around a selection. The
@@ -123,7 +125,7 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       {drift > 0 && !selected && !quiet && <circle r={r + 2.5} fill="none" stroke={T.ink} strokeWidth={1.2} strokeDasharray="2 3" pointerEvents="none" />}
       {/* M7: the pulse lives on this inner group, because the outer <g>'s transform is the position. */}
       <g className={flag && !quiet ? 'cw-pulse' : undefined}>
-        <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
+        <circle r={recede ? r * 0.8 : r} fill={color} fillOpacity={recede ? 0.55 : 1} stroke={recede ? 'none' : T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
       </g>
       {flag && !quiet && <Ripple r={r} overdue={flag === 'overdue'} />}
       {flag && !quiet && <Flag r={r} overdue={flag === 'overdue'} />}
@@ -188,6 +190,7 @@ function sameNode(a: Props, b: Props): boolean {
     a.dimmed === b.dimmed &&
     a.flag === b.flag && // M7 (PX-I1: every new prop must be compared here)
     a.drift === b.drift && // M10
+    a.recede === b.recede && // declutter
     a.onSelect === b.onSelect &&
     a.onHover === b.onHover &&
     a.editing === b.editing && // fix step 2

@@ -19,13 +19,17 @@ interface Props {
   due: number;
   drifting: number;
   dimmed: boolean;
+  /** Declutter: another group is open, so this one steps back. */
+  muted?: boolean;
+  /** "School (5), Friends (2)": connections to other groups, in words instead of lines. */
+  connections?: string;
   onToggle: (tag: string) => void;
 }
 
-function ClusterNodeImpl({ cluster, color, highlighted, due, drifting, dimmed, onToggle }: Props) {
+function ClusterNodeImpl({ cluster, color, highlighted, due, drifting, dimmed, muted = false, connections, onToggle }: Props) {
   const n = cluster.memberIds.length;
   const extras = [highlighted && `${highlighted} in the answer`, due && `${due} with a follow-up due`, drifting && `${drifting} drifting`].filter(Boolean);
-  const label = `${cluster.tag} group, ${n} ${n === 1 ? 'person' : 'people'}${extras.length ? `, ${extras.join(', ')}` : ''}. Collapsed: press Enter to open.`;
+  const label = `${cluster.tag} group, ${n} ${n === 1 ? 'person' : 'people'}${extras.length ? `, ${extras.join(', ')}` : ''}${connections ? `; connected to ${connections}` : ''}. Click or press Enter to open.`;
   return (
     <g
       role="button"
@@ -33,7 +37,7 @@ function ClusterNodeImpl({ cluster, color, highlighted, due, drifting, dimmed, o
       aria-label={label}
       aria-expanded={false}
       className="cursor-pointer outline-none [&:focus-visible>circle.focus]:opacity-100"
-      style={{ opacity: dimmed ? 0.2 : 1, transform: `translate(${cluster.x}px, ${cluster.y}px)`, transition: 'opacity 200ms, transform 450ms ease-out' }}
+      style={{ opacity: dimmed ? 0.2 : muted ? 0.35 : 1, transform: `translate(${cluster.x}px, ${cluster.y}px)`, transition: 'opacity 200ms, transform 450ms ease-out' }}
       onClick={(e) => {
         e.stopPropagation(); // the map's own click clears the selection
         onToggle(cluster.tag);

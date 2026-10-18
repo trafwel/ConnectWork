@@ -167,13 +167,9 @@ export const useStore = create<UIState>((set, get) => ({
     set({ selectedMeetingId: id, selectedPersonId: null, rightPanel: 'meeting', highlightIds: new Set(attendeeIds), weeklyOpen: false }),
   setCalendarConnected: (on) => set({ calendarConnected: on }),
   setRelayStatus: (relayStatus) => set({ relayStatus }),
-  // A new Set each time (Zustand compares by reference).
-  toggleGroup: (tag) => {
-    const next = new Set(get().expandedGroups);
-    if (next.has(tag)) next.delete(tag);
-    else next.add(tag);
-    set({ expandedGroups: next });
-  },
+  // Declutter (Oct 18): one open group at a time (opening another closes the first), so "open a
+  // group" always means "look at THIS group". A new Set each time (Zustand compares by reference).
+  toggleGroup: (tag) => set({ expandedGroups: get().expandedGroups.has(tag) ? new Set<string>() : new Set([tag]) }),
   collapseGroups: () => set({ expandedGroups: new Set<string>() }),
   // Sets keep insertion order, so the last item is the group opened most recently.
   collapseLastGroup: () => {

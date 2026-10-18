@@ -104,3 +104,32 @@ export function aggregateLinks(links: Link[], groupOf: ReadonlyMap<string, strin
   }
   return { personLinks, edges: [...edges.values()] };
 }
+
+/**
+ * Declutter (Oct 18, from team screenshots): which person-to-person lines to draw.
+ *   - Someone selected → only their lines (everything else is noise while you look at them).
+ *   - Otherwise → lines between close people (rings 1–2), plus any line touching someone in
+ *     focus (hovered, or named by an AI answer). The 100+ outer-ring imports keep their links,
+ *     but those lines no longer criss-cross the whole map.
+ */
+export function linkIsShown(link: Pick<Link, 'fromId' | 'toId'>, ringOf: (id: string) => number | undefined, selectedId: string | null, focus: ReadonlySet<string>): boolean {
+  const touches = (id: string) => link.fromId === id || link.toId === id;
+  if (selectedId) return touches(selectedId);
+  if (focus.has(link.fromId) || focus.has(link.toId)) return true;
+  const a = ringOf(link.fromId);
+  const b = ringOf(link.toId);
+  return a !== undefined && b !== undefined && a <= 2 && b <= 2;
+}
+
+/** For a closed group's label: "connected to School (5), Friends (2)". */
+export function groupConnections(tag: string, edges: GroupEdge[]): string {
+  const counts = new Map<string, number>();
+  for (const e of edges) {
+    const mine = e.from.kind === 'group' && e.from.tag === tag ? e.to : e.to.kind === 'group' && e.to.tag === tag ? e.from : null;
+    if (!mine) continue;
+    const other = mine.kind === 'group' ? mine.tag : 'people outside groups';
+    counts.set(other, (counts.get(other) ?? 0) + e.count);
+  }
+  return [...counts].map(([t, n]) => `${t} (${n})`).join(', ');
+}
+

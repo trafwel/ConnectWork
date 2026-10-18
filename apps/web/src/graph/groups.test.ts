@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Link, Person } from '@connectwork/shared';
-import { aggregateLinks, buildClusters, clusterRadius } from './groups';
+import { aggregateLinks, buildClusters, clusterRadius, groupConnections, linkIsShown } from './groups';
 
 const p = (id: string, tag: string): Person => ({ id, name: id, ring: 2, primaryTag: tag, tags: [tag], source: 'seed', createdAt: '' });
 const people = [p('w1', 'Work'), p('w2', 'Work'), p('s1', 'School'), p('f1', 'Friends')];
@@ -48,3 +48,24 @@ describe('aggregateLinks', () => {
     expect(aggregateLinks([link('a', 'w1', 's1')], open.groupOf).personLinks).toHaveLength(1);
   });
 });
+
+describe('declutter rules', () => {
+  const rings: Record<string, number> = { a: 1, b: 2, c: 3, d: 3 };
+  const ringOf = (id: string) => rings[id];
+  const l = (fromId: string, toId: string) => ({ fromId, toId });
+  it('shows close-people lines by default, and outer-ring lines only in focus', () => {
+    expect(linkIsShown(l('a', 'b'), ringOf, null, new Set())).toBe(true);
+    expect(linkIsShown(l('a', 'c'), ringOf, null, new Set())).toBe(false);
+    expect(linkIsShown(l('c', 'd'), ringOf, null, new Set(['d']))).toBe(true);
+  });
+  it('shows only the selected person\'s lines', () => {
+    expect(linkIsShown(l('a', 'b'), ringOf, 'c', new Set())).toBe(false);
+    expect(linkIsShown(l('c', 'd'), ringOf, 'c', new Set())).toBe(true);
+  });
+  it('summarizes a group\'s connections for its label', () => {
+    const { groupOf } = buildClusters(people, positions, new Set(['Friends']));
+    const { edges } = aggregateLinks([link('b', 'w1', 's1'), link('c', 'w2', 's1'), link('d', 'f1', 'w1')], groupOf);
+    expect(groupConnections('Work', edges)).toBe('School (2), people outside groups (1)');
+  });
+});
+
