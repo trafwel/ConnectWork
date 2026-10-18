@@ -67,6 +67,8 @@ import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
 import { FilterTabs } from '@/components/FilterTabs';
 import { ListView } from '@/components/ListView';
+import { MeetingPrepCard } from '@/components/MeetingPrepCard';
+import { MeetingStrip } from '@/components/MeetingStrip';
 import { PersonCard } from '@/components/PersonCard';
 import { RemindersPanel } from '@/components/RemindersPanel';
 import { ReviewSheet } from '@/components/ReviewSheet';
@@ -107,6 +109,7 @@ export default function App() {
   const [seedError, setSeedError] = useState(false);
   const selectedId = useStore((s) => s.selectedPersonId);
   const rightPanel = useStore((s) => s.rightPanel);
+  const selectedMeetingId = useStore((s) => s.selectedMeetingId);
   const filter = useStore((s) => s.filter);
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
@@ -204,6 +207,8 @@ export default function App() {
         </Button>
       </TopBar>
       <DemoBanner />
+      {/* M11: today's and tomorrow's meetings (Google Calendar, or samples). */}
+      {loaded && people.length > 0 && <MeetingStrip people={people} />}
       <div className="flex min-h-0 flex-1">
         {/* M7 step 4 */}
         {loaded && people.length > 0 && <FilterTabs counts={counts} />}
@@ -232,6 +237,9 @@ export default function App() {
           <ReviewSheet />
         ) : selectedId ? (
           <PersonCard personId={selectedId} />
+        ) : rightPanel === 'meeting' && selectedMeetingId ? (
+          // M11: keyed, so switching meetings starts a fresh brief.
+          <MeetingPrepCard key={selectedMeetingId} meetingId={selectedMeetingId} />
         ) : weeklyOpen ? (
           // M8: closing a person's card returns here.
           <WeeklyReview />

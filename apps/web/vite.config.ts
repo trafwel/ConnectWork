@@ -29,6 +29,10 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // M11: read the ONE .env at the repo root (VITE_GOOGLE_CLIENT_ID lives there). Only VITE_*
+  // variables reach the browser bundle, so GEMINI_API_KEY in the same file stays server-only.
+  envDir: path.resolve(import.meta.dirname, '../..'),
+  envPrefix: 'VITE_',
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   server: {
     port: 5173,

@@ -314,6 +314,43 @@ describe('POST /api/ai/draft', () => {
   });
 });
 
+// M11
+describe('POST /api/ai/meeting-brief', () => {
+  it('briefs only the real attendees, trimmed, with notes and reminders in the prompt', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        summary: '  Coffee with John: follow up on the career fair.  ',
+        perPerson: [
+          { personId: 'p_john', howYouKnow: ' UW, ring 2 ', talkingPoints: [' Career fair follow-up ', ' '] },
+          { personId: 'p_ghost', howYouKnow: 'Invented', talkingPoints: [] },
+          { personId: 'p_john', howYouKnow: 'Duplicate', talkingPoints: [] },
+        ],
+      }),
+    );
+    const res = await createApp({ generate, cache: new DemoCache('off') }).request('/api/ai/meeting-brief', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        meeting: { title: 'Coffee with John', start: '2026-10-17T15:30:00' },
+        attendees: [{ id: 'p_john', name: 'John Park', school: 'University of Washington', notes: 'Lab partner in CSE 332' }],
+        links: [],
+        reminders: ['John Park: Follow up after the career fair (due 2026-10-18)'],
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      summary: 'Coffee with John: follow up on the career fair.',
+      perPerson: [{ personId: 'p_john', howYouKnow: 'UW, ring 2', talkingPoints: ['Career fair follow-up'] }],
+    });
+    const call = generate.mock.calls[0]![0];
+    expect(call.system).toContain('briefing them on the attendees');
+    const text = JSON.stringify(call.parts);
+    expect(text).toContain('Lab partner in CSE 332');
+    expect(text).toContain('Follow up after the career fair');
+    expect(text).toContain('Links between attendees:\\nnone');
+  });
+});
+
 // M9
 describe('POST /api/ai/extract', () => {
   const tags = ['Work', 'School', 'Friends', 'Family', 'Clubs', 'LinkedIn'];

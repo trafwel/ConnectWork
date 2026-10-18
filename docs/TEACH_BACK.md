@@ -126,3 +126,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 3. Your drift limits are sent to the AI only when they differ from 90 / 180. Why does leaving them out of ordinary requests matter (think about the demo cache)?
 4. In the list view, pressing Enter on a name moves keyboard focus into the card, and Escape brings it back. Who is that for, and what was the experience before?
 
+## M11
+**Google Calendar and meeting prep**
+
+1. Why is the Google token kept only in memory (not IndexedDB or localStorage), and what does the user notice because of that?
+2. Our server never sees the calendar. Trace what happens when you open a meeting: what goes to Google, what goes to our server, and what reaches Gemini?
+3. On the free tier, why does a real meeting get no AI brief while a sample meeting does?
+4. Vite wasn't reading our `.env` at all. Why was pointing it at the repo root safe, even though that file also holds `GEMINI_API_KEY`?
+

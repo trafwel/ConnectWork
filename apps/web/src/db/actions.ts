@@ -45,7 +45,7 @@
  * Tests: db/actions.test.ts runs every rule above against an in-memory IndexedDB (fake-indexeddb).
  * Guide: §7.1
  */
-import type { ContactLog, Link, Person, Reminder, Ring } from '@connectwork/shared';
+import type { ContactLog, Link, Meeting, Person, Reminder, Ring } from '@connectwork/shared';
 import { FALLBACK_COLOR } from '@/lib/colors';
 import { addDays, isoDate, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
@@ -272,6 +272,31 @@ export async function removeLink(id: string): Promise<void> {
 export async function setDriftThresholds(t: { 1: number; 2: number } | null): Promise<void> {
   if (t === null) await db.meta.delete('driftThresholds');
   else await db.meta.put({ key: 'driftThresholds', value: { 1: t[1], 2: t[2] } });
+}
+
+/**
+ * M11. db.meetings holds ONE set at a time: Google's (while connected) or the samples. Replacing
+ * in one transaction means the strip never shows both, and real calendar data doesn't outlive
+ * the connection: after a reload (the token is gone) the samples take its place.
+ */
+export async function replaceMeetings(meetings: Meeting[]): Promise<void> {
+  await db.transaction('rw', db.meetings, async () => {
+    await db.meetings.clear();
+    await db.meetings.bulkPut(meetings);
+  });
+}
+
+/** M11. An attendee just added from a meeting's "Not in your network" list joins that meeting. */
+export async function addMeetingAttendee(meetingId: string, personId: string): Promise<void> {
+  await db.transaction('rw', db.meetings, async () => {
+    const m = await db.meetings.get(meetingId);
+    if (m && !m.attendeePersonIds.includes(personId)) await db.meetings.update(meetingId, { attendeePersonIds: [...m.attendeePersonIds, personId] });
+  });
+}
+
+/** M11. Remember the Google event made for a reminder, so "Add to calendar" won't duplicate it. */
+export async function setReminderCalendarEvent(id: string, calendarEventId: string): Promise<void> {
+  await db.reminders.update(id, { calendarEventId });
 }
 
 /** Longest relationship name we keep: short enough to fit on a line on the map. */
