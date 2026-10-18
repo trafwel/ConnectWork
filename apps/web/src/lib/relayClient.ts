@@ -225,6 +225,14 @@ export async function textDue(force = false): Promise<'sent' | 'nothing_due' | '
   return 'sent';
 }
 
+/** Oct 18: the search bar's "text me …". Sends to the owner's own number through Photon. */
+export async function textOwner(text: string): Promise<'sent' | 'no_token'> {
+  const token = (await db.meta.get('relayToken'))?.value;
+  if (typeof token !== 'string' || !token) return 'no_token';
+  await notifyOwner(token, text);
+  return 'sent';
+}
+
 // Step 5 (App + Settings). One connection per tab: starting again replaces the old one.
 let stop: (() => void) | null = null;
 let dueTimer: ReturnType<typeof setInterval> | undefined;

@@ -82,5 +82,13 @@ export function dueText(reminders: Reminder[], people: Person[], now = new Date(
   return clip(`${parts.join('. ')}. Open Connectwork to follow up.`);
 }
 
+/**
+ * Oct 18: the search bar texts you only when YOUR words ask for it. The model's textMe alone
+ * isn't enough: a name or role in the data could try to trigger a text (prompt injection).
+ */
+export function asksForText(question: string): boolean {
+  return /\b(text|txt|send|message|sms|imessage)\b/i.test(question);
+}
+
 export const HELP_TEXT =
   'Text me things like: "who do I know at Microsoft?", "met Sarah Kim from Stripe at DubHacks", "remind me to email John Friday", "had coffee with Abbey", or "what\'s due?". Your open Connectwork tab answers from your own data.';

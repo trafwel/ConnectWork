@@ -40,6 +40,8 @@ import { db } from '@/db/db';
 import { cleanEdits } from '@connectwork/shared';
 import { askQuery } from '@/lib/api';
 import { proposeEdits } from '@/lib/networkEdits';
+import { textOwner } from '@/lib/relayClient';
+import { asksForText } from '@/lib/textAgent';
 import { driftLevel, isDefaultThresholds } from '@/lib/drift';
 import { readDriftThresholds } from '@/lib/useDriftThresholds';
 import { answerIds } from '@/lib/exactMatch';
@@ -92,6 +94,21 @@ export function AgentBar() {
     // Step 4
     if (!result.ok) {
       setAgent({ agentBusy: false, agentAnswer: result.message, agentError: true });
+      return;
+    }
+
+    // Oct 18: "text me Lena's items". The model writes the message; it goes to the owner's own
+    // phone through Photon, and only when the user's words asked for a text (asksForText).
+    if (result.data.textMe && asksForText(q)) {
+      let note = 'Sent to your phone.';
+      try {
+        if ((await textOwner(result.data.textMe)) === 'no_token') note = 'Couldn’t text you: connect the texting agent in Settings first.';
+      } catch {
+        note = 'Couldn’t text you: the texting agent isn’t running on this server.';
+      }
+      if (controller.signal.aborted) return;
+      setAgent({ agentBusy: false, agentAnswer: `${result.data.answer} ${note}` });
+      setHighlights(result.data.personIds.filter((id) => people.some((p) => p.id === id)));
       return;
     }
 

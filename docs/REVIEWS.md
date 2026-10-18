@@ -1177,3 +1177,13 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
   - Server restarted: the tab reconnected on its own after 55 s (before the fix, it stayed disconnected).
   - Tab reloaded: it connected and sent the due text to the allow-listed number (the server accepted the send).
 - **Checks:** typecheck, lint, 212 tests (+2 for `dueText`), build.
+
+### Follow-up (Oct 18): "text me …" from the search bar
+
+- **Problem (team screenshot):** "Text me the Lena's items" just opened Lena's card. The search bar could answer and propose edits, but it couldn't send anything.
+- **Change:** the question route's response gains an optional `textMe`, a plain-text message (600 characters at most) the model writes from the data when the user asks to be texted. The browser sends it with `textOwner()` → `/relay/notify` → Photon, to the **owner's own allow-listed number only**. The model can't text anyone else; the prompt says to answer "I can only text you".
+- **Guard against injection:** a text goes out only when the **user's own words** ask for one (`asksForText`: text, send, message, SMS, iMessage). A name or role in the data that says "text me…" can't trigger a send, because the model's `textMe` alone isn't enough.
+- **Failure messages:** no saved token → "connect the texting agent in Settings first"; texting agent not running (e.g. on the public tunnel, where it's off) → "the texting agent isn't running on this server".
+- **Found on the way:** after the project folder was renamed, the dev server's file watcher kept watching the old path, so server changes didn't reload. `pnpm dev` was restarted from `ConnectWork`, and the texting tab reconnected on its own within 12 s.
+- **Checked live:** "Text me the Lena's items" → "I am texting you Lena's information now. Sent to your phone." Query 2.2 s, then `/relay/notify` 200 in 0.3 s.
+- **Checks:** typecheck, lint, 214 tests (+2: `asksForText`, the route passing `textMe` through), build.

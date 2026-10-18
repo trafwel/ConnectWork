@@ -46,6 +46,14 @@ describe('POST /api/ai/query', () => {
     expect(call.jsonSchema).not.toHaveProperty('$schema');
   });
 
+  it('returns the message to text the user when asked (Oct 18)', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({ answer: 'Texting you John Park\'s items.', personIds: ['p_john'], textMe: 'John Park: follow up after the career fair (due Oct 18).' }),
+    );
+    const body = await (await post(appWith(generate), { question: "Text me John's items", summary })).json();
+    expect(body).toMatchObject({ personIds: ['p_john'], textMe: 'John Park: follow up after the career fair (due Oct 18).' });
+  });
+
   it('passes proposed edits through the same guardrail (Oct 18)', async () => {
     const generate = vi.fn<Generate>(async () =>
       JSON.stringify({
