@@ -38,7 +38,8 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { db } from '@/db/db';
 import { askQuery } from '@/lib/api';
-import { driftLevel } from '@/lib/drift';
+import { driftLevel, isDefaultThresholds } from '@/lib/drift';
+import { readDriftThresholds } from '@/lib/useDriftThresholds';
 import { exactMatches, groundModelIds } from '@/lib/exactMatch';
 import { buildSummary } from '@/lib/graphSummary';
 import { useStore } from '@/store/useStore';
@@ -78,8 +79,11 @@ export function AgentBar() {
     setAgent({ agentBusy: true, agentAnswer: null, agentError: false, agentChecked: false });
 
     // Step 3. Read straight from Dexie at ask time, so the summary is never stale.
-    const [people, links, reminders] = await Promise.all([db.people.toArray(), db.links.toArray(), db.reminders.toArray()]);
-    const result = await askQuery(q, buildSummary(people, links, reminders), controller.signal);
+    const [people, links, reminders, thresholds] = await Promise.all([db.people.toArray(), db.links.toArray(), db.reminders.toArray(), readDriftThresholds()]);
+    // M10 (M5-I5): the model's "lost touch" rule must use the user's limits. Sent only when they
+    // differ from the defaults, so ordinary requests (and the demo cache) stay unchanged.
+    const driftDays = isDefaultThresholds(thresholds) ? undefined : { ring1: thresholds[1], ring2: thresholds[2] };
+    const result = await askQuery(q, buildSummary(people, links, reminders), controller.signal, driftDays);
     if (controller.signal.aborted) return; // cancelled or replaced: a late reply must not overwrite anything
     pending.current = null;
 
@@ -98,7 +102,7 @@ export function AgentBar() {
     const modelIds = new Set(result.data.personIds.filter((id) => local.has(id)));
     const ids =
       result.data.filterHint === 'drifting'
-        ? people.filter((p) => driftLevel(p) > 0).map((p) => p.id)
+        ? people.filter((p) => driftLevel(p, new Date(), thresholds) > 0).map((p) => p.id)
         : [...new Set([...groundModelIds(q, people, result.data.personIds.filter((id) => local.has(id))), ...exactMatches(q, people)])];
     // M5-O2: if code changed the model's list, the card says so (its sentence may miscount).
     const checked = ids.length !== modelIds.size || ids.some((id) => !modelIds.has(id));

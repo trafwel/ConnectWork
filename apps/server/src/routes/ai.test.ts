@@ -46,6 +46,20 @@ describe('POST /api/ai/query', () => {
     expect(call.jsonSchema).not.toHaveProperty('$schema');
   });
 
+  it('sends the user\'s lost-touch limits with the question (M10), defaults otherwise', async () => {
+    const reply = async () => JSON.stringify({ answer: 'None.', personIds: [], filterHint: 'drifting' });
+    const custom = vi.fn<Generate>(reply);
+    await post(appWith(custom), { question: 'Who have I lost touch with?', summary, driftDays: { ring1: 30, ring2: 60 } });
+    expect(JSON.stringify(custom.mock.calls[0]![0].parts)).toContain('ring 1 = 30 days, ring 2 = 60 days');
+
+    const plain = vi.fn<Generate>(reply);
+    await post(appWith(plain), { question: 'Who have I lost touch with?', summary });
+    expect(JSON.stringify(plain.mock.calls[0]![0].parts)).toContain('ring 1 = 90 days, ring 2 = 180 days');
+
+    const bad = await post(appWith(vi.fn<Generate>(reply)), { question: 'x', summary, driftDays: { ring1: 1, ring2: 60 } });
+    expect(bad.status).toBe(400); // limits are validated like everything else
+  });
+
   it('retries once when the reply does not match the schema', async () => {
     const generate = vi
       .fn<Generate>()

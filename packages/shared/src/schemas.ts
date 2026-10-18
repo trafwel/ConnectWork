@@ -24,9 +24,12 @@ import { z } from 'zod';
 // Request/response contracts for /api/ai/*. The server validates model
 // output against these, and the client validates again before using it.
 
+const driftDays = z.number().int().min(7).max(3650);
 export const QueryRequest = z.object({
   question: z.string().trim().min(1).max(500),
   summary: z.string().max(400_000),
+  /** M10: the user's "lost touch" limits in days, sent only when they differ from 90 / 180. */
+  driftDays: z.object({ ring1: driftDays, ring2: driftDays }).optional(),
 });
 export type QueryRequest = z.infer<typeof QueryRequest>;
 

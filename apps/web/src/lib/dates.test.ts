@@ -3,11 +3,16 @@
 // "done" means: when you finish it, change every `describe.skip(` below back to
 // `describe(` and run `pnpm test` — they should all pass.
 import { describe, expect, it } from 'vitest';
-import { addDays, daysSince, isoDate } from './dates';
+import { addDays, daysSince, isoDate, localDate } from './dates';
 
 describe('dates', () => {
   it('formats local dates as YYYY-MM-DD', () => {
     expect(isoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+
+  it('reads YYYY-MM-DD back as local midnight (M10)', () => {
+    expect(localDate('2026-10-17')).toEqual(new Date(2026, 9, 17));
+    expect(isoDate(localDate('2026-01-05'))).toBe('2026-01-05');
   });
 
   it('counts whole days between dates', () => {

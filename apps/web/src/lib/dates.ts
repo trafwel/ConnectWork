@@ -25,6 +25,12 @@ export function isoDate(d: Date): string {
 
 export const today = (): string => isoDate(new Date());
 
+/** A YYYY-MM-DD date as LOCAL midnight (`new Date('2026-10-17')` would be UTC midnight: the 16th in Seattle). */
+export function localDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y!, m! - 1, d!);
+}
+
 export function addDays(base: Date, days: number): Date {
   return new Date(base.getTime() + days * DAY_MS);
 }

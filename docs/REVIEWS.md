@@ -687,3 +687,60 @@ I put Tara back in ring 1 and Reminders back on Flag afterwards, so the data mat
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#fix-step-2-map-features).
 
+## M10
+
+**Drift and accessibility** · Oct 17 · branch `m10-drift` (on `fix-map-features`)
+
+**What it does**
+- **Drift:** after 90 days without contact for ring 1, or 180 for ring 2, a person "drifts". On the map they fade (down to half opacity at twice the limit), get a dotted outline, and sit up to 6% of the map further out. The card and the list say "7 months ago · drifting". Screen readers hear "drifting" in the node's label. Ring 3 never drifts.
+- **Settings → Drifting:** change both limits (7 to 3650 days), or reset them. Everything follows at once: the map, the Drifting tab, the card, the list, the weekly review, and what Ask Connectwork calls "lost touch".
+- **List view:** a Map / List switch in the top bar shows a real table with columns Name, Ring, Tag, Company, Last contact and Next reminder. Every column sorts, and the header announces its sort order. It uses the same filters and AI highlights as the map; highlighted rows come first with an accent bar.
+- **Keyboard path:** agent bar → top-bar buttons → filter tabs → table. Enter on a name opens the card **and moves focus into it**; Escape closes the card and puts focus back on that name.
+- **Palette (§7.6):** already Okabe-Ito since M1; color is never the only signal (tag names are in the list, on hover and in labels).
+
+**How it was checked:** typecheck, lint, 141 tests, production build. The 8 new tests cover custom limits, parsing a stored value, LinkedIn connect dates, `driftStep`, local dates, the "connected" wording, and the server receiving limits (bad ones get a 400). In the browser on the seed data:
+- exactly **5 drifting people** (Priya, Aisha, John, Omar, Hana), matching the Drifting tab. Each is faded (0.68–0.93) and dotted, and ring-2 drifters sit about 260 px from the center versus about 235 for the others;
+- the list sorted by Last contact both ways (`aria-sort` updated), and the Drifting filter showed "5 of 40";
+- live AI, demo data: "Who do I know at Microsoft?" in List view put Abbey, Nina and Owen first, marked, and the answer card sat above the table instead of covering it;
+- Enter on John Park moved focus to his card ("7 months ago · drifting" in red), and Escape returned focus to his name;
+- ring 1 = 30 days raised Drifting from 5 to 9 at once; "3" showed the error and saved nothing; Reset went back to 90 / 180 (data back to the seed).
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Drift used to be computed separately in several places (App, AgentBar, weekly). | App now computes every person's drift **once** per data change, as one map shared by the tab, the map and the list. AgentBar and the weekly review compute it once per click. |
+| E2 | Drift changes continuously, and the layout re-runs whenever its key changes. | `driftStep` rounds to 1/20, so the layout only re-runs when someone's drift visibly changes. |
+| E3 | The list could look up each person's next reminder by scanning all reminders (N × M). | One pass builds a map; sorting is memoized on its inputs. 150 rows need no virtualization. |
+| E4 | Main bundle is now **700 KB** (648 KB at M2). | Still M2-E5 (measure at deploy). The list view itself is small. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Every place that says "drifting" must agree. | One rule (`driftLevel`) and one source of limits (`useDriftThresholds` / `readDriftThresholds`). Live: changing the limit updated the tab, map and list together. |
+| I2 | **M5-I5:** the model's "lost touch" rule had 90 / 180 baked into the prompt. | **Resolved:** the limits travel with the question ("ring 1 = 30 days…"), but the request includes them **only when they differ from the defaults**, so ordinary requests (and future demo-cache keys) are unchanged. Server tests cover custom, default and invalid limits. |
+| I3 | **M4-O4:** a LinkedIn import copies "Connected on" into last contact, so after an AI sort most imports would drift at once. | **Resolved in code:** a LinkedIn person whose last contact is still their connect date doesn't drift; the card and list say "No contact logged · connected 2 years ago". Logging a contact makes them count normally. Unit-tested; not checked with a live import. |
+| I4 | **PX-I1:** a new drawn prop must be in `PersonNode`'s memo comparison. | `drift` added. |
+| I5 | The floating answer card would cover the table's first rows. | In list view the same element sits in the page flow above the table (kept mounted, so screen readers still announce answers). |
+| I6 | Backups. | `driftThresholds` was already an allowed backup key (M1), so limits survive export and import. |
+| I7 | **Demo story:** John Park drifts only slightly (210 days vs a 180-day limit, so his level is 0.17: 93% opacity, a little outward, dotted). | Team decision: see M10-I7 in OPEN_ISSUES. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | New request field `driftDays`. | Validated by zod on the server (whole numbers from 7 to 3650); bad values get a 400. Tested. |
+| S2 | Data leaving the browser. | Only two numbers, and only when they're not the defaults. |
+| S3 | The list renders user text. | As React text (no HTML). The focus-restore selector escapes the id (`CSS.escape`). |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Keyboard: reaching the card meant tabbing past every row. | **Fixed:** focus moves into the card and back on Escape. Checked live. |
+| O2 | The 8 filter tabs are 8 separate Tab stops before the table. | Open: an arrow-key group would be faster; acceptable for now. |
+| O3 | `aria-selected` on rows of a plain table isn't announced by every screen reader. | Each highlighted row also carries hidden text "(in the answer)". **Not tested with VoiceOver**: a team check. |
+| O4 | **M2-O2** (map Tab order goes ring 3 → 1). | The list view is now the keyboard-first path, which is what M2-O2 asked for. Moved to Resolved. |
+| O5 | For imported people, the AI summary still includes the connect date as last contact, so the model's *sentence* about "lost touch" could count them. | The highlighted list is computed in code with the gentle rule, and the card says "list checked against your data" when they differ. Open (won't fix). |
+| O6 | Whether you're in Map or List isn't remembered after a reload. | By design for now (UI state); easy to persist later. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m10).
+

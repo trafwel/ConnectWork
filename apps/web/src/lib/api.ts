@@ -22,7 +22,7 @@
  *
  * Guide: §9.6
  */
-import { ApiErrorBody, QueryResponse } from '@connectwork/shared';
+import { ApiErrorBody, QueryResponse, type QueryRequest } from '@connectwork/shared';
 import type { z } from 'zod';
 import { today } from './dates';
 
@@ -64,8 +64,8 @@ async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal
 }
 
 // Step 3
-export function askQuery(question: string, summary: string, signal?: AbortSignal): Promise<ApiResult<QueryResponse>> {
-  return post('/ai/query', { question, summary }, QueryResponse, signal);
+export function askQuery(question: string, summary: string, signal?: AbortSignal, driftDays?: QueryRequest['driftDays']): Promise<ApiResult<QueryResponse>> {
+  return post('/ai/query', driftDays ? { question, summary, driftDays } : { question, summary }, QueryResponse, signal);
 }
 
 // Step 5 (R). One line per new endpoint: aiPost('/links', body, LinksResponse).

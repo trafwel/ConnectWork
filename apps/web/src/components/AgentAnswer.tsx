@@ -28,7 +28,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 
-export function AgentAnswer() {
+/** `inline` (M10 list view): sits above the table in the page flow instead of floating over it. */
+export function AgentAnswer({ inline = false }: { inline?: boolean }) {
   const busy = useStore((s) => s.agentBusy);
   const answer = useStore((s) => s.agentAnswer);
   const error = useStore((s) => s.agentError);
@@ -40,7 +41,13 @@ export function AgentAnswer() {
   return (
     // Step 1. Always mounted, so screen readers announce each new answer.
     // Top-left: the corners are outside the rings, so the card never hides who it's about.
-    <div aria-live="polite" className="pointer-events-none absolute top-3 left-3 z-10 w-[min(24rem,calc(100%-1.5rem))]">
+    <div
+      aria-live="polite"
+      className={cn(
+        'pointer-events-none z-10 w-[min(24rem,calc(100%-1.5rem))]',
+        inline ? 'relative mx-4 mt-3 shrink-0 empty:mt-0' : 'absolute top-3 left-3',
+      )}
+    >
       {busy ? (
         <div className="pointer-events-auto inline-flex items-center gap-2 rounded-md border bg-background py-1 pr-1 pl-3 text-sm text-muted-foreground shadow-sm">
           Thinking…

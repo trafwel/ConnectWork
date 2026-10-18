@@ -20,6 +20,7 @@
  */
 import type { Person, Reminder } from '@connectwork/shared';
 import { daysSince } from './dates';
+import { isConnectDateOnly } from './drift';
 
 /** "Abbey Chen" → "AC", "Mary Jane Watson" → "MW": at most two letters so it fits a ring-1 node. */
 export function initials(name: string): string {
@@ -42,6 +43,8 @@ const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} a
 
 export function describeLastContact(p: Person, now = new Date()): string {
   if (!p.lastContact) return 'No contact logged';
+  // M10 (M4-O4): a LinkedIn "connected on" date is not a conversation, so say what it is.
+  if (isConnectDateOnly(p)) return `No contact logged · connected ${describeLastContact({ ...p, source: 'manual' }, now).toLowerCase()}`;
   const days = daysSince(p.lastContact, now);
   if (days <= 0) return 'Today'; // a future date (bad import) reads as today rather than "-3 days ago"
   if (days === 1) return 'Yesterday';

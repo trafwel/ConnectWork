@@ -75,6 +75,7 @@ import type { Link, Person, Ring, Tag } from '@connectwork/shared';
 import { Button } from '@/components/ui/button';
 import { updatePerson } from '@/db/actions';
 import { safeColor, tagColor } from '@/lib/colors';
+import { DRIFT_OFFSET, driftStep } from '@/lib/drift';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
@@ -92,7 +93,6 @@ interface Props {
   links: Link[];
   tags: Tag[];
   filterContext: FilterContext;
-  offsetFor?: (p: Person) => number;
 }
 
 /** Step 1. Measure on mount, then follow resizes (the observer alone is silent in background tabs). */
@@ -115,7 +115,7 @@ function useSize<E extends HTMLElement>() {
 }
 
 
-export function RingMap({ people, links, tags, filterContext, offsetFor }: Props) {
+export function RingMap({ people, links, tags, filterContext }: Props) {
   const [containerRef, { width, height }] = useSize<HTMLDivElement>();
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -132,6 +132,10 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
   const [hoverId, setHoverId] = useState<string | null>(null);
 
   // Step 2.
+  // M10 step 4. Drifting people sit up to 6% of the map's size further out. driftStep() rounds
+  // the level so the layout (which keys on this value) re-runs only on a visible change.
+  const base = Math.min(width, height);
+  const offsetFor = (p: Person) => driftStep(filterContext.drift?.get(p.id) ?? 0) * DRIFT_OFFSET * base;
   const layout = useForceLayout(people, links, width, height, offsetFor);
   const layoutPositions = layout.positions;
   // Memoized: the drag hook's effect depends on it (a new object per render would reset a drag).
@@ -361,6 +365,7 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                 highlighted={highlightIds.has(p.id)}
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
+                drift={driftStep(filterContext.drift?.get(p.id) ?? 0)}
                 onSelect={onSelectNode}
                 onHover={setHoverId}
                 editing={editing}

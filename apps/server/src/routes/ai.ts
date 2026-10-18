@@ -61,7 +61,12 @@ export function aiRoutes(deps: AppDeps) {
     response: QueryResponse,
     system: QUERY_SYSTEM,
     thinking: 'low',
-    parts: (b, today) => [{ text: `Today is ${today}.\n\nNetwork:\n${b.summary}\n\nQuestion: ${b.question}` }],
+    // M10: the user's drift limits (or the defaults) travel with the question, not in the system prompt.
+    parts: (b, today) => [
+      {
+        text: `Today is ${today}.\nLost-touch limits: ring 1 = ${b.driftDays?.ring1 ?? 90} days, ring 2 = ${b.driftDays?.ring2 ?? 180} days.\n\nNetwork:\n${b.summary}\n\nQuestion: ${b.question}`,
+      },
+    ],
     // Step 7. Guardrail in code: the model can never point at someone who isn't in the data.
     post: (res, b) => {
       const known = summaryIds(b.summary);

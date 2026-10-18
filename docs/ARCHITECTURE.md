@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M9 built** — everything through M8, plus *Snap to add*: a photo (downscaled, metadata stripped) or PDF goes to `/extract`, Gemini reads the people, the server cleans them, and the review sheet shows who's new and who's already in your network. Drift (M10) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M10 built** — everything through M9 and the two map fix steps, plus *drift* (people you haven't contacted in a while fade and move outward; limits editable in Settings and used by the AI) and the *list view*, the map's accessible twin. Google Calendar (M11) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -59,11 +59,12 @@ flowchart LR
     Review["Review sheet<br/><small>ReviewSheet · AI proposes, you accept · M6</small>"]:::built
     Weekly["Weekly review · Draft a message<br/><small>WeeklyReview, PersonCard · M8</small>"]:::built
     Snap["Snap to add<br/><small>SnapDialog (lazy), lib/image.ts · M9</small>"]:::built
+    List["List view<br/><small>ListView · sortable table, same filters + highlights · M10</small>"]:::built
   end
 
   Layout["Ring layout<br/><small>graph/layout.ts · d3-force, settled before paint · M2</small>"]:::built
   Helpers["Pure helpers<br/><small>lib/filters.ts, people.ts, colors.ts · M1–M2</small>"]:::built
-  Summary["Summary + guardrails<br/><small>lib/graphSummary.ts, exactMatch.ts, drift.ts (step 1) · M5</small>"]:::built
+  Summary["Summary + guardrails<br/><small>lib/graphSummary.ts, exactMatch.ts · M5<br/>drift.ts + useDriftThresholds: one drift rule for map, list, AI · M10</small>"]:::built
   Api["API client<br/><small>lib/api.ts · typed results, re-validates · M5</small>"]:::built
   Relay["Texting relay client · M16"]:::planned
 
@@ -92,7 +93,10 @@ flowchart LR
   Tabs -->|"Add to calendar"| Ics
   Card -->|"Add to calendar"| Ics
   Ics --> IcsFile
-  App -->|"due / overdue / drifting sets → flags"| Map
+  App -->|"due / overdue sets → flags; drift levels → offset, fading"| Map
+  App -->|"view = list"| List
+  List -->|"select, sort, filter"| Store
+  Chrome -->|"drift limits (DriftSettings)"| Actions
   Card -->|"read: useLiveQuery"| DB
   Card -->|"every write"| Actions
   Actions -->|"one transaction per rule"| DB
@@ -191,7 +195,7 @@ flowchart LR
 | M9 | Snap to add (photo / PDF → people) | ✅ built ([review](REVIEWS.md#m9)) |
 | Fix 1 | Map labels (no overlap, zoom-proof), click focus, named connections, Add connection | ✅ built ([review](REVIEWS.md#fix-step-1-map-labels)) |
 | Fix 2 | Ripple reminder style, "Move people" edit mode (drag or keys to change ring) | ✅ built ([review](REVIEWS.md#fix-step-2-map-features)) |
-| M10 | Drift on the map, settings | ⬜ next |
+| M10 | Drift on the map, drift limits in Settings, list view, keyboard path | ✅ built ([review](REVIEWS.md#m10)) |
 | M11–M14 | Google Calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
@@ -213,3 +217,4 @@ flowchart LR
 | Oct 17 | M9 | Browser: Snap dialog (lazy, shares the CSV chunk) + image prep built. Server: `/extract` on the route helper, roster-only caching. Status: M9 ✅, M10 next. |
 | Oct 17 | Fix 1 | Browser: the ring map gains a screen-space label layer (`ScreenLabels.tsx` + pure `labels.ts`); the person card can add and rename connections through `actions.ts` (`upsertLink`, new `renameLink`). No new arrows: same store, same database. Status: fix 1 ✅, fix 2 (ripple pulse, drag-to-ring) next. |
 | Oct 17 | Fix 2 | Browser: Appearance gains Reminders (Flag/Ripple, an `<html>` attribute + CSS); the ring map gains "Move people" (`useRingDrag.ts`, an `editRings` flag in the UI state), which writes ring changes through `actions.ts` (`updatePerson`). No new arrows. Status: fix 2 ✅, M10 next. |
+| Oct 17 | M10 | Browser: new List view box (App → List → UI state); App computes each person's drift once and feeds the map (offset, fading) and list; Settings writes the drift limits through `actions.ts`; Summary + guardrails now names the single drift rule (`drift.ts`, `useDriftThresholds`). Server: `/query` takes optional limits. Status: M10 ✅, M11 next. |
