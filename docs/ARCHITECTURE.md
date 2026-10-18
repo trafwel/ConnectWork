@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M0 built** — the web app talks to the server's health check. Everything else is a scaffold.
+**Current state: M1 built** — the demo network is seeded into IndexedDB on first load, the screen shows a live people count, and Settings can export, import, reset or delete the data. The map and everything after it are scaffolds. Self-reviews: [REVIEWS.md](REVIEWS.md).
 
 ### 1. The big picture
 
@@ -36,11 +36,13 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Demo[/"demo/ files<br/><small>seed.json · Connections.csv · roster.pdf</small>"/]:::planned
-  App["App shell<br/><small>App.tsx · M0</small>"]:::built
-  Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::planned
-  Seed["Seed · reset · export<br/><small>db/seed.ts, materialize.ts · M1</small>"]:::planned
-  DB[("IndexedDB<br/><small>db/db.ts · M1</small>")]:::planned
+  Demo[/"demo/seed.json<br/><small>loaded on demand · M1</small>"/]:::built
+  App["App shell<br/><small>App.tsx · M0–M1</small>"]:::built
+  Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1</small>"]:::built
+  Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
+  Seed["Seed · reset · delete · export · import<br/><small>db/seed.ts, materialize.ts · M1</small>"]:::built
+  DB[("IndexedDB<br/><small>db/db.ts · M1</small>")]:::built
+  BackupFile[/"Backup file<br/><small>connectwork-backup-DATE.json</small>"/]:::built
   Actions["Every write<br/><small>db/actions.ts · M3</small>"]:::planned
 
   subgraph UI["Screens and panels"]
@@ -57,10 +59,15 @@ flowchart LR
   Api["lib/api.ts → server · M5"]:::planned
   Relay["Texting relay client · M16"]:::planned
 
-  App -.-> Store
-  App -.->|"first run"| Seed
-  Demo -.-> Seed
-  Seed -.-> DB
+  App -->|"ensureSeeded() on mount"| Seed
+  App -->|"people count: useLiveQuery"| DB
+  App --> Chrome
+  Chrome -->|"settingsOpen, clearFocus"| Store
+  Chrome -->|"reset · delete · export · import"| Seed
+  Seed <-->|"export / import (validated)"| BackupFile
+  Demo -->|"dynamic import()"| Seed
+  Seed -->|"one transaction per action"| DB
+  UI -.->|"select: useStore"| Store
   UI -.->|"read: useLiveQuery"| DB
   UI -.->|"write"| Actions
   Actions -.-> DB
@@ -107,7 +114,7 @@ flowchart LR
 
 | Data | Lives in | Leaves the browser? |
 | --- | --- | --- |
-| People, links, reminders, notes, settings | IndexedDB in the user's browser | Only as an opt-in AI request: a compact summary without notes (M5); notes only for a person the user asks about (M8 draft, M11 brief) |
+| People, links, reminders, notes, settings | IndexedDB in the user's browser (and backup files the user exports, unencrypted) | Only as an opt-in AI request: a compact summary without notes (M5); notes only for a person the user asks about (M8 draft, M11 brief) |
 | Gemini API key | Server `.env` | Never reaches the browser |
 | Google Calendar token | Browser memory only | Sent only to Google |
 | Texts to the agent | Photon → server (in memory) → browser tab | Optional: the conversation (never the network) to Backboard |
@@ -118,8 +125,8 @@ flowchart LR
 | Milestone | Parts | Status |
 | --- | --- | --- |
 | M0 | App shell ↔ `/api/health` | ✅ built |
-| M1 | IndexedDB, seeding, UI state, settings | ⬜ next |
-| M2 | Ring map | ⬜ |
+| M1 | IndexedDB, seeding, UI state, settings | ✅ built ([review](REVIEWS.md#m1)) |
+| M2 | Ring map | ⬜ next |
 | M3 | Every write (`actions.ts`), person card, quick add | ⬜ |
 | M4 | CSV import | ⬜ |
 | M5 | Ask Connectwork → `/api/ai/query` → Gemini | ⬜ |
@@ -132,3 +139,4 @@ flowchart LR
 | Date | Milestone | What changed in the graph |
 | --- | --- | --- |
 | Oct 17 | — | First version, as three diagrams (big picture, browser, server): M0 built (App ↔ health); everything else planned. |
+| Oct 17 | M1 | Browser diagram: demo file, App, top bar + Settings, UI state, seed module and IndexedDB are built; added the backup file and the real arrows (seed on mount, live count, Settings → seed → one transaction per action). Status: M1 ✅, M2 next. |

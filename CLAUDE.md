@@ -16,7 +16,7 @@ Connectwork is a local-first web app that maps a user's personal network as ring
 
 1. **Claude implements ONE milestone (M#) per round** — never two, never "keep going".
 2. **Explain the thinking while building, not just the result.** For each file: what problem it solves, the options considered, why this approach, and the concept behind it (e.g. "why IndexedDB instead of localStorage", "why memoize this promise"). Plain language first, then the code.
-3. **Self-review after every milestone (before the teach-back), written up for the team:**
+3. **Self-review after every milestone (before the teach-back), written up for the team in `docs/REVIEWS.md`:**
    - **Efficiency** — wasted work, extra renders, N+1 database calls, things computed twice, oversized payloads.
    - **Integration** — does it work with every piece it touches (store, database, server, other milestones' files, the architecture graph)? Run the app and check, don't assume.
    - **Security & privacy** — data leaving the browser, secrets, injection (prompt, HTML, CSV), unsafe input, logging of personal data.
