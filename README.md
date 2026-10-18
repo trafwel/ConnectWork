@@ -40,7 +40,7 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 
 ## Quick start
 
-Requirements: Node 20+ and pnpm 10.
+Requirements: Node 22.13+ (or 24, or 26, which we use) and pnpm 10. Node 20 and the odd-numbered 23/25 don't work with the test tools.
 
 ```bash
 npm install -g pnpm@10
@@ -49,10 +49,14 @@ cd connectwork
 pnpm install
 cp .env.example .env     # add your GEMINI_API_KEY from Google AI Studio
 pnpm seed                # generate fictional demo data
-pnpm dev                 # app on http://localhost:5173, API on :8787
+git switch m8-weekly      # the newest milestone (see below)
+pnpm install
+pnpm dev                 # app on http://localhost:5173, API on http://localhost:8787/api/…
 ```
 
-Right now the app is at **M0**: it shows "Server ok". Every later file is a scaffold with step-by-step comments — run `pnpm todo` to see what's next. Once M1–M5 are built, the app loads a sample network of 40 fictional people on first run. Then try:
+**Which branch?** `main` is still the starting point: it only shows a title and "Server ok". The built milestones are on stacked branches (`m1-data` → … → `m8-weekly`, pull requests #2–#10), so use the newest one until they're merged. Opening `localhost:8787` itself shows "404 Not Found"; that's normal, because the server only answers under `/api/` (e.g. `/api/health`).
+
+On the newest branch the app loads a sample network of 40 fictional people on first run. Then try:
 
 1. Press **N** to add someone.
 2. **Import** → `demo/Connections.csv` (a fake LinkedIn export).
@@ -122,4 +126,4 @@ Cook Smarter (title track) · Best Use of VEYZL · Photon 2.0 Messaging Agent ·
 ## Team
 
 - Luke Prasarttongosoth
-- *[teammate name]*
+- Raio Chea

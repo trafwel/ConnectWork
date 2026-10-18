@@ -1,5 +1,5 @@
 /**
- * App shell · M7 state (grows in every milestone)
+ * App shell · M8 state (grows in every milestone)
  *
  * WHAT THIS DOES NOW (M3)
  *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar
@@ -8,6 +8,7 @@
  *   M5: "Ask Connectwork" in the top bar, the answer card over the map, the free-tier banner.
  *   M6: "Find hidden links", and the review sheet on the right for AI suggestions.
  *   M7: filter tabs on the left, reminder flags on the map, the Due panel on the right.
+ *   M8: "Review my week" → the weekly plan panel; "Draft a message" on each person card.
  *   Step S: Appearance (Neutral/Atlas × System/Light/Dark) via lib/appearance.ts.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
@@ -54,7 +55,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Upload, Waypoints } from 'lucide-react';
+import { CalendarCheck, Plus, Upload, Waypoints } from 'lucide-react';
 import { AgentAnswer } from '@/components/AgentAnswer';
 import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
@@ -65,6 +66,7 @@ import { ReviewSheet } from '@/components/ReviewSheet';
 import { QuickAdd } from '@/components/QuickAdd';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { TopBar } from '@/components/TopBar';
+import { WeeklyReview } from '@/components/WeeklyReview';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
 import { db } from '@/db/db';
@@ -87,6 +89,8 @@ export default function App() {
   const selectedId = useStore((s) => s.selectedPersonId);
   const rightPanel = useStore((s) => s.rightPanel);
   const filter = useStore((s) => s.filter);
+  const weeklyOpen = useStore((s) => s.weeklyOpen);
+  const setWeeklyOpen = useStore((s) => s.setWeeklyOpen);
   // Step S: style + mode, applied to <html>; Settings changes it, toasts follow it.
   const [appearance, setAppearance] = useAppearance();
   const setDialog = useStore((s) => s.setDialog);
@@ -140,13 +144,16 @@ export default function App() {
         <div className="mx-auto w-full max-w-xl">
           <AgentBar />
         </div>
+        <Button size="sm" onClick={() => setWeeklyOpen(true)}>
+          <CalendarCheck /> Review my week
+        </Button>
         <Button size="sm" variant="outline" onClick={() => void findHiddenLinks()}>
           <Waypoints /> Find hidden links
         </Button>
         <Button size="sm" variant="outline" onClick={() => setDialog('import', true)}>
           <Upload /> Import
         </Button>
-        <Button size="sm" onClick={openQuickAdd} aria-keyshortcuts="N">
+        <Button size="sm" variant="outline" onClick={openQuickAdd} aria-keyshortcuts="N">
           <Plus /> Add <kbd className="ml-1 text-xs opacity-70">N</kbd>
         </Button>
       </TopBar>
@@ -176,6 +183,9 @@ export default function App() {
           <ReviewSheet />
         ) : selectedId ? (
           <PersonCard personId={selectedId} />
+        ) : weeklyOpen ? (
+          // M8: closing a person's card returns here.
+          <WeeklyReview />
         ) : filter === 'due' ? (
           <RemindersPanel />
         ) : null}

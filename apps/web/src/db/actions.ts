@@ -189,6 +189,12 @@ export async function snoozeReminder(id: string, days = 7): Promise<void> {
   await db.reminders.update(id, { dueDate: inDays(days) });
 }
 
+/** M8. Moves an existing reminder to a date (approving a weekly follow-up reschedules it; it
+ * must not create a second reminder for the same follow-up). */
+export async function rescheduleReminder(id: string, dueDate: string): Promise<void> {
+  await db.reminders.update(id, { dueDate, done: false });
+}
+
 export async function deleteReminder(id: string): Promise<void> {
   await db.reminders.delete(id);
 }

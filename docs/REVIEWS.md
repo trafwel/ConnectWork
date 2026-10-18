@@ -472,3 +472,52 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m6).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m7).
+
+## M8
+
+**Weekly review and "Draft a message"** · Oct 17 · branch `m8-weekly`
+
+**How it was checked:** typecheck, lint, 118 tests (new: 5 for `weeklyCandidates` on the real demo data, 3 for the weekly-review guardrails, 1 for drafts), production build.
+
+**Live, against Gemini** (demo data; tested on the team's running dev server at :5174):
+- **Review my week** (3.5 s): "4 follow-ups and 1 reconnect due this week…". All 5 actions were real candidates, John Park included, with grounded reasons and drafts of 24–37 words.
+- **Approve** on John's follow-up rescheduled his **one** existing reminder (still 1, no duplicate). Approve on Aisha's reconnect added a reminder for Oct 19. **Nobody's last contact changed.**
+- **Card round trip:** opening John from the panel and closing his card returned to the same plan, with approvals kept and **0** extra AI calls.
+- **Draft a message** (1.2 s) uses John's real notes.
+- A stubbed plan with a suggested link: Approve **accepted** the link.
+- After the prompt fix, a re-run produced 6 drafts with no invented meetings or places, plus a real intro (Lucas ↔ Abbey, both UW).
+- No console errors.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Reopening the panel (e.g. after a person card) would call Gemini again. | **Avoided:** the plan is cached in the store; only "Plan again" asks for a new one. Verified: 0 calls on a round trip. |
+| E2 | The model doesn't scan everyone: code sends at most 40 candidates. | ✅ (lesson 4). The whole summary is still sent for context (M5-E2). |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | The scaffold's "Approve → addReminder" would give a follow-up a **second** reminder next to the one that made it a candidate. | **Fixed:** follow-ups reschedule the existing reminder (`rescheduleReminder`). Verified live. |
+| I2 | Approving must never count as contact. | ✅ `lastContact` unchanged (verified); only "Log contact" changes it. |
+| I3 | Right-panel order: review → person card → weekly → Due panel. | Closing a card returns to the plan (verified). |
+| I4 | "Approve all" can't copy six drafts: the clipboard holds one. | By design: Approve all does the actions, and drafts are copied from their cards. |
+| I5 | For `accept_link`, the people come from *our* candidate, not the model's copy. | ✅ Tested. |
+| I6 | The request body carries `today`, so the demo-cache key changes daily. | Intended: a weekly plan is about today. `today` goes through the same ±1-day check as M5's header. |
+| I7 | "Review my week" is now the primary button and "Add" is outline. | Visual change, intended (the demo's finale). |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | **"Draft a message" sends that person's notes** (≤ 4,000 characters) and the names of people linked to them. | Only on click, only for that person. Free-tier rule still applies: demo data only. Weekly review sends no notes (summary + candidates). |
+| S2 | Guardrails in code: every action must match a candidate (kind + people), a real link, a real date today…+30 days, known ids, no duplicates. | Tested (the made-up link, the past date, Feb 30, an invented task and a duplicate are all dropped). |
+| S3 | Nothing is sent on the user's behalf. | Drafts are editable text, copied only on click. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | **Drafts invented small details** in live testing: "great catching up after the career fair", "how is Seattle". | **Fixed (prompt):** an explicit rule in both prompts, with these examples. A re-run had none. Residual risk: models vary, so drafts stay "edit before sending". |
+| O2 | If the model gives a follow-up no `reminderDate`, Approve only marks the card done. | Open, **team decision**: should approving a follow-up also mark its reminder done? |
+| O3 | Clipboard can be refused (e.g. an unfocused window). | Handled: the toast says to copy by hand instead of claiming success (seen live in the test pane). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m8).

@@ -1,5 +1,5 @@
 /**
- * M8 helper — POST /api/ai/draft · Owner: Person B · ~15 min
+ * M8 helper — POST /api/ai/draft · done
  *
  * WHAT THIS ACHIEVES
  *   A "Draft follow-up" button on any person card: one short, specific message
@@ -23,11 +23,23 @@
  * Contract: DraftRequest / DraftResponse · Spec: SPEC.md §9.4
  */
 import type { Hono } from 'hono';
+import { DraftRequest, DraftResponse } from '@connectwork/shared';
 import type { AppDeps } from '../app';
+import { DRAFT_SYSTEM } from '../prompts';
+import { structured } from './structured';
 
-export function registerDraft(_routes: Hono, _deps: AppDeps): void {
-  // TODO(M8) 1: structured(_routes, _deps, { path: '/draft', request: DraftRequest, response: DraftResponse,
-  //   system: DRAFT_SYSTEM, thinking: 'low',
-  //   parts: (b) => [{ text: `Person (JSON):\n${JSON.stringify(b.person)}\nShared connections: ${b.sharedConnections.join(', ') || 'none'}\nPurpose: ${b.purpose ?? 'catch up'}` }] });
-  // TODO(M8) 2: register it from routes/ai.ts.
+export function registerDraft(routes: Hono, deps: AppDeps): void {
+  structured(routes, deps, {
+    path: '/draft',
+    request: DraftRequest,
+    response: DraftResponse,
+    system: DRAFT_SYSTEM,
+    thinking: 'low',
+    parts: (b) => [
+      {
+        text: `Person (JSON):\n${JSON.stringify(b.person)}\nShared connections: ${b.sharedConnections.join(', ') || 'none'}\nPurpose: ${b.purpose ?? 'catch up'}`,
+      },
+    ],
+    post: (res) => ({ message: res.message.trim() }),
+  });
 }
