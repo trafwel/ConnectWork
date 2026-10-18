@@ -309,61 +309,13 @@
       "lastContactDaysAgo": 138
     },
     {
-      "id": "p_21",
-      "name": "Nina Yamada",
-      "ring": 3,
-      "primaryTag": "Work",
-      "tags": [
-        "Work",
-        "intro"
-      ],
-      "company": "Expedia Group",
-      "role": "Engineering Manager",
-      "school": "University of British Columbia",
-      "email": "nina.yamada@example.com",
-      "linkedinUrl": "https://www.linkedin.com/in/nina-yamada-demo",
-      "metDaysAgo": 736,
-      "lastContactDaysAgo": 295
-    },
-    {
-      "id": "p_22",
-      "name": "Lucas Gupta",
-      "ring": 3,
-      "primaryTag": "Work",
-      "tags": [
-        "Work",
-        "intro"
-      ],
-      "company": "Zillow",
-      "role": "Research Scientist",
-      "school": "University of Washington",
-      "email": "lucas.gupta@example.com",
-      "linkedinUrl": "https://www.linkedin.com/in/lucas-gupta-demo",
-      "metDaysAgo": 994,
-      "lastContactDaysAgo": 248
-    },
-    {
-      "id": "p_23",
-      "name": "Kenji Dubois",
-      "ring": 3,
-      "primaryTag": "Work",
-      "tags": [
-        "Work",
-        "intro"
-      ],
-      "company": "Brightloop Labs",
-      "role": "Software Engineer",
-      "linkedinUrl": "https://www.linkedin.com/in/kenji-dubois-demo",
-      "metDaysAgo": 426,
-      "lastContactDaysAgo": 231
-    },
-    {
       "id": "p_24",
       "name": "Nina Walsh",
       "ring": 3,
       "primaryTag": "Work",
       "tags": [
-        "Work"
+        "Work",
+        "intro"
       ],
       "company": "Microsoft",
       "role": "Solutions Architect",
@@ -379,7 +331,8 @@
       "ring": 3,
       "primaryTag": "Work",
       "tags": [
-        "Work"
+        "Work",
+        "intro"
       ],
       "company": "Microsoft",
       "role": "Research Scientist",
@@ -487,18 +440,6 @@
       "id": "l_12",
       "fromId": "p_11",
       "toId": "p_12",
-      "label": "worked together"
-    },
-    {
-      "id": "l_13",
-      "fromId": "p_12",
-      "toId": "p_21",
-      "label": "worked together"
-    },
-    {
-      "id": "l_14",
-      "fromId": "p_21",
-      "toId": "p_22",
       "label": "worked together"
     },
     {

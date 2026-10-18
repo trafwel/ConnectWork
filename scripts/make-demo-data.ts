@@ -3,7 +3,7 @@
  *
  * WHAT THIS ACHIEVES
  *   A realistic, entirely fictional network that makes every feature demoable from
- *   the first second: 30 people across three rings, links inside groups, overdue
+ *   the first second: 27 people across three rings, links inside groups, overdue
  *   reminders, drifting friends, a fake LinkedIn export, a club roster PDF and sample
  *   meetings. It plants the demo story: Abbey Chen and John Park share a school and
  *   Microsoft but are NOT linked, so the AI can discover them in M6.
@@ -167,8 +167,9 @@ ring1[1]!.lastContactDaysAgo = 120;
 ring2[0]!.lastContactDaysAgo = 260;
 ring2[1]!.lastContactDaysAgo = 300;
 
-// Three people tagged intro.
-for (const p of people.filter((p) => p.primaryTag === 'Work' && p.ring === 3).slice(0, 3)) {
+// People tagged intro (the weekly review suggests introducing them to someone who shares their
+// company or school). Oct 18: the Microsoft pair, the outer-ring Work people the demo keeps.
+for (const p of people.filter((p) => p.primaryTag === 'Work' && p.ring === 3 && p.company === 'Microsoft')) {
   p.tags.push('intro');
 }
 
@@ -196,14 +197,15 @@ addLink('p_abbey', byTag('Work')[0]!.id, 'same team');
 addLink('p_john', byTag('School')[0]!.id, 'CSE 332 study group');
 
 // Demo size (Oct 18): 40 people plus an import was too much to present. The outer ring keeps
-// only its first few people per tag: the three "intro" contacts, the two Microsoft people who
-// make "Who do I know at Microsoft?" interesting, and Kai (on the club-meeting invite). This
-// filters AFTER everything above has drawn its random numbers, so every name, the CSV and the
-// roster stay exactly what they were.
-const RING3_KEEP: Record<string, number> = { Work: 5, School: 1, Clubs: 1, Friends: 1 };
+// only the people the demo needs: in Work, just the two Microsoft contacts (they make "Who do I
+// know at Microsoft?" interesting; Work was still the most crowded group), and one person each in
+// School, Clubs (Kai, on the club-meeting invite) and Friends. This filters AFTER everything above
+// has drawn its random numbers, so every name, the CSV and the roster stay exactly what they were.
+const RING3_KEEP: Record<string, number> = { School: 1, Clubs: 1, Friends: 1 };
 const ring3Seen = new Map<string, number>();
 const seedPeople = people.filter((p) => {
   if (p.ring !== 3) return true;
+  if (p.primaryTag === 'Work') return p.company === 'Microsoft';
   const n = (ring3Seen.get(p.primaryTag) ?? 0) + 1;
   ring3Seen.set(p.primaryTag, n);
   return n <= (RING3_KEEP[p.primaryTag] ?? 0);
@@ -237,9 +239,9 @@ if (!reminders.every((r) => kept.has(r.personId))) throw new Error('a reminder p
 writeFileSync(`${OUT}seed.json`, JSON.stringify({ people: seedPeople, links: seedLinks, reminders }, null, 2) + '\n');
 
 // ---------------------------------------------------------------------------
-// Connections.csv — fake LinkedIn export (16 rows, 6 overlap the seed)
+// Connections.csv — fake LinkedIn export (12 rows, 6 overlap the seed)
 // ---------------------------------------------------------------------------
-const DEMO_CSV_ROWS = 16;
+const DEMO_CSV_ROWS = 12;
 const csvEscape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 const linkedinDate = (daysAgo: number) => {
   const d = new Date(Date.UTC(2026, 9, 17) - daysAgo * 86400000);
@@ -272,8 +274,8 @@ const csv = [
   '"When exporting your connection data, you may notice that some of the email addresses are missing. You will only see email addresses for connections who have allowed their connections to see or download their email address using this setting https://www.linkedin.com/psettings/privacy/email. You can learn more here https://www.linkedin.com/help/linkedin/answer/261"',
   '',
   'First Name,Last Name,URL,Email Address,Company,Position,Connected On',
-  // Demo size (Oct 18): 120 rows made the map too crowded to present, so only the first 16 are
-  // written (the 6 seed overlaps + 10 new). All 120 are still generated so the random sequence,
+  // Demo size (Oct 18): 120 rows made the map too crowded to present, so only the first 12 are
+  // written (the 6 seed overlaps + 6 new). All 120 are still generated so the random sequence,
   // and with it every other demo file, stays byte-identical.
   ...rows.slice(0, DEMO_CSV_ROWS).map((r) => r.map(csvEscape).join(',')),
 ].join('\n');

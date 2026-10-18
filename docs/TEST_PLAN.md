@@ -28,7 +28,7 @@ Seeding, backups, reset and delete.
 2. Close Settings
 
 **You should see**
-- The map shows 30 people in three rings
+- The map shows 27 people in three rings
 - The All tab on the left says 40
 
 ### Data survives a reload `m1-persist`
@@ -79,7 +79,7 @@ Seeding, backups, reset and delete.
 
 **You should see**
 - The map is empty and stays empty after reload
-- Reset brings back 30 people
+- Reset brings back 27 people
 - Your “About you” text is still there
 
 ## M2 · The ring map
@@ -198,7 +198,7 @@ Use demo/Connections.csv from the repo.
 2. Drop demo/Connections.csv on the box (or click to choose it)
 
 **You should see**
-- “16 people found in your LinkedIn export · 10 new people · 6 already here”
+- “12 people found in your LinkedIn export · 6 new people · 6 already here”
 
 ### Import lands on the outer ring `m4-import`
 
@@ -223,7 +223,7 @@ Use demo/Connections.csv from the repo.
 1. Reset demo data, import the file, click Undo in the toast
 
 **You should see**
-- Back to 30 people
+- Back to 27 people
 
 ### Drop zone by keyboard `m4-keyboard` (open issue M4-I4)
 

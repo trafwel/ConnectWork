@@ -63,7 +63,7 @@ export function FilterTabs({ counts }: { counts: Record<string, number> }) {
 
   // Step 2
   return (
-    <nav aria-label="Filters" className="w-44 shrink-0 space-y-0.5 overflow-y-auto border-r bg-background p-2">
+    <nav aria-label="Filters" className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
       {tabs.map((t) => {
         const active = filter === t.value;
         return (

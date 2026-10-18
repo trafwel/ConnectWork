@@ -13,6 +13,7 @@ export function Segmented<T extends string | number>({
   onChange,
   label,
   id,
+  className = 'inline-flex rounded-md border p-0.5',
 }: {
   value: T;
   options: Array<{ value: T; label: string }>;
@@ -20,6 +21,8 @@ export function Segmented<T extends string | number>({
   /** Accessible name of the group, e.g. "Ring". */
   label: string;
   id?: string;
+  /** Container layout; the view switcher uses a 2×2 grid to fit the sidebar (Oct 18). */
+  className?: string;
 }) {
   const buttons = useRef(new Map<T, HTMLButtonElement | null>());
   const index = Math.max(0, options.findIndex((o) => o.value === value));
@@ -35,7 +38,7 @@ export function Segmented<T extends string | number>({
       id={id}
       role="radiogroup"
       aria-label={label}
-      className="inline-flex rounded-md border p-0.5"
+      className={className}
       onKeyDown={(e) => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(1);
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(-1);

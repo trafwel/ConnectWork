@@ -1120,3 +1120,13 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **Fresh map:** 30 people and 23 visible lines (close-people lines), so the groups read as clusters.
 
 **Checks:** typecheck, lint, 198 tests, build.
+
+### Follow-up (Oct 18, before the deadline): less Work, cleaner top bar
+
+- **Work had too many people.** Its outer ring now keeps only the two Microsoft contacts, and the import adds 6 new people (12 rows), not 10. Seed: 27 people (Work 8); after import, 33 (Work 14). Demo answers re-recorded and replayed. The import preview reads "12 found · 6 new · 6 already here", and Abbey ↔ John is still first at 90%.
+- **Top bar:** the search bar takes all the free width.
+  - "Review my week" stays a primary button.
+  - Find hidden links, Snap, Import and Add person moved into one **Tools** menu next to Settings. It's a disclosure: a button with `aria-expanded`, with Escape and outside clicks closing it. The N shortcut still works.
+- **View switcher** (Map / Groups / List / Month) moved to the bottom-left corner, under the filters, as a 2×2 grid. Arrow keys still move between views.
+- **Meetings:** the strip is now labeled "Meetings" (was "Sample meetings"). Each meeting has a colored edge in the group color of the first known attendee, and avatars are filled with each person's group color. The group is also in the accessible name, so color isn't the only signal.
+- **Checked:** typecheck, lint, tests, build. In the browser: the layout, and the Tools menu opening and closing.
