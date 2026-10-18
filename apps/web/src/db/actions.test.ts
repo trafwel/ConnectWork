@@ -5,6 +5,8 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_TAGS, FALLBACK_COLOR } from '@/lib/colors';
 import {
   acceptLink,
+  applyImport,
+  connectPeople,
   addPerson,
   addReminder,
   deletePerson,
@@ -216,6 +218,24 @@ describe('upsertLink', () => {
     expect(await db.links.count()).toBe(0);
   });
 
+  it('connectPeople creates once, names it, promotes a suggestion, and refuses self-links', async () => {
+    const a = await person('A');
+    const b = await person('B');
+    const c = await person('C');
+    expect(await connectPeople(a.id, b.id, '  roommates ')).toMatchObject({ created: true });
+    expect(await connectPeople(b.id, a.id)).toMatchObject({ created: false }); // already there
+    expect((await db.links.toArray())[0]).toMatchObject({ status: 'accepted', source: 'user', label: 'roommates' });
+    await upsertLink(a.id, c.id, { source: 'ai', status: 'suggested', label: 'AI guess' });
+    expect(await connectPeople(c.id, a.id)).toMatchObject({ created: false });
+    expect(await db.links.where('fromId').anyOf(a.id, c.id).filter((l) => [l.fromId, l.toId].includes(c.id)).first()).toMatchObject({
+      status: 'accepted',
+      source: 'user',
+      label: 'AI guess',
+    });
+    expect(await connectPeople(a.id, a.id)).toBeNull();
+    expect(await db.links.count()).toBe(2);
+  });
+
   it('renameLink trims and caps the name, and an empty one clears it', async () => {
     const a = await person('A');
     const b = await person('B');
@@ -227,6 +247,24 @@ describe('upsertLink', () => {
     expect((await db.links.get(link.id))?.label).toHaveLength(LINK_LABEL_MAX);
     await renameLink(link.id, '   ');
     expect(await db.links.get(link.id)).not.toHaveProperty('label');
+  });
+});
+
+describe('applyImport ids (polish)', () => {
+  it('gives the same people the same ids on every import, so recorded demo answers match', async () => {
+    const plan = { toAdd: [{ name: 'Ana Ruiz', linkedinUrl: 'https://www.linkedin.com/in/ana' }, { name: 'Bo Li', company: 'Acme' }], toUpdate: [] };
+    const first = await applyImport(plan, 'linkedin', 'LinkedIn');
+    await db.people.clear();
+    const second = await applyImport(plan, 'linkedin', 'LinkedIn');
+    expect(second).toEqual(first);
+    expect(first[0]).not.toEqual(first[1]);
+  });
+  it('never reuses an id that is already taken', async () => {
+    const plan = { toAdd: [{ name: 'Ana Ruiz', linkedinUrl: 'https://www.linkedin.com/in/ana' }], toUpdate: [] };
+    const [a] = await applyImport(plan, 'linkedin', 'LinkedIn');
+    const [b] = await applyImport(plan, 'linkedin', 'LinkedIn');
+    expect(b).not.toEqual(a);
+    expect(await db.people.count()).toBe(2);
   });
 });
 

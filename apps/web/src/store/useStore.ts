@@ -100,6 +100,8 @@ export interface UIState {
   expandedGroups: Set<string>;
   toggleGroup: (tag: string) => void;
   collapseGroups: () => void;
+  /** Polish (Oct 18): "Back" — close the most recently opened group. */
+  collapseLastGroup: () => void;
   setFilter: (filter: Filter) => void;
   selectPerson: (id: string | null) => void;
   setHighlights: (ids: Iterable<string>) => void;
@@ -168,6 +170,11 @@ export const useStore = create<UIState>((set, get) => ({
     set({ expandedGroups: next });
   },
   collapseGroups: () => set({ expandedGroups: new Set<string>() }),
+  // Sets keep insertion order, so the last item is the group opened most recently.
+  collapseLastGroup: () => {
+    const open = [...get().expandedGroups];
+    set({ expandedGroups: new Set(open.slice(0, -1)) });
+  },
   openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
   closeReview: () => set({ reviewPayload: null, rightPanel: get().selectedPersonId ? 'person' : null, highlightIds: new Set<string>() }),
   // M8. The panel shows whenever it's open and no review or person card is in front of it.

@@ -3,7 +3,7 @@
 // "done" means: when you finish it, change every `describe(` below back to
 // `describe(` and run `pnpm test` — they should all pass.
 import { describe, expect, it } from 'vitest';
-import type { Person } from '@connectwork/shared';
+import type { Link, Person, Reminder } from '@connectwork/shared';
 import { buildSummary } from './graphSummary';
 
 const p = (over: Partial<Person>): Person => ({
@@ -42,3 +42,22 @@ describe('buildSummary', () => {
     expect(s.split('\n').filter((l) => l.startsWith('R|'))).toEqual(['R|p_b|2026-10-20|ping / soon']);
   });
 });
+
+describe('buildSummary order (polish)', () => {
+  it('is the same whatever order the database returns rows in', () => {
+    const people: Person[] = [
+      { id: 'p_b', name: 'B', ring: 2, primaryTag: 'Work', tags: ['Work'], source: 'seed', createdAt: '' },
+      { id: 'p_a', name: 'A', ring: 1, primaryTag: 'Work', tags: ['Work'], source: 'seed', createdAt: '' },
+    ];
+    const links: Link[] = [
+      { id: 'l_zzz', fromId: 'p_a', toId: 'p_b', source: 'ai', status: 'accepted', label: 'x' },
+      { id: 'l_aaa', fromId: 'p_a', toId: 'p_c', source: 'ai', status: 'accepted' },
+    ];
+    const reminders: Reminder[] = [
+      { id: 'r_2', personId: 'p_b', dueDate: '2026-10-20', note: 'b', done: false },
+      { id: 'r_1', personId: 'p_a', dueDate: '2026-10-19', note: 'a', done: false },
+    ];
+    expect(buildSummary([...people].reverse(), [...links].reverse(), [...reminders].reverse())).toBe(buildSummary(people, links, reminders));
+  });
+});
+

@@ -69,11 +69,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity, zoomTransform, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
-import { Maximize, Move } from 'lucide-react';
+import { ArrowLeft, Maximize, Move } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Link, Person, Ring, Tag } from '@connectwork/shared';
 import { Button } from '@/components/ui/button';
-import { updatePerson } from '@/db/actions';
+import { Segmented } from '@/components/Segmented';
+import { Input } from '@/components/ui/input';
+import { connectPeople, removeLink, updatePerson } from '@/db/actions';
 import { safeColor, tagColor } from '@/lib/colors';
 import { DRIFT_OFFSET, driftStep } from '@/lib/drift';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
@@ -162,7 +164,39 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     [byId],
   );
   const { drag, begin: beginDrag, consumeClick } = useRingDrag(svgRef, g, moveToRing);
-  const onSelectNode = useCallback((id: string) => !consumeClick() && selectPerson(id), [consumeClick, selectPerson]);
+  // Polish (Oct 18): edit mode has two tools. Move (drag or 1/2/3, fix step 2) and Connect: click
+  // (or Enter on) one person, then another, optionally name it → connectPeople, with Undo. The team
+  // found no way to link people by hand on the map (the card's "Add connection" was too hidden).
+  const [tool, setTool] = useState<'move' | 'connect'>('move');
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [pendingPair, setPendingPair] = useState<[string, string] | null>(null);
+  const connecting = editing && tool === 'connect';
+  const onSelectNode = useCallback(
+    (id: string) => {
+      if (consumeClick()) return;
+      if (!connecting) return void selectPerson(id);
+      if (!connectFrom || connectFrom === id) return setConnectFrom(connectFrom === id ? null : id);
+      setPendingPair([connectFrom, id]);
+    },
+    [consumeClick, selectPerson, connecting, connectFrom],
+  );
+  const toggleEditing = () => {
+    setTool('move');
+    setConnectFrom(null);
+    setPendingPair(null);
+    setEditing(!editing);
+  };
+  const finishConnect = async (label: string) => {
+    const pair = pendingPair;
+    setPendingPair(null);
+    setConnectFrom(null);
+    if (!pair) return;
+    const [a, b] = pair.map((id) => byId.get(id)?.name ?? 'them');
+    const res = await connectPeople(pair[0], pair[1], label);
+    if (!res) return;
+    if (!res.created) toast(`${a} and ${b} were already connected${label.trim() ? ': name updated' : ''}`);
+    else toast.success(`Connected ${a} and ${b}`, { action: { label: 'Undo', onClick: () => void removeLink(res.id) } });
+  };
   // The dragged person (and their lines and name) follow the pointer.
   const dragId = drag?.id;
   const dragPos = drag?.pos;
@@ -259,6 +293,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
   const expandedGroups = useStore((s) => s.expandedGroups);
   const toggleGroup = useStore((s) => s.toggleGroup);
   const collapseGroups = useStore((s) => s.collapseGroups);
+  const collapseLastGroup = useStore((s) => s.collapseLastGroup);
   const grouping = useMemo(
     () => (grouped ? buildClusters(people, positions, expandedGroups, new Set(selectedId ? [selectedId] : [])) : null),
     [grouped, people, positions, expandedGroups, selectedId],
@@ -431,7 +466,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                 x={pos.x}
                 y={pos.y}
                 color={tagColor(tags, p.primaryTag)}
-                selected={selectedId === p.id}
+                selected={selectedId === p.id || (connecting && connectFrom === p.id)}
                 highlighted={highlightIds.has(p.id)}
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
@@ -440,7 +475,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                 onHover={setHoverId}
                 editing={editing}
                 dragging={drag?.id === p.id && !!drag.pos}
-                onDragStart={beginDrag}
+                onDragStart={connecting ? undefined : beginDrag}
                 onSetRing={moveToRing}
               />
             );
@@ -451,17 +486,46 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
         <ScreenLabels labels={labels.placed} fontSize={labels.fontSize} animate={labels.animate} />
       </svg>
 
+      {/* Polish (Oct 18): a visible way back out of an opened group (Escape does the same). */}
+      {grouped && expandedGroups.size > 0 && (
+        <Button variant="outline" size="sm" className="absolute top-3 right-3" onClick={collapseLastGroup} aria-keyshortcuts="Escape">
+          <ArrowLeft /> Back (close {[...expandedGroups].at(-1)})
+        </Button>
+      )}
       {grouped ? (
         <GroupPanel people={people} tags={tags} open={grouping ? new Set(grouping.visible.map((p) => p.primaryTag)) : new Set()} onToggle={toggleGroup} onCloseAll={collapseGroups} />
       ) : (
         <Legend tags={tags} />
       )}
       {editing && (
-        <p role="status" className="absolute top-3 left-1/2 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
-          {drag?.pos && drag.ring
-            ? `Drop to move ${byId.get(drag.id)?.name ?? 'them'} to ${RING_NAMES[drag.ring]}`
-            : 'Drag a person to another ring · or focus them and press 1, 2 or 3 · Esc to finish'}
-        </p>
+        <div className="absolute top-3 left-1/2 flex w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col items-center gap-1.5">
+          <Segmented
+            label="Edit tool"
+            value={tool}
+            onChange={(t) => {
+              setTool(t);
+              setConnectFrom(null);
+              setPendingPair(null);
+            }}
+            options={[
+              { value: 'move', label: 'Move' },
+              { value: 'connect', label: 'Connect' },
+            ]}
+          />
+          {pendingPair ? (
+            <ConnectForm a={byId.get(pendingPair[0])?.name ?? ''} b={byId.get(pendingPair[1])?.name ?? ''} onDone={finishConnect} onCancel={() => setPendingPair(null)} />
+          ) : (
+            <p role="status" className="rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
+              {connecting
+                ? connectFrom
+                  ? `Now click who ${byId.get(connectFrom)?.name ?? 'they'} knows · click them again to cancel`
+                  : 'Click a person, then the person they know (or focus and press Enter) · Esc to finish'
+                : drag?.pos && drag.ring
+                  ? `Drop to move ${byId.get(drag.id)?.name ?? 'them'} to ${RING_NAMES[drag.ring]}`
+                  : 'Drag a person to another ring · or focus them and press 1, 2 or 3 · Esc to finish'}
+            </p>
+          )}
+        </div>
       )}
       <div className="absolute right-3 bottom-3 flex flex-col items-end gap-2">
         {zoomed && (
@@ -469,11 +533,50 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
             <Maximize /> Reset view
           </Button>
         )}
-        <Button variant={editing ? 'default' : 'outline'} size="sm" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-          <Move /> {editing ? 'Done moving' : 'Move people'}
+        <Button variant={editing ? 'default' : 'outline'} size="sm" aria-pressed={editing} onClick={toggleEditing}>
+          <Move /> {editing ? 'Done editing' : 'Edit map'}
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Polish (Oct 18): name the new connection (optional), right where the two people were picked. */
+function ConnectForm({ a, b, onDone, onCancel }: { a: string; b: string; onDone: (label: string) => void; onCancel: () => void }) {
+  const [label, setLabel] = useState('');
+  return (
+    <form
+      className="flex items-center gap-1.5 rounded-md border bg-background/95 px-2 py-1.5 text-xs shadow-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onDone(label);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation(); // cancel this pair, stay in edit mode
+          onCancel();
+        }
+      }}
+    >
+      <span className="whitespace-nowrap">
+        Connect <b>{a}</b> and <b>{b}</b>
+      </span>
+      <Input
+        autoFocus
+        value={label}
+        maxLength={60}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="How do they know each other? (optional)"
+        aria-label={`Relationship between ${a} and ${b}`}
+        className="h-7 w-64 text-xs"
+      />
+      <Button type="submit" size="xs">
+        Connect
+      </Button>
+      <Button type="button" size="xs" variant="ghost" onClick={onCancel}>
+        Cancel
+      </Button>
+    </form>
   );
 }
 

@@ -50,6 +50,19 @@ describe('placeLabels', () => {
   });
 });
 
+describe('placeLabels: link pills along their line (polish)', () => {
+  it('spreads two pills whose midpoints collide by sliding one along its own line', () => {
+    const along = (x1: number, y1: number, x2: number, y2: number) =>
+      [0.5, 0.64, 0.36].map((t): [number, number] => [x1 + (x2 - x1) * t - (x1 + x2) / 2, y1 + (y2 - y1) * t - (y1 + y2) / 2]);
+    // Like the screenshot: two ~200 px lines leaving the same person at nearby angles.
+    const pill = (id: string, x2: number): LabelCandidate => ({ id, text: 'worked together', x: (100 + x2) / 2, y: 200, r: 0, priority: 90, kind: 'link', spots: along(100, 300, x2, 100) });
+    const [a, b] = placeLabels([pill('a', 100), pill('b', 180)], measure);
+    expect(a && b).toBeTruthy();
+    const apart = Math.abs(a!.cx - b!.cx) >= (a!.width + b!.width) / 2 || Math.abs(a!.cy - b!.cy) >= (a!.height + b!.height) / 2;
+    expect(apart).toBe(true);
+  });
+});
+
 describe('relationshipLabel', () => {
   const p = (over: Partial<Person>): Person => ({ id: 'p', name: 'A', ring: 2, primaryTag: 'Work', tags: [], source: 'seed', createdAt: '', ...over });
   it('uses the link name first', () => {

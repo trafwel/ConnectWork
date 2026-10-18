@@ -1,5 +1,9 @@
 # Demo day: record the AI answers (M12)
 
+> **Oct 18 status:** `demo/demo-cache.json` holds a full recording of the pitch flow, made and replay-checked on Oct 18. Every step answered in about 0.1 s, after Reset demo data, versus 15–32 s live. It's valid for **Oct 18 only**; on any other day, record again (section 1).
+>
+> **Two fixes made this possible** (polish step): imported people now get repeatable ids, and the network summary is in a fixed order. Before that, every re-import changed the requests, so recorded answers could never match after an import.
+
 The demo shouldn't depend on hackathon Wi-Fi or on Gemini's free tier, which was slow and rate-limited during our testing. So on the morning we present, we record every AI answer the scripted demo needs. Then:
 
 - **Replay:** the server answers from the recording, so there are no Gemini calls and each answer takes about 0.3 s instead of 4–75 s.
@@ -20,8 +24,8 @@ The demo shouldn't depend on hackathon Wi-Fi or on Gemini's free tier, which was
    1. **Import** → `demo/Connections.csv` → Import.
    2. **Sort with AI** → **Accept all**.
    3. Ask: *"Who do I know at Microsoft?"* (and any other question you'll ask on stage, word for word).
-   4. **Find hidden links** → accept Abbey ↔ John.
-   5. Click the **Coffee with John** meeting (prep card).
+   4. **Find hidden links** → **Accept all** (accepting only some changes the later requests).
+   5. Click the **Coffee with John** meeting (prep card), then **Log this meeting**.
    6. **Review my week**.
    7. **Snap** → `demo/roster.pdf` (cancel the review, or accept it if that's part of your demo).
    8. Any **Draft a message** you'll show.
