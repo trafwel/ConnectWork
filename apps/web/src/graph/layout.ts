@@ -1,5 +1,5 @@
 /**
- * M2 — Ring layout (d3-force) · Owner: Person A · ~1.5 h
+ * M2 — Ring layout (d3-force) · done
  *
  * WHAT THIS ACHIEVES
  *   Places every person on their ring around "You", grouped by tag so groups read
@@ -22,7 +22,8 @@
  *      (unknown tags use the last sector).
  *   3. useForceLayout: keep the last nodes in a ref (Map id → node) so existing people keep
  *      their x/y; NEW people start at their target spot with a little random angle jitter.
- *   4. In a useEffect on [people, links, width, height] (skip when width/height is 0):
+ *   4. In a useLayoutEffect (M2 review: useEffect painted one frame of empty rings) on
+ *      [people, links, width, height] (skip when width/height is 0):
  *        const target = (n) => point at ringRadius(n.ring) + n.offset, angle sectorAngle(n.tag)
  *        const sim = forceSimulation(nodes)
  *          .force('radial', forceRadial(n => ringRadius(g, n.ring) + n.offset, g.cx, g.cy).strength(1))
@@ -51,7 +52,19 @@
  *
  * Guide: docs/IMPLEMENTATION_GUIDE.md §6.1
  */
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  forceCollide,
+  forceLink,
+  forceRadial,
+  forceSimulation,
+  forceX,
+  forceY,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from 'd3-force';
 import type { Link, Person, Ring } from '@connectwork/shared';
+import { PRIMARY_TAGS } from '@/lib/colors';
 
 export const RING_FRACTION: Record<Ring, number> = { 1: 0.18, 2: 0.32, 3: 0.46 };
 export const NODE_RADIUS: Record<Ring, number> = { 1: 22, 2: 14, 3: 6 };
@@ -68,6 +81,13 @@ export interface Geometry {
   base: number;
 }
 
+interface Node extends SimulationNodeDatum {
+  id: string;
+  ring: Ring;
+  tag: string;
+  offset: number;
+}
+
 export type Positions = Map<string, { x: number; y: number }>;
 
 /** Positions plus the map size they were computed for (so callers can tell a stale layout). */
@@ -77,28 +97,103 @@ export interface Layout {
   height: number;
 }
 
-export function geometry(_width: number, _height: number): Geometry {
-  // TODO(M2) step 2
-  return { cx: 0, cy: 0, base: 0 };
+export function geometry(width: number, height: number): Geometry {
+  return { cx: width / 2, cy: height / 2, base: Math.min(width, height) };
 }
 
-export function ringRadius(_g: Geometry, _ring: Ring): number {
-  // TODO(M2) step 2
-  return 0;
+/** Rings scale with the smaller side of the map, so all three always fit. */
+export function ringRadius(g: Geometry, ring: Ring): number {
+  return RING_FRACTION[ring] * g.base;
 }
 
-export function sectorAngle(_tag: string): number {
-  // TODO(M2) step 2
-  return 0;
+/** Same primary tag → same direction, so groups read as clusters. Work starts at 12 o'clock. */
+export function sectorAngle(tag: string): number {
+  const i = PRIMARY_TAGS.indexOf(tag);
+  const index = i === -1 ? PRIMARY_TAGS.length - 1 : i; // unknown/custom tags share the last sector
+  return -Math.PI / 2 + (index / PRIMARY_TAGS.length) * 2 * Math.PI;
 }
 
 export function useForceLayout(
-  _people: Person[] | undefined,
-  _links: Link[] | undefined,
-  _width: number,
-  _height: number,
-  _offsetFor: (p: Person) => number = () => 0,
+  people: Person[] | undefined,
+  links: Link[] | undefined,
+  width: number,
+  height: number,
+  offsetFor: (p: Person) => number = () => 0,
 ): Layout {
-  // TODO(M2) steps 3–6
-  return { positions: new Map(), width: 0, height: 0 };
+  const [layout, setLayout] = useState<Layout>({ positions: new Map(), width: 0, height: 0 });
+  /** Last simulated node per id, so existing people restart from where they were. */
+  const nodesRef = useRef<Map<string, Node>>(new Map());
+
+  // Step 6. offsetFor is a new function every render; read the latest one from a ref.
+  const offsetRef = useRef(offsetFor);
+  useLayoutEffect(() => {
+    offsetRef.current = offsetFor;
+  });
+
+  // Only what moves people: id, ring, tag, drift offset, and which links exist. useLiveQuery
+  // hands us a new array on ANY change (e.g. editing notes), which must not re-run the layout.
+  const layoutKey = useMemo(() => {
+    if (!people || !links) return null;
+    const p = people.map((x) => `${x.id}:${x.ring}:${x.primaryTag}:${offsetFor(x)}`).join('|');
+    const l = links.map((x) => `${x.fromId}-${x.toId}`).join('|');
+    return `${p}#${l}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- offsetFor identity changes every render; its values are in the key
+  }, [people, links]);
+
+  const dataRef = useRef({ people, links });
+  useLayoutEffect(() => {
+    dataRef.current = { people, links };
+  });
+
+  // A layout effect, not useEffect: it runs before the browser paints, so the first visible
+  // frame already has everyone placed (useEffect showed one frame of empty rings).
+  useLayoutEffect(() => {
+    const { people, links } = dataRef.current;
+    if (layoutKey === null || !people || !links || width === 0 || height === 0) return;
+    const g = geometry(width, height);
+    const previous = nodesRef.current;
+
+    // Step 3. Keep old x/y; new people start at their target spot with a little angle jitter.
+    const nodes: Node[] = people.map((p) => {
+      const offset = offsetRef.current(p);
+      const old = previous.get(p.id);
+      if (old) return Object.assign(old, { ring: p.ring, tag: p.primaryTag, offset });
+      const r = ringRadius(g, p.ring) + offset;
+      const a = sectorAngle(p.primaryTag) + (Math.random() - 0.5) * 0.9;
+      return { id: p.id, ring: p.ring, tag: p.primaryTag, offset, x: g.cx + r * Math.cos(a), y: g.cy + r * Math.sin(a) };
+    });
+    nodesRef.current = new Map(nodes.map((n) => [n.id, n]));
+
+    const ids = new Set(nodes.map((n) => n.id));
+    const linkData = links.filter((l) => ids.has(l.fromId) && ids.has(l.toId)).map((l) => ({ source: l.fromId, target: l.toId }));
+    const target = (n: Node) => {
+      const r = ringRadius(g, n.ring) + n.offset;
+      const a = sectorAngle(n.tag);
+      return { x: g.cx + r * Math.cos(a), y: g.cy + r * Math.sin(a) };
+    };
+
+    // Step 4.
+    const startAlpha = previous.size ? 0.3 : 1; // a small nudge when people already have spots
+    const sim = forceSimulation<Node>(nodes)
+      .force('radial', forceRadial<Node>((n) => ringRadius(g, n.ring) + n.offset, g.cx, g.cy).strength(1))
+      .force('x', forceX<Node>((n) => target(n).x).strength((n) => SECTOR_PULL[n.ring]))
+      .force('y', forceY<Node>((n) => target(n).y).strength((n) => SECTOR_PULL[n.ring]))
+      .force('collide', forceCollide<Node>((n) => NODE_RADIUS[n.ring] + COLLIDE_PAD[n.ring]))
+      .force(
+        'link',
+        forceLink<Node, SimulationLinkDatum<Node>>(linkData)
+          .id((n) => n.id)
+          .strength(0.02),
+      )
+      .alphaDecay(0.05)
+      .alpha(startAlpha)
+      .stop();
+
+    // Step 5. Settle synchronously: stable on first paint, and independent of animation frames
+    // (paused in background tabs). Ticks until alpha decays from startAlpha to alphaMin.
+    sim.tick(Math.ceil(Math.log(sim.alphaMin() / startAlpha) / Math.log(1 - sim.alphaDecay())));
+    setLayout({ positions: new Map(nodes.map((n) => [n.id, { x: n.x ?? g.cx, y: n.y ?? g.cy }])), width, height });
+  }, [layoutKey, width, height]);
+
+  return layout;
 }

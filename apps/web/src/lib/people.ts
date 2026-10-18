@@ -1,5 +1,5 @@
 /**
- * M2/M3 — Person helpers · ~20 min
+ * M2/M3 — Person helpers · steps 1–2 done (M2); 3–4 are M3
  *
  * WHAT THIS ACHIEVES
  *   Small shared answers the UI needs everywhere: initials for ring-1 nodes, which
@@ -19,15 +19,19 @@
  * Guide: §6.2, §7.3
  */
 import type { Person, Reminder } from '@connectwork/shared';
+import { daysSince } from './dates';
 
-export function initials(_name: string): string {
-  // TODO(M2) step 1
-  return '';
+/** "Abbey Chen" → "AC", "Mary Jane Watson" → "MW": at most two letters so it fits a ring-1 node. */
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '';
+  return (first + last).toUpperCase();
 }
 
-export function dueReminders(_reminders: Reminder[], _withinDays = 7, _now = new Date()): Reminder[] {
-  // TODO(M2) step 2
-  return [];
+/** Undone reminders due within `withinDays`, overdue ones included (daysSince is negative for future dates). */
+export function dueReminders(reminders: Reminder[], withinDays = 7, now = new Date()): Reminder[] {
+  return reminders.filter((r) => !r.done && -daysSince(r.dueDate, now) <= withinDays);
 }
 
 export function isOverdue(_r: Reminder, _now = new Date()): boolean {

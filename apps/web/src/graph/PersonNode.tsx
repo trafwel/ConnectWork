@@ -1,5 +1,5 @@
 /**
- * M2 — One person on the map · Owner: Person A · ~45 min
+ * M2 — One person on the map · done (step T restyles it; M7 adds flags, M10 drift)
  *
  * WHAT THIS ACHIEVES
  *   Level of detail that keeps 150+ people readable: ring 1 shows initials and a
@@ -28,7 +28,12 @@
  *
  * Guide: §6.2
  */
+import { memo, useState } from 'react';
 import type { Person } from '@connectwork/shared';
+import { readableOn } from '@/lib/colors';
+import { initials } from '@/lib/people';
+import { NODE_RADIUS } from './layout';
+import { mapTheme as T } from './theme';
 
 interface Props {
   person: Person;
@@ -44,7 +49,71 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-export function PersonNode(_props: Props) {
-  // TODO(M2) steps 1–5
-  return null;
+function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimmed, neighbor = false, onSelect }: Props) {
+  const [hover, setHover] = useState(false);
+  const r = NODE_RADIUS[person.ring];
+  const showLabel =
+    person.ring === 1 ||
+    selected ||
+    highlighted ||
+    neighbor ||
+    hover ||
+    (person.ring === 2 && zoom >= 1.3) ||
+    (person.ring === 3 && zoom >= 2.2);
+  const description = [person.name, `ring ${person.ring}`, person.primaryTag, person.company].filter(Boolean).join(', ');
+
+  return (
+    <g
+      role="button"
+      tabIndex={0}
+      aria-label={description}
+      aria-pressed={selected}
+      className="cursor-pointer outline-none [&:focus-visible>circle.focus]:opacity-100"
+      // Step 1: a CSS transform (not the x/y attributes) so layout changes animate.
+      style={{ opacity: dimmed ? 0.15 : 1, transform: `translate(${x}px, ${y}px)`, transition: 'opacity 200ms, transform 450ms ease-out' }}
+      onClick={(e) => {
+        e.stopPropagation(); // the map's own click clears the selection
+        onSelect(person.id);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(person.id);
+        }
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)}
+      onBlur={() => setHover(false)}
+    >
+      <title>{description}</title>
+      <circle className="focus" r={r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
+      {highlighted && !selected && <circle r={r + 5} fill="none" stroke={T.highlight} strokeWidth={2} strokeDasharray={T.highlightDash} />}
+      {selected && <circle r={r + 4} fill="none" stroke={T.selected} strokeWidth={2.5} />}
+      <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
+      {person.ring === 1 && (
+        <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fill={readableOn(color)} pointerEvents="none">
+          {initials(person.name)}
+        </text>
+      )}
+      {showLabel && (
+        <text
+          y={r + 14}
+          textAnchor="middle"
+          fontSize={person.ring === 1 ? 12 : 11}
+          fontWeight={person.ring === 1 || selected ? 600 : 500}
+          fill={T.label}
+          stroke={T.labelHalo}
+          strokeWidth={4}
+          paintOrder="stroke"
+          pointerEvents="none"
+        >
+          {person.name}
+        </text>
+      )}
+    </g>
+  );
 }
+
+/** Memoized: during pan/zoom only nodes whose props changed re-render. */
+export const PersonNode = memo(PersonNodeImpl);

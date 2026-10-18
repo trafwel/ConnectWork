@@ -1,10 +1,10 @@
 /**
- * App shell · M1 state (grows in every milestone)
+ * App shell · M2 state (grows in every milestone)
  *
- * WHAT THIS DOES NOW (M1)
- *   Seeds the demo into IndexedDB on first load and shows the layout: top bar,
- *   a live people count in the middle, Settings (backup/reset/delete) and toasts.
- *   The M0 health check moved into a small status line under the count.
+ * WHAT THIS DOES NOW (M2)
+ *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar,
+ *   the map (pan, zoom, click to select and center), Settings and toasts.
+ *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
  * WHAT IT BECOMES
  *   The single screen of Connectwork: a top bar (agent question box, Find hidden
@@ -17,7 +17,8 @@
  *       2. Replace this page with the layout: <TopBar> on top, <main> below,
  *          <SettingsDialog /> and <Toaster position="bottom-center" /> at the end.
  *       3. Root: <div className="flex h-screen flex-col bg-background text-foreground">.
- *   M2  4. Read data with useLiveQuery (dexie-react-hooks):
+ *   M2  ✓ done.
+ *       4. Read data with useLiveQuery (dexie-react-hooks):
  *            const people = useLiveQuery(() => db.people.toArray()); (same for links, tags, reminders)
  *          useLiveQuery re-renders automatically whenever the table changes.
  *       5. filterContext = useMemo(() => ({ dueIds: new Set(dueReminders(reminders ?? []).map(r => r.personId)),
@@ -36,56 +37,77 @@
  *
  * Shared file: tell your teammate before editing it. Guide: docs/IMPLEMENTATION_GUIDE.md §1.4, §4.4
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { PersonCard } from '@/components/PersonCard';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { TopBar } from '@/components/TopBar';
 import { Toaster } from '@/components/ui/sonner';
 import { db } from '@/db/db';
 import { ensureSeeded } from '@/db/seed';
-
-type Health = { ok: boolean; model: string; tier: string; cache: string };
+import { RingMap } from '@/graph/RingMap';
+import type { FilterContext } from '@/lib/filters';
+import { dueReminders } from '@/lib/people';
+import { useStore } from '@/store/useStore';
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [seedError, setSeedError] = useState(false);
-  const [health, setHealth] = useState<Health | null>(null);
-  const [serverDown, setServerDown] = useState(false);
+  const selectedId = useStore((s) => s.selectedPersonId);
 
   useEffect(() => {
     ensureSeeded()
       .then(() => setReady(true))
       .catch(() => setSeedError(true)); // e.g. private browsing with IndexedDB disabled
-    fetch('/api/health')
-      .then((r) => r.json() as Promise<Health>)
-      .then(setHealth)
-      .catch(() => setServerDown(true));
   }, []);
 
-  // Re-runs automatically whenever the people table changes (reset, delete, import).
-  // Shown only once seeding finished, so the first visit never flashes "0 people".
-  const count = useLiveQuery(() => db.people.count(), []);
-  const peopleCount = ready ? count : undefined;
+  // Step 4. Each re-runs automatically when its table changes.
+  const people = useLiveQuery(() => db.people.toArray(), []);
+  const links = useLiveQuery(() => db.links.toArray(), []);
+  const tags = useLiveQuery(() => db.tags.toArray(), []);
+  const reminders = useLiveQuery(() => db.reminders.toArray(), []);
+
+  // Step 5. Computed once per reminders change, not once per person per render.
+  const filterContext = useMemo<FilterContext>(
+    () => ({ dueIds: new Set(dueReminders(reminders ?? []).map((r) => r.personId)), driftingIds: new Set() }),
+    [reminders],
+  );
+
+  const loaded = ready && people && links && tags;
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <TopBar />
-      <main className="flex min-w-0 flex-1 items-center justify-center">
-        <div className="text-center" aria-live="polite">
-          <p className="text-2xl font-semibold">
-            {seedError
-              ? 'This browser blocked local storage'
-              : peopleCount === undefined
-                ? 'Loading…'
-                : `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} in your network`}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {serverDown ? 'Server unreachable' : health ? `Server ok · ${health.model} · ${health.tier} tier` : 'Checking server…'}
-          </p>
-        </div>
-      </main>
+      <div className="flex min-h-0 flex-1">
+        {/* Step 6 */}
+        <main className="relative min-w-0 flex-1">
+          {seedError ? (
+            <Centered title="This browser blocked local storage" detail="Connectwork keeps your data in this browser. Try a normal (not private) window." />
+          ) : !loaded ? (
+            <Centered title="Loading…" />
+          ) : people.length === 0 ? (
+            // M3/M4: mention "Import" and "press N" here once those exist.
+            <Centered title="No one on your map yet" detail="Settings → Reset demo data brings the sample network back." />
+          ) : (
+            <RingMap people={people} links={links} tags={tags} filterContext={filterContext} />
+          )}
+        </main>
+        {/* Step 7. PersonCard is an M3 scaffold (renders nothing yet). */}
+        {selectedId && <PersonCard personId={selectedId} />}
+      </div>
       <SettingsDialog />
       <Toaster position="bottom-center" />
+    </div>
+  );
+}
+
+function Centered({ title, detail }: { title: string; detail?: string }) {
+  return (
+    <div className="flex h-full items-center justify-center p-6 text-center" aria-live="polite">
+      <div>
+        <p className="text-lg font-semibold">{title}</p>
+        {detail && <p className="mt-1 text-sm text-muted-foreground">{detail}</p>}
+      </div>
     </div>
   );
 }

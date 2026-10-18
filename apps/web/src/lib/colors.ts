@@ -53,8 +53,16 @@ export const PRIMARY_TAGS = ['Work', 'School', 'Friends', 'Family', 'Clubs', 'Li
 /** Color for tags the user invents. */
 export const FALLBACK_COLOR = '#8C8C8C';
 
+/**
+ * Colors come from IndexedDB, which an imported backup can fill. Only plain hex colors are
+ * rendered: a value like "url(https://…)" in a style or fill would make the browser fetch it.
+ */
+export function safeColor(color: string | undefined): string {
+  return color && /^#[0-9a-f]{3,8}$/i.test(color) ? color : FALLBACK_COLOR;
+}
+
 export function tagColor(tags: Tag[] | undefined, name: string): string {
-  return tags?.find((t) => t.name === name)?.color ?? FALLBACK_COLOR;
+  return safeColor(tags?.find((t) => t.name === name)?.color);
 }
 
 export function contrastRatio(_a: string, _b: string): number {
