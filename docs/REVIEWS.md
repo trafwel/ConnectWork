@@ -1223,3 +1223,14 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - Test edits reverted afterwards.
 
 **Checks:** typecheck, lint, 219 tests (+5: pin round trip, pin cleared on other ring changes, group create/reuse/remove, group colors and contrast), build.
+
+### Follow-up (Oct 18): zoom to a clicked group; more space between people
+
+- **Zoom (team request: "clicking on a group should automatically zoom in on them").** The Groups view already zoomed to fit an opened group. On the Map view, clicking a group in the filter list (Work, School, a made group…) now uses the same fit-to-group zoom, so its people and labels are readable without panning. All, Due or Drifting zooms back out. One effect drives both views (`zoomTag`).
+- **Spacing (team screenshot: Owen and John nearly touching, the selection ring and the "CSE 332 study group" label running into John).**
+  - Collision padding: ring 2 doubled (7 → 14 px), ring 3 1.5 → 3 px.
+  - Grouping: a person dropped onto someone now lands 20 px beyond both circles (was 6), leaving room for selection rings and a link label.
+- **Checked live:**
+  - Smallest edge-to-edge gap between ring 1–2 people is now 26 px at normal zoom (the old padding allowed about 14).
+  - School tab → zoom 2.1× onto all six School people, names clear of each other. All → back to 1×.
+- **Checks:** typecheck, lint, 219 tests, build.
