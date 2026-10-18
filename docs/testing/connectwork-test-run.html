@@ -1,0 +1,376 @@
+<title>Connectwork Test Run</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column (run sheet) — setup, progress, then one section per milestone. */
+:root {
+  --paper: #edf0eb;   /* Connectwork Atlas paper */
+  --card: #f8faf7;
+  --ink: #1d2a24;
+  --muted: #56635b;
+  --rule: #c9d2cb;
+  --teal: #0f5f58;
+  --teal-ink: #ffffff;
+  --pass: #2e7d5b;
+  --fail: #b4441a;
+  --skip: #7f8c84;
+  --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141b17; --card: #1c2520; --ink: #e3e8e2; --muted: #a3b0a8; --rule: #33413a;
+    --teal: #5cc4b7; --teal-ink: #0b1a17; --pass: #6fcf97; --fail: #f08a62; --skip: #8a978f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141b17; --card: #1c2520; --ink: #e3e8e2; --muted: #a3b0a8; --rule: #33413a;
+  --teal: #5cc4b7; --teal-ink: #0b1a17; --pass: #6fcf97; --fail: #f08a62; --skip: #8a978f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans); }
+.wrap { max-width: 46rem; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; font-weight: 600; }
+.eyebrow { font: 500 11px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+code, kbd, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: color-mix(in srgb, var(--rule) 45%, transparent); padding: 1px 5px; border-radius: 3px; overflow-wrap: anywhere; }
+kbd { border: 1px solid var(--rule); border-bottom-width: 2px; padding: 0 5px; border-radius: 3px; background: var(--card); }
+a { color: var(--teal); }
+button, textarea { font: inherit; color: inherit; }
+button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+header { display: grid; gap: 10px; }
+header p { color: var(--muted); max-width: 38rem; }
+
+.setup { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; padding: 16px 18px; display: grid; gap: 10px; }
+.setup ol { margin: 0; padding-left: 1.3rem; display: grid; gap: 8px; }
+.copy-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.copy { border: 1px solid var(--rule); background: transparent; border-radius: 3px; padding: 2px 8px; font-size: 12px; cursor: pointer; }
+.note-box { font-size: 13px; color: var(--muted); border-left: 2px solid var(--rule); padding-left: 10px; }
+
+.progress { display: grid; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--paper); padding-block: 10px; border-bottom: 1px solid var(--rule); }
+.bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--rule) 60%, transparent); }
+.bar span { display: block; height: 100%; transition: width 200ms; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; align-items: center; }
+.stats b { font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.filters { display: flex; gap: 4px; margin-left: auto; }
+.filters button { border: 1px solid var(--rule); background: transparent; border-radius: 3px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.sync { font: 11px var(--mono); color: var(--muted); }
+
+section.ms { display: grid; gap: 12px; }
+.ms-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ms-head .count { font: 12px var(--mono); color: var(--muted); margin-left: auto; }
+.ms-head p { flex-basis: 100%; color: var(--muted); font-size: 14px; }
+
+.test { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; padding: 14px 16px; display: grid; gap: 10px; border-left-width: 4px; }
+.test[data-status="pass"] { border-left-color: var(--pass); }
+.test[data-status="fail"] { border-left-color: var(--fail); }
+.test[data-status="skip"] { border-left-color: var(--skip); }
+.test h3 { font-size: 15px; font-weight: 600; }
+.test-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.tid { font: 11px var(--mono); color: var(--muted); }
+.issue { font: 11px var(--mono); color: var(--fail); border: 1px solid currentColor; border-radius: 3px; padding: 0 5px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cols > div { min-width: 0; }
+.cols ol, .cols ul { margin: 4px 0 0; padding-left: 1.2rem; display: grid; gap: 3px; font-size: 14px; }
+.label { font: 500 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 4px 12px; font-size: 13px; cursor: pointer; border-right: 1px solid var(--rule); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"][data-v="pass"] { background: var(--pass); color: var(--paper); }
+.seg button[aria-pressed="true"][data-v="fail"] { background: var(--fail); color: var(--paper); }
+.seg button[aria-pressed="true"][data-v="skip"] { background: var(--skip); color: var(--paper); }
+.who { font-size: 12px; color: var(--muted); }
+.test textarea { width: 100%; min-height: 3.2em; resize: vertical; border: 1px solid var(--rule); background: var(--paper); border-radius: 3px; padding: 6px 8px; font-size: 13px; }
+.add-note { border: 0; background: none; color: var(--teal); font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+footer { display: grid; gap: 10px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--rule); padding-top: 16px; }
+.danger { border: 1px solid var(--fail); color: var(--fail); background: transparent; border-radius: 3px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.confirm .yes { background: var(--fail); color: var(--paper); border: 0; border-radius: 3px; padding: 3px 10px; cursor: pointer; }
+.confirm .no { background: transparent; border: 1px solid var(--rule); border-radius: 3px; padding: 3px 10px; cursor: pointer; }
+
+@media (max-width: 640px) {
+  .cols { grid-template-columns: 1fr; }
+  .filters { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">DubHacks ’26 · Connectwork · manual test run</span>
+    <h1>Connectwork Test Run</h1>
+    <p>Every feature built so far (M1–M7 and Appearance), written as steps and what you should see. Mark each one Pass, Fail or Skip. Results are shared with your teammate and with Claude, so a failed test can be fixed straight from here.</p>
+  </header>
+
+  <div class="setup">
+    <span class="eyebrow">Before you start</span>
+    <ol>
+      <li>Start the app from the repo: <span class="copy-row"><code id="cmd-dev">pnpm dev</code><button class="copy" data-copy="cmd-dev" type="button">Copy</button></span></li>
+      <li>Open <a href="http://localhost:5173" target="_blank" rel="noopener">localhost:5173</a> in Chrome on the same Mac.</li>
+      <li>Start from the demo: <b>Settings (gear) → Reset demo data</b>. Most expectations below assume the 40 demo people.</li>
+      <li>For import tests you need the demo LinkedIn file: <span class="copy-row"><code id="csv-path">demo/Connections.csv</code><button class="copy" data-copy="csv-path" type="button">Copy</button></span></li>
+    </ol>
+    <p class="note-box">The AI runs on Gemini’s free tier, so use the fictional demo data only. Dates in the demo are relative to today, so the exact days you see will differ from any day named here.</p>
+  </div>
+
+  <div class="progress" aria-live="polite">
+    <div class="bar" aria-hidden="true"><span id="bar-pass" style="background:var(--pass);width:0"></span><span id="bar-fail" style="background:var(--fail);width:0"></span><span id="bar-skip" style="background:var(--skip);width:0"></span></div>
+    <div class="stats">
+      <span><span class="dot" style="background:var(--pass)"></span><b id="n-pass">0</b> passed</span>
+      <span><span class="dot" style="background:var(--fail)"></span><b id="n-fail">0</b> failed</span>
+      <span><span class="dot" style="background:var(--skip)"></span><b id="n-skip">0</b> skipped</span>
+      <span><b id="n-left">0</b> to go</span>
+      <span class="sync" id="sync">Connecting…</span>
+      <span class="filters" role="group" aria-label="Show">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="todo" aria-pressed="false">To do</button>
+        <button type="button" data-f="fail" aria-pressed="false">Failed</button>
+      </span>
+    </div>
+  </div>
+
+  <main id="sections"></main>
+
+  <footer>
+    <p>Found something odd that isn’t a listed test? Add it as a note on the closest test and mark it Fail. Ask Claude “read the test run” to get every failure with your notes.</p>
+    <div id="reset-area"></div>
+  </footer>
+</div>
+
+<script>
+// ── The test plan (page content). Results live in the shared db, not here. ─────────
+const PLAN = [
+  { id: 'm1', title: 'M1 · Your data', intro: 'Seeding, backups, reset and delete.', tests: [
+    { id: 'm1-first-load', title: 'Demo network on first load', steps: ['Settings → Reset demo data', 'Close Settings'], expect: ['The map shows 40 people in three rings', 'The All tab on the left says 40'] },
+    { id: 'm1-persist', title: 'Data survives a reload', steps: ['Change any person’s company in their card', 'Reload the page'], expect: ['The change is still there'] },
+    { id: 'm1-export', title: 'Export a backup', steps: ['Settings → Export backup'], expect: ['A file named connectwork-backup-YYYY-MM-DD.json downloads', 'A toast says “Backup downloaded”'] },
+    { id: 'm1-import-confirm', title: 'Import asks before replacing', steps: ['Settings → Import backup → choose the file you exported', 'Click Cancel', 'Import it again → Replace'], expect: ['It first asks “Replace all your data with …?”', 'Cancel changes nothing', 'Replace says “Backup restored”'] },
+    { id: 'm1-bad-backup', title: 'A wrong file is refused', steps: ['Settings → Import backup → choose any other .json file (e.g. the repo’s package.json) → Replace'], expect: ['A red message says it isn’t a Connectwork backup', 'Your people are unchanged'] },
+    { id: 'm1-delete', title: 'Delete everything, then reset', steps: ['Settings → Delete everything → Yes, delete', 'Reload', 'Settings → Reset demo data'], expect: ['The map is empty and stays empty after reload', 'Reset brings back 40 people', 'Your “About you” text is still there'] },
+  ]},
+  { id: 'm2', title: 'M2 · The ring map', intro: 'Layout, selection, zoom and keyboard.', tests: [
+    { id: 'm2-rings', title: 'Rings and clusters', steps: ['Look at the map'], expect: ['Three rings around “You”', 'People grouped by color: Work at the top, then School, Friends, Family, Clubs clockwise', 'A legend in the bottom-left'] },
+    { id: 'm2-select', title: 'Click to focus', steps: ['Click Samuel Alvarez'], expect: ['He moves to the center and his card opens', 'His links turn bold; other links fade', 'People linked to him show their names'] },
+    { id: 'm2-zoom', title: 'Zoom and pan', steps: ['Scroll to zoom in, drag to pan', 'Click Reset view'], expect: ['More names appear as you zoom in', 'Reset view returns to the start and hides itself'] },
+    { id: 'm2-keyboard', title: 'Keyboard only', steps: ['Press Tab until a person is focused', 'Press Enter, then Escape'], expect: ['A dashed focus ring shows who is focused', 'Enter opens their card; Escape closes it'] },
+  ]},
+  { id: 'm3', title: 'M3 · Person card and quick add', intro: 'Editing in place, reminders, links, undo.', tests: [
+    { id: 'm3-edit', title: 'Edit and save', steps: ['Open John Park', 'Change Role, press Enter', 'Reload'], expect: ['The new role is kept'] },
+    { id: 'm3-ring-keys', title: 'Change ring with arrow keys', steps: ['In a card, click the ring picker', 'Press ← or →'], expect: ['The selected ring changes and the person moves on the map'] },
+    { id: 'm3-followup', title: 'Follow-up tag makes a reminder', steps: ['Open someone with no reminders', 'Type follow-up in “Add tag”, press Enter'], expect: ['A “Follow up” reminder appears, due in 7 days'] },
+    { id: 'm3-quickadd', title: 'Quick add with N', steps: ['Press N', 'Type a name, press Enter'], expect: ['The person appears on the map right away', 'A toast offers “Open card”'] },
+    { id: 'm3-delete-undo', title: 'Delete a person, then undo', steps: ['Open someone with a link and a reminder', 'Delete person → Delete', 'Click Undo in the toast'], expect: ['They come back with their links and reminders'] },
+    { id: 'm3-link-undo', title: 'Remove a link, then undo', steps: ['In a card’s “Connected to”, click Remove', 'Click Undo'], expect: ['The link comes back'] },
+  ]},
+  { id: 'm4', title: 'M4 · CSV import', intro: 'Use demo/Connections.csv from the repo.', tests: [
+    { id: 'm4-preview', title: 'Preview before importing', steps: ['Click Import', 'Drop demo/Connections.csv on the box (or click to choose it)'], expect: ['“120 people found in your LinkedIn export · 114 new people · 6 already here”'] },
+    { id: 'm4-import', title: 'Import lands on the outer ring', steps: ['Click Import 114'], expect: ['114 gray people appear on the outer ring', 'The toast offers Sort with AI and Undo'] },
+    { id: 'm4-reimport', title: 'Importing again adds nobody', steps: ['Import the same file again'], expect: ['The preview says 0 new people'] },
+    { id: 'm4-undo', title: 'Undo an import', steps: ['Reset demo data, import the file, click Undo in the toast'], expect: ['Back to 40 people'] },
+    { id: 'm4-keyboard', title: 'Drop zone by keyboard', issue: 'M4-I4', steps: ['Open Import', 'Press Tab until the drop zone is focused', 'Press Space or Enter'], expect: ['A focus ring shows on the drop zone', 'The file picker opens'] },
+  ]},
+  { id: 'm5', title: 'M5 · Ask Connectwork', intro: 'Live Gemini. Answers vary in wording; check who gets highlighted.', tests: [
+    { id: 'm5-microsoft', title: 'Who do I know at Microsoft?', steps: ['Type it in the top box, press Enter'], expect: ['Abbey Chen, Nina Walsh, Owen Alvarez and John Park are highlighted', 'Everyone else fades'] },
+    { id: 'm5-due', title: 'Who should I follow up with this week?', steps: ['Ask it'], expect: ['The Due view turns on', 'The people with flags are highlighted'] },
+    { id: 'm5-lost-touch', title: 'Who have I lost touch with?', steps: ['Ask it'], expect: ['Exactly Aisha Larsen, Priya Alvarez, Omar Choi, Hana Choi and John Park', 'The Drifting tab turns on'] },
+    { id: 'm5-nobody', title: 'A question with no answer', steps: ['Ask “Who do I know at Apple?”'], expect: ['It says you don’t know anyone there; nothing is highlighted'] },
+    { id: 'm5-cancel', title: 'Cancel a slow question', steps: ['Ask anything and click Cancel on “Thinking…” right away', 'Wait 15 seconds'], expect: ['Nothing appears afterwards'] },
+  ]},
+  { id: 'm6', title: 'M6 · AI suggestions you review', intro: 'The AI proposes; nothing is saved until you accept.', tests: [
+    { id: 'm6-links', title: 'Find hidden links', steps: ['Reset demo data', 'Click Find hidden links', 'Hover a row in the review'], expect: ['Abbey Chen ↔ John Park is suggested (“both Microsoft, both UW”)', 'Dashed lines appear on the map', 'Hovering a row highlights its two people'] },
+    { id: 'm6-accept', title: 'Accept only one', steps: ['Untick everything except Abbey ↔ John', 'Accept selected'], expect: ['A solid line now joins Abbey and John', 'The other dashed lines are gone'] },
+    { id: 'm6-dismiss', title: 'Dismiss changes nothing', steps: ['Run Find hidden links again', 'Click Dismiss'], expect: ['Abbey ↔ John is not suggested again', 'No dashed lines remain'] },
+    { id: 'm6-sort', title: 'Sort an import with AI', steps: ['Settings → About you: “UW CS junior, interning at Microsoft”', 'Import the CSV → Sort with AI', 'Accept all'], expect: ['Each row has a reason about that person (e.g. “Software Engineer at Zillow”)', 'Microsoft people are suggested for ring 2', 'The gray band turns into colored clusters in their sectors'] },
+  ]},
+  { id: 's', title: 'Appearance', intro: 'Settings → Appearance.', tests: [
+    { id: 's-atlas', title: 'Atlas style', steps: ['Style → Atlas', 'Reload'], expect: ['Paper-colored background, solid ink rings, mono labels', 'The choice is kept after reload'] },
+    { id: 's-dark', title: 'Dark and System modes', steps: ['Mode → Dark', 'Mode → System, then switch macOS between Light and Dark'], expect: ['Dark works in both styles', 'System follows macOS without a reload'] },
+  ]},
+  { id: 'm7', title: 'M7 · Flags, filters, reminders', intro: 'Reset demo data first.', tests: [
+    { id: 'm7-flags', title: 'Reminder flags', steps: ['Look at the map'], expect: ['4 people have small flags', 'Overdue flags are orange-red; others are dark', 'Flags gently pulse'] },
+    { id: 'm7-tabs', title: 'Filter tabs', steps: ['Click Work, then Drifting, then All'], expect: ['Counts on the right add up to the All count', 'Other people fade; nobody moves'] },
+    { id: 'm7-due-panel', title: 'Due panel', steps: ['Click Due', 'Click Done on one row, Snooze 1 week on another'], expect: ['A panel lists reminders, overdue first', 'Done removes the row and that person’s flag', 'Snooze moves it a week out'] },
+    { id: 'm7-calendar', title: 'Add to calendar', steps: ['In the Due panel, click Add to calendar', 'Open the downloaded .ics file'], expect: ['Your calendar app adds an all-day “Follow up: Name” event on the due date'] },
+    { id: 'm7-export-all', title: 'Export all reminders', steps: ['Settings → Export all reminders'], expect: ['One .ics file with every open reminder'] },
+    { id: 'm7-reduce-motion', title: 'Pulse respects Reduce Motion', issue: 'M7-O2', steps: ['macOS System Settings → Accessibility → Display → Reduce motion: on', 'Look at the flags'], expect: ['Flags stop pulsing (they stay visible)'] },
+  ]},
+];
+const ALL_TESTS = PLAN.flatMap((m) => m.tests);
+
+// ── State ───────────────────────────────────────────────────────────────────────
+let results = {};          // test id → { status, note, by, at }
+let store = null;          // { save(id, body), clear() }
+let user = null;
+let profiles = {};
+let filter = 'all';
+const openNotes = new Set();
+
+const $ = (s, el = document) => el.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null) n.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return n;
+};
+
+function when(iso) {
+  try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; }
+}
+
+// ── Rendering ───────────────────────────────────────────────────────────────────
+async function render() {
+  const ids = [...new Set(Object.values(results).map((r) => r.by).filter(Boolean))];
+  if (user && ids.length) { try { profiles = await user.profiles(ids); } catch { /* names optional */ } }
+
+  const n = { pass: 0, fail: 0, skip: 0 };
+  for (const t of ALL_TESTS) { const s = results[t.id]?.status; if (n[s] !== undefined) n[s]++; }
+  const total = ALL_TESTS.length;
+  $('#n-pass').textContent = n.pass; $('#n-fail').textContent = n.fail; $('#n-skip').textContent = n.skip;
+  $('#n-left').textContent = total - n.pass - n.fail - n.skip;
+  $('#bar-pass').style.width = (n.pass / total * 100) + '%';
+  $('#bar-fail').style.width = (n.fail / total * 100) + '%';
+  $('#bar-skip').style.width = (n.skip / total * 100) + '%';
+
+  const focusedId = document.activeElement?.dataset?.focusKey;
+  const root = $('#sections');
+  root.replaceChildren();
+  for (const m of PLAN) {
+    const visible = m.tests.filter((t) => filter === 'all' || (filter === 'todo' && !results[t.id]?.status) || (filter === 'fail' && results[t.id]?.status === 'fail'));
+    if (!visible.length) continue;
+    const done = m.tests.filter((t) => results[t.id]?.status).length;
+    root.append(el('section', { class: 'ms', 'aria-labelledby': 'h-' + m.id },
+      el('div', { class: 'ms-head' },
+        el('h2', { id: 'h-' + m.id }, m.title),
+        el('span', { class: 'count' }, `${done}/${m.tests.length} done`),
+        el('p', {}, m.intro)),
+      visible.map(testCard)));
+  }
+  if (!root.children.length) root.append(el('p', { class: 'note-box' }, filter === 'fail' ? 'No failed tests.' : 'Nothing left to test.'));
+  if (focusedId) { const f = document.querySelector(`[data-focus-key="${CSS.escape(focusedId)}"]`); f?.focus(); }
+}
+
+function testCard(t) {
+  const r = results[t.id] || {};
+  const name = r.by ? (profiles[r.by]?.name || 'Someone') : '';
+  const seg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Result for ' + t.title },
+    ['pass', 'fail', 'skip'].map((v) => el('button', {
+      type: 'button', 'data-v': v, 'aria-pressed': String(r.status === v), 'data-focus-key': t.id + ':' + v,
+      onclick: () => mark(t.id, r.status === v ? null : v),
+    }, v === 'pass' ? 'Pass' : v === 'fail' ? 'Fail' : 'Skip')));
+  const showNote = r.note || r.status === 'fail' || openNotes.has(t.id);
+  const note = showNote
+    ? el('textarea', { id: 'note-' + t.id, 'aria-label': 'Note for ' + t.title, placeholder: r.status === 'fail' ? 'What happened instead?' : 'Note (optional)', 'data-focus-key': t.id + ':note', onchange: (e) => saveNote(t.id, e.target.value) })
+    : el('button', { type: 'button', class: 'add-note', onclick: () => { openNotes.add(t.id); render().then(() => $('#note-' + t.id)?.focus()); } }, 'Add a note');
+  if (note.tagName === 'TEXTAREA') note.value = r.note || '';
+  return el('article', { class: 'test', 'data-status': r.status || '' },
+    el('div', { class: 'test-top' }, el('h3', {}, t.title), el('span', { class: 'tid' }, t.id), t.issue ? el('span', { class: 'issue', title: 'Open issue in docs/OPEN_ISSUES.md' }, t.issue) : null),
+    el('div', { class: 'cols' },
+      el('div', {}, el('span', { class: 'label' }, 'Do'), el('ol', {}, t.steps.map((s) => el('li', {}, s)))),
+      el('div', {}, el('span', { class: 'label' }, 'You should see'), el('ul', {}, t.expect.map((s) => el('li', {}, s))))),
+    el('div', { class: 'actions' }, seg, r.status ? el('span', { class: 'who' }, `${name ? name + ' · ' : ''}${when(r.at)}`) : null),
+    note);
+}
+
+// ── Writes ──────────────────────────────────────────────────────────────────────
+let myId = null;
+async function mark(id, status) {
+  const prev = results[id] || {};
+  const body = { status: status || '', note: prev.note || '', by: myId || '', at: new Date().toISOString() };
+  results = { ...results, [id]: body };
+  render();
+  await store?.save(id, body);
+}
+async function saveNote(id, text) {
+  const prev = results[id] || {};
+  const body = { status: prev.status || '', note: text.slice(0, 2000), by: myId || prev.by || '', at: new Date().toISOString() };
+  results = { ...results, [id]: body };
+  await store?.save(id, body);
+  render();
+}
+
+// ── Storage: shared db when available, else this browser only ───────────────────
+function localStore() {
+  const KEY = 'connectwork-test-run';
+  try { results = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { results = {}; }
+  return {
+    async save(id, body) { try { localStorage.setItem(KEY, JSON.stringify({ ...results, [id]: body })); } catch {} },
+    async clear() { results = {}; try { localStorage.removeItem(KEY); } catch {} },
+  };
+}
+
+async function connect() {
+  const claudeApi = window.claude;
+  const db = claudeApi?.use ? await claudeApi.use('db') : null;
+  user = claudeApi?.use ? await claudeApi.use('user') : null;
+  try { myId = user ? await user.id() : null; } catch { myId = null; }
+  if (!db) {
+    store = localStore();
+    $('#sync').textContent = 'Saved in this browser only';
+    render();
+    return;
+  }
+  const col = db.collection('results');
+  store = {
+    async save(id, body) {
+      try { await col.doc(id).set(body); }
+      catch (e) { $('#sync').textContent = e?.code === 'quota_exceeded' ? 'Storage full: results not saved' : 'Could not save; try again'; }
+    },
+    async clear() { await Promise.all(Object.keys(results).map((id) => col.doc(id).delete().catch(() => {}))); },
+  };
+  col.onSnapshot((snap) => {
+    const next = {};
+    for (const d of snap.docs) { const b = d.data(); if (b && b.status !== undefined) next[d.id] = b; }
+    results = next;
+    $('#sync').textContent = 'Shared · updates live';
+    // Don't re-render under someone typing a note.
+    if (document.activeElement?.tagName !== 'TEXTAREA') render();
+  }, () => { $('#sync').textContent = 'Live updates paused'; });
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────────
+for (const b of document.querySelectorAll('.filters button')) {
+  b.addEventListener('click', () => {
+    filter = b.dataset.f;
+    for (const x of document.querySelectorAll('.filters button')) x.setAttribute('aria-pressed', String(x === b));
+    render();
+  });
+}
+for (const b of document.querySelectorAll('.copy')) {
+  b.addEventListener('click', async () => {
+    const text = document.getElementById(b.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; }
+    catch { const r = document.createRange(); r.selectNodeContents(document.getElementById(b.dataset.copy)); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = 'Selected'; }
+    setTimeout(() => (b.textContent = 'Copy'), 1500);
+  });
+}
+// Two-step clear, drawn in the page (the viewer has no confirm() dialog).
+function drawReset(confirming = false) {
+  const area = $('#reset-area');
+  area.replaceChildren(confirming
+    ? el('div', { class: 'confirm' },
+        el('span', {}, 'Clear every result for both of you?'),
+        el('button', { type: 'button', class: 'yes', onclick: async () => { await store?.clear(); results = {}; drawReset(); render(); } }, 'Yes, clear'),
+        el('button', { type: 'button', class: 'no', onclick: () => drawReset() }, 'Cancel'))
+    : el('button', { class: 'danger', type: 'button', onclick: () => drawReset(true) }, 'Clear all results'));
+}
+drawReset();
+
+render();
+connect();
+</script>
