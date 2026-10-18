@@ -44,7 +44,7 @@ flowchart LR
   Csv["CSV logic<br/><small>lib/csv.ts · parse, map, dedupe, plan · M4</small>"]:::built
   Rows["Stored-row schemas (zod)<br/><small>packages/shared/src/storedRows.ts · post-M4</small>"]:::built
   App["App shell<br/><small>App.tsx · M0–M3 · hotkeys N, Escape</small>"]:::built
-  Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1, Appearance S</small>"]:::built
+  Chrome["Top bar · one Menu · Settings dialog<br/><small>TopBar.tsx, TopMenu.tsx, SettingsDialog.tsx · M1, Appearance S<br/>Menu: AI, Add people, View, Settings · declutter 2</small>"]:::built
   Look["Appearance<br/><small>lib/appearance.ts + index.css palettes · Neutral/Atlas × System/Light/Dark · S<br/>Reminders: Flag or Ripple · fix 2</small>"]:::built
   LocalPref[/"localStorage<br/><small>cw-appearance (display preference only)</small>"/]:::built
   Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
@@ -244,3 +244,4 @@ flowchart LR
 | Oct 18 | M14 | Browser: Month view box (App → Month → UI state): a 6-week grid of open reminders and meetings; clicking a day highlights those people on the map. Status: M14 ✅. |
 | Oct 18 | M16 | Big picture: phone → Photon → server → open tab is built (solid). Server: texting agent + relay hub built. Browser: relay client built, writes through `actions.ts`. Status: M16 ✅; M17 skipped. |
 | Oct 18 | Motion | No new boxes or arrows: the ring map now animates its own changes (nodes and lines move by CSS transforms; Groups gather into and spread out of their group node). Demo export cut to 30 rows (64 people); demo cache re-recorded. |
+| Oct 18 | Declutter 2 | The top bar's view switch and action buttons (Review my week, Find hidden links, Add, Snap, Import, Settings) moved into one Menu (`TopMenu.tsx`, Base UI Menu); the Ask box stays. Same actions, same arrows: the menu calls the store and flows the buttons did. |

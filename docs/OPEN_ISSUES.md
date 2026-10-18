@@ -22,6 +22,9 @@ Resolved items move to the table at the bottom, with what changed.
 | M2-O5 | Filter tabs have no UI yet (highlights now come from Ask Connectwork, M5). | M7 (filter tabs). |
 | PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 `flag` ✓, fix 2 ✓, M10 `drift` ✓. Any later milestone that draws a new field or prop must add it to `sameNode`, or that node won't update. |
 
+| D2-I4 | `docs/PITCH.md` and `docs/TEST_PLAN.md` still say "click **Find hidden links** / **Review my week** (top bar)"; they should say **Menu → …**. | Whoever lands the uncommitted PITCH/TEST_PLAN edits in the main checkout (editing them here would conflict). |
+| D2-O3 | The rest of the declutter around the map: shorten the demo banner, drop the map legend (the filter tabs already name every color), and fold the person card's rarely edited fields into a "Details" section. | Next declutter step. |
+
 ## Team decision
 | ID | Question | Claude's suggested default |
 | --- | --- | --- |
@@ -36,12 +39,14 @@ Resolved items move to the table at the bottom, with what changed.
 | M11-S5 | Scope `calendar.events` can read and write every event (needed for "Add to calendar"). | Keep it for the demo; a read-only scope would drop Google follow-ups. |
 | M10-I7 | In the demo John Park drifts only slightly (210 days vs 180: 93% opacity, a little outward, dotted). | Leave the seed alone (the weekly review relies on it). If you want a stronger visual in the demo, set Settings → Drifting → Ring 2 to **120 days** before presenting, then Reset after. |
 | M10-O3 | Highlighted list rows not yet checked with a screen reader. | Turn on VoiceOver (Cmd+F5), switch to List, ask a question, and listen to a highlighted row: it should say "(in the answer)". |
+| D2-T1 | **Review my week** (the demo's strongest moment) moved into the top-bar Menu with everything else, so it's one click deeper. | Keep it in the Menu, as asked. If the pitch wants it one click away, add it back as the only button next to Menu. |
 | M1-O5 | Import replaces everything without confirming. Should it ask first, or auto-export a backup? | A two-step confirm like Delete ("Replace all your data with this backup?"). It's consistent, needs no extra download, and is easy to change. *Applied in the fix step unless you say otherwise.* |
 
 ## Won't fix (for now)
 | ID | Issue | Why |
 | --- | --- | --- |
 | MO-O1 | In the new recording, Abbey ↔ John is the **3rd** of 11 hidden-link suggestions, not the 1st (Gemini was rate-limited, so a fallback model answered). | The demo uses Accept all, and the link is still near the top. Re-recording costs another round of rate-limited calls. If the team wants it first: sort the sheet by confidence, or re-record `/links` once. |
+| D2-O1 | Dev only: right after the Menu import was added, the first load showed React's "Invalid hook call" (Vite re-bundling its dependencies). A reload clears it. | Known Vite gotcha (see `vite.config.ts`); the production build is clean. |
 | MO-O2 | In a background tab, positions don't animate (Chrome pauses frames) and the enter/leave timers slow to about 1 s. | Only tabs nobody is looking at. In a visible tab: 450 ms glide and fade, measured. |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
 | M7-O2 | Reminder-flag pulse should stop for "reduce motion"; built but not checked live. | Team: turn on macOS Reduce Motion once and confirm the flags stop pulsing **and** the Ripple style shows one still ring (fix step 2, F2-O1). |

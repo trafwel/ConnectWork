@@ -172,3 +172,9 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. When you switch to Groups, people fly *into* the group, yet they're no longer in the list of visible people. How can React still draw them for half a second?
 3. Why do the motion timers use `setTimeout` instead of `requestAnimationFrame`?
 4. The demo export dropped from 120 to 30 rows. Why did the AI answers have to be recorded again?
+
+## Declutter 2: one top-bar menu
+1. Why did the Ask box stay in the top bar when everything else went into the Menu?
+2. A keyboard user wants the List view. What do they press, starting from the Menu button, and where is their focus afterwards?
+3. Why is the view list a *radio group* inside the menu instead of four ordinary items, and what one-line change made picking a view close the menu?
+4. We moved buttons instead of deleting them. Name one way the team can check nothing became unreachable.

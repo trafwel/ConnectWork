@@ -19,15 +19,15 @@ The demo shouldn't depend on hackathon Wi-Fi or on Gemini's free tier, which was
    DEMO_CACHE=record pnpm dev
    ```
 
-2. Open http://localhost:5173 → **Settings → Reset demo data**.
+2. Open http://localhost:5173 → **Menu → Settings → Reset demo data**.
 3. Run the scripted demo **in this exact order**, once, without other edits:
-   1. **Import** → `demo/Connections.csv` → Import.
+   1. **Menu → Import LinkedIn CSV** → `demo/Connections.csv` → Import.
    2. **Sort with AI** → **Accept all**.
    3. Ask: *"Who do I know at Microsoft?"* (and any other question you'll ask on stage, word for word).
-   4. **Find hidden links** → **Accept all** (accepting only some changes the later requests).
+   4. **Menu → Find hidden links** → **Accept all** (accepting only some changes the later requests).
    5. Click the **Coffee with John** meeting (prep card), then **Log this meeting**.
-   6. **Review my week**.
-   7. **Snap** → `demo/roster.pdf` (cancel the review, or accept it if that's part of your demo).
+   6. **Menu → Review my week**.
+   7. **Menu → Snap a card or roster** → `demo/roster.pdf` (cancel the review, or accept it if that's part of your demo).
    8. Any **Draft a message** you'll show.
 4. The terminal shows `cache=miss` for each AI call, and `demo/demo-cache.json` grows.
 
@@ -39,7 +39,7 @@ The demo shouldn't depend on hackathon Wi-Fi or on Gemini's free tier, which was
    DEMO_CACHE=replay pnpm dev
    ```
 
-2. **Settings → Reset demo data**, then run the same steps in the same order.
+2. **Menu → Settings → Reset demo data**, then run the same steps in the same order.
 3. Every AI line in the terminal must say **`cache=hit`**. A `miss` means a request changed (a different order, wording or click), so redo that step the way you recorded it.
 
 ## 3. Check the offline fallback

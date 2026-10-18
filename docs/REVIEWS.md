@@ -1082,3 +1082,55 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 **Checked (live build, tab in front):** Map → Groups moves a person about 55 px toward the group centre while fading, done by ~370 ms and removed at ~520 ms. Opening Work flies its 12 people out from the group node (opacity 0.16 → 1 over ~280 ms). Back works. Import shows "30 found · 24 new · 6 already here"; All = 64.
 
 **Checks:** typecheck, lint, 198 tests (the CSV test now expects 30 rows), build.
+
+## Declutter 2: one top-bar menu (Oct 18)
+
+**Team request: "declutter the top of the UI and make that all part of one expandable menu"** · branch `claude/declutter-2-597e9b` (on `motion`)
+
+**Before:** the top bar held 11 things in one row: the name, a 4-way view switch (Map | Groups | List | Month), the Ask box, then **Review my week**, **Find hidden links**, **Snap**, **Import**, **Add N** and a Settings gear. On a laptop screen the Ask box got squeezed between them, and a judge saw seven buttons before seeing the map.
+
+**After:** the name, the **Ask box** (wider) and **one Menu button**. Menu opens a list grouped by what you want to do:
+
+| Group | Items (same actions as the old buttons) |
+| --- | --- |
+| AI | Review my week · Find hidden links |
+| Add people | Add someone (`N`) · Snap a card or roster · Import LinkedIn CSV |
+| View | Map · Groups · List (accessible table) · Month, with a check on the current one |
+| — | Settings |
+
+**Why these choices**
+- **The Ask box stays out.** It's the front door of the demo ("Who do I know at Microsoft?") and you type into it, so it can't live in a menu.
+- **Grouped by intent, not by feature name.** "Snap" and "Import" were opaque as bare words; inside an "Add people" group with longer names ("Snap a card or roster", "Import LinkedIn CSV") they explain themselves.
+- **The view switch became a radio group.** Screen readers hear "Map, checked", and choosing a view closes the menu like any other item (Base UI radio items stay open by default; `closeOnClick` fixes that).
+- **Base UI's Menu, already installed** (it powers our Select), so no new dependency. It gives the keyboard path for free: Enter/Space/↓ opens, arrows move, Home/End jump, typing a letter jumps to it, Escape closes and focus goes back to the button.
+- **Nothing was deleted.** Every item calls the same store action or flow the old button called (`setView`, `setWeeklyOpen`, `findHiddenLinks`, `setDialog`). `N` still opens Quick add from anywhere.
+
+**Files:** `components/TopMenu.tsx` (new), `TopBar.tsx` (the gear moved into the menu), `App.tsx` (top bar is now Ask + Menu; the empty-state hint says "Menu → …"), `README.md` and `docs/DEMO_DAY.md` (click paths say "Menu → …").
+
+**How it was checked:** typecheck, lint, 198 tests, build. In the browser (dev, 1024 px wide, 40 seed people): the top bar shows only the name, the Ask box and Menu. By keyboard: focus Menu → Enter opens it on "Review my week"; ↓ ×6 + Enter switched to Groups; ↓ ×7 + Enter switched to List (menu closed, focus back on Menu, table shown); Enter → Review my week opened the weekly panel; End + Enter opened Settings with focus inside. By mouse: Import opened "Import contacts", Snap opened "Snap to add". `N` opened Quick add. The **production build** (`vite preview`) lists all 10 items with no console errors.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | The menu's items are only mounted while it's open (Base UI portal), so the closed top bar renders less than before (1 button instead of 10 controls). | OK |
+| E2 | Bundle: Base UI's Menu shares its internals with Select, already in the bundle. | OK |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Lazy dialogs (Import, Snap) still load on first open from a menu item. | Checked |
+| I2 | Opening a dialog from a menu item: the menu closes first, then the dialog takes focus (checked with Settings). | Checked |
+| I3 | Dev only: the first page load after adding the Menu import showed React's "Invalid hook call" from Vite's dependency pre-bundling (two copies of React until it re-optimizes). A reload cleared it; the production build has no errors. This is the gotcha in `vite.config.ts`'s header. | D2-O1 |
+| I4 | `docs/PITCH.md` and `docs/TEST_PLAN.md` still say "click **Find hidden links** / **Review my week** (top bar)". Both files have uncommitted edits in the main checkout from another session, so editing them here would conflict. | D2-I4 |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | No new data flows; the menu only calls existing actions. | OK |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | **Review my week**, the demo's strongest moment, is now one click deeper. | D2-T1 (team decision) |
+| O2 | The current view is no longer written in the top bar (only checked inside the menu). The map itself shows it, and Groups/List/Month look different. | Accepted for less clutter |
+| O3 | The rest of the "around the map" declutter (demo banner, meeting strip, the legend that repeats the filter tabs, the person card's long form) is not part of this step. | D2-O3 |
