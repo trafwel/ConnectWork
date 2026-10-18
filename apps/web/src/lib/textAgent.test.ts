@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Candidate, Person, Reminder } from '@connectwork/shared';
-import { clip, digestText, dueText, resolvePerson, whichOne } from './textAgent';
+import { asksForText, clip, digestText, dueText, resolvePerson, whichOne } from './textAgent';
 
 const p = (id: string, name: string, company?: string): Person => ({ id, name, company, ring: 2, primaryTag: 'Work', tags: [], source: 'seed', createdAt: '' });
 const people = [p('a', 'Abbey Chen', 'Microsoft'), p('j', 'John Park'), p('s1', 'Sam Lee', 'Acme'), p('s2', 'Sam Lee', 'Globex'), p('s3', 'Samira Khan')];
@@ -54,5 +54,14 @@ describe('dueText (Oct 18: Photon texts you when something is due)', () => {
   });
   it('says nothing when nothing is due, or it is done', () => {
     expect(dueText([r('1', 'j', '2026-10-20'), r('2', 'm', '2026-10-10', true)], who, now)).toBeNull();
+  });
+});
+
+describe('asksForText (Oct 18: "text me Lena\'s items" from the search bar)', () => {
+  it('needs the user\'s own words to ask for a text', () => {
+    expect(asksForText("Text me the Lena's items")).toBe(true);
+    expect(asksForText('send me who is due this week')).toBe(true);
+    expect(asksForText("What are Lena's items?")).toBe(false);
+    expect(asksForText('who do I know at Microsoft')).toBe(false);
   });
 });

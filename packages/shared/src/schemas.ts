@@ -64,6 +64,11 @@ export const QueryResponse = z.object({
   filterHint: z.enum(['none', 'due', 'drifting']).default('none'),
   /** Oct 18: empty for questions. Recorded demo answers predate it, hence the default. */
   edits: z.array(NetworkEdit).max(20).default([]),
+  /**
+   * Oct 18 (team request: "text me Lena's items"): the message to text the user, when they ask
+   * for one. The browser sends it through Photon to the owner's own number only.
+   */
+  textMe: z.string().trim().min(1).max(600).optional(),
 });
 export type QueryResponse = z.infer<typeof QueryResponse>;
 

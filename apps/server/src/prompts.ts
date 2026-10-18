@@ -52,7 +52,13 @@ Changes (edits):
 - Ops: add_link (personIds: the two people; label: what connects them, optional), remove_link (the two people), remove_suggested_links (no personIds; removes every AI-suggested connection, which are not in the data), set_ring (one person; ring 1, 2 or 3), set_tag (one person; tag: their new main tag), add_person (no personIds; name, and ring, tag, company, role if given), remove_person (one person).
 - "Close" means ring 1, "regular" ring 2, "wider" or "outer" ring 3. "Connect", "link" or "introduce" two people means add_link; "disconnect" or "unlink" means remove_link.
 - Use only ids from the data. For a person you can't find, propose nothing for them and say so.
-- Propose only what the user asked for. For a question, return an empty edits list.`;
+- Propose only what the user asked for. For a question, return an empty edits list.
+
+Texting the user (textMe):
+- If the user asks you to text, send or message THEM something ("text me Lena's items", "send me who's due this week"), write that message in textMe and make the answer one short sentence saying you're texting it.
+- textMe is plain text for a phone, at most 600 characters, built only from the data: names, companies, roles, and open reminders with their due dates. No markdown.
+- You can only text the user themselves. If they ask you to text someone else, leave textMe out and say you can only text them.
+- Otherwise leave textMe out.`;
 
 // M6 — tuned after live testing (lesson 3: reasons must cite the PERSON, not the rules).
 export const CLASSIFY_SYSTEM = `You sort newly imported contacts for Connectwork, a personal network map with three rings around the user: ring 1 = closest people, ring 2 = regular contacts, ring 3 = everyone else.
