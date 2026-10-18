@@ -150,3 +150,7 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 3. The service reads `.env` through systemd's `EnvironmentFile`. Which two problems did that cause or solve (think: file permissions, and inline comments)?
 4. What does `pnpm preview:prod` check that `pnpm dev` can't?
 
+## Groups view
+1. Where does a closed group's node sit, and why doesn't opening it move anybody?
+2. Why does the selected person's group open by itself, while people highlighted by an AI answer don't open their groups?
+

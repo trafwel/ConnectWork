@@ -63,6 +63,7 @@ flowchart LR
     Weekly["Weekly review · Draft a message<br/><small>WeeklyReview, PersonCard · M8</small>"]:::built
     Snap["Snap to add<br/><small>SnapDialog (lazy), lib/image.ts · M9</small>"]:::built
     List["List view<br/><small>ListView · sortable table, same filters + highlights · M10</small>"]:::built
+    Groups["Groups view<br/><small>RingMap grouped, ClusterNode, graph/groups.ts · tags collapse to one node · Oct 18</small>"]:::built
     Meet["Meetings · prep card<br/><small>MeetingStrip, MeetingPrepCard, lib/meetings.ts, googleCalendar.ts · M11</small>"]:::built
   end
 
@@ -100,6 +101,8 @@ flowchart LR
   Ics --> IcsFile
   App -->|"due / overdue sets → flags; drift levels → offset, fading"| Map
   App -->|"view = list"| List
+  App -->|"view = groups"| Groups
+  Groups -->|"open / close a group"| Store
   Meet -->|"openMeeting: highlights + prep card"| Store
   Meet -->|"replaceMeetings, Log this meeting"| Actions
   Meet -->|"POST /meeting-brief"| Api
@@ -233,3 +236,4 @@ flowchart LR
 | Oct 17 | M11 | Big picture: browser ↔ Google Calendar is built (direct, token in memory). Browser: new Meetings box (strip + prep card) that opens meetings through the UI state, writes through `actions.ts` and calls `/meeting-brief`; calendar export sends one reminder to Google when connected. Server: `/meeting-brief` replaces the planned "more routes" box. Status: M11 ✅, M12 next. |
 | Oct 17 | M12 | Browser: the API client gains an offline fallback to the recorded demo answers (`demo/demo-cache.json`, a lazy chunk), keyed exactly like the server's cache (`cacheKeyAsync` in shared). Server: demo cache unchanged, checked end to end. Status: M12 ✅, M13 next. |
 | Oct 17 | M13 | Big picture: Caddy on the VM sits between the browser and the server in production (dotted until the VM and domain exist; config is in `deploy/`). Server: listens on 127.0.0.1 there (HOST), trusts Caddy's X-Forwarded-For. Status: M13 ✅ (config), live deploy = human step, M14 next. |
+| Oct 18 | Groups view | Browser: new Groups view box (App → Groups → UI state): the ring map with each tag collapsed into one node, opened on click; links between hidden people merge into count-weighted edges. Same layout, store and database. |

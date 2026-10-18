@@ -78,6 +78,8 @@ import { safeColor, tagColor } from '@/lib/colors';
 import { DRIFT_OFFSET, driftStep } from '@/lib/drift';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
+import { ClusterNode } from './ClusterNode';
+import { aggregateLinks, buildClusters, type Endpoint } from './groups';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
 import { PersonNode } from './PersonNode';
@@ -93,6 +95,8 @@ interface Props {
   links: Link[];
   tags: Tag[];
   filterContext: FilterContext;
+  /** Groups view (Oct 18): each tag collapses into one node until opened. */
+  grouped?: boolean;
 }
 
 /** Step 1. Measure on mount, then follow resizes (the observer alone is silent in background tabs). */
@@ -115,7 +119,7 @@ function useSize<E extends HTMLElement>() {
 }
 
 
-export function RingMap({ people, links, tags, filterContext }: Props) {
+export function RingMap({ people, links, tags, filterContext, grouped = false }: Props) {
   const [containerRef, { width, height }] = useSize<HTMLDivElement>();
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -249,8 +253,35 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
     return out;
   }, [people, selectedId, neighborIds, highlightIds, filter, filterContext]);
 
+  // Groups view (Oct 18). Closed groups become one node at their members' centre; the selected
+  // person's group always opens (their card is showing, so they must be visible). Links between
+  // hidden people merge into one count-weighted edge per pair of endpoints.
+  const expandedGroups = useStore((s) => s.expandedGroups);
+  const toggleGroup = useStore((s) => s.toggleGroup);
+  const collapseGroups = useStore((s) => s.collapseGroups);
+  const grouping = useMemo(
+    () => (grouped ? buildClusters(people, positions, expandedGroups, new Set(selectedId ? [selectedId] : [])) : null),
+    [grouped, people, positions, expandedGroups, selectedId],
+  );
+  const visiblePeople = grouping?.visible ?? people;
+  const shownLinks = useMemo(() => (grouping ? aggregateLinks(links, grouping.groupOf) : { personLinks: links, edges: [] }), [grouping, links]);
+  const clusterStats = useMemo(() => {
+    const out = new Map<string, { highlighted: number; due: number; drifting: number; dimmed: boolean }>();
+    for (const c of grouping?.clusters ?? []) {
+      const ids = c.memberIds;
+      out.set(c.tag, {
+        highlighted: ids.filter((id) => highlightIds.has(id)).length,
+        due: ids.filter((id) => filterContext.dueIds.has(id)).length,
+        drifting: ids.filter((id) => filterContext.driftingIds.has(id)).length,
+        dimmed: ids.every((id) => dimmedIds.has(id)),
+      });
+    }
+    return out;
+  }, [grouping, highlightIds, filterContext, dimmedIds]);
+  const endpoint = (e: Endpoint) => (e.kind === 'group' ? grouping?.clusters.find((c) => c.tag === e.tag) : positions.get(e.id));
+
   // Ring 3 first so closer people draw on top. Sorted once per data change, not per zoom frame.
-  const drawOrder = useMemo(() => [...people].sort((a, b) => b.ring - a.ring), [people]);
+  const drawOrder = useMemo(() => [...visiblePeople].sort((a, b) => b.ring - a.ring), [visiblePeople]);
 
   // Step 8c. Center the selected person once per selection and map size, but only on a layout
   // computed for THIS size (opening the card narrows the map and the layout recomputes).
@@ -276,9 +307,10 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
   const labels = useScreenLabels({
     transform,
     zooming,
-    people,
+    people: visiblePeople,
     byId,
-    links,
+    links: shownLinks.personLinks,
+    clusters: grouping?.clusters,
     positions,
     ringAnchors,
     center,
@@ -323,7 +355,28 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
           </g>
 
           <g aria-hidden="true">
-            {links.map((l) => {
+            {/* Groups view: one line per pair of endpoints; thicker = more connections behind it. */}
+            {shownLinks.edges.map((e) => {
+              const a = endpoint(e.from);
+              const b = endpoint(e.to);
+              if (!a || !b) return null;
+              return (
+                <line
+                  key={e.key}
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke={e.suggested ? T.suggestedLink : T.link}
+                  strokeWidth={1 + Math.log2(e.count) * 1.2}
+                  strokeDasharray={e.suggested ? T.suggestedDash : undefined}
+                  opacity={selectedId ? 0.15 : 0.5}
+                >
+                  <title>{`${e.count} ${e.count === 1 ? 'connection' : 'connections'}`}</title>
+                </line>
+              );
+            })}
+            {shownLinks.personLinks.map((l) => {
               const a = positions.get(l.fromId);
               const b = positions.get(l.toId);
               if (!a || !b) return null;
@@ -347,6 +400,23 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
               You
             </text>
           </g>
+
+          {/* Groups view: closed groups, under the people of open ones. */}
+          {grouping?.clusters.map((c) => {
+            const st = clusterStats.get(c.tag)!;
+            return (
+              <ClusterNode
+                key={c.tag}
+                cluster={c}
+                color={tagColor(tags, c.tag)}
+                highlighted={st.highlighted}
+                due={st.due}
+                drifting={st.drifting}
+                dimmed={st.dimmed}
+                onToggle={toggleGroup}
+              />
+            );
+          })}
 
           {/* The dragged person draws last (on top), but only once they MOVE: re-ordering on the press itself
               moves their DOM element, and Chrome then sends the follow-up mousedown to the parent <g>,
@@ -381,7 +451,11 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
         <ScreenLabels labels={labels.placed} fontSize={labels.fontSize} animate={labels.animate} />
       </svg>
 
-      <Legend tags={tags} />
+      {grouped ? (
+        <GroupPanel people={people} tags={tags} open={grouping ? new Set(grouping.visible.map((p) => p.primaryTag)) : new Set()} onToggle={toggleGroup} onCloseAll={collapseGroups} />
+      ) : (
+        <Legend tags={tags} />
+      )}
       {editing && (
         <p role="status" className="absolute top-3 left-1/2 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
           {drag?.pos && drag.ring
@@ -399,6 +473,44 @@ export function RingMap({ people, links, tags, filterContext }: Props) {
           <Move /> {editing ? 'Done moving' : 'Move people'}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Groups view: the legend becomes the list of groups, each a button that opens or closes it
+ * (the keyboard and list path for the map's group nodes, and the way to close an open group).
+ */
+function GroupPanel({ people, tags, open, onToggle, onCloseAll }: { people: Person[]; tags: Tag[]; open: Set<string>; onToggle: (tag: string) => void; onCloseAll: () => void }) {
+  const counts = new Map<string, number>();
+  for (const p of people) counts.set(p.primaryTag, (counts.get(p.primaryTag) ?? 0) + 1);
+  return (
+    <div className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-md border bg-background/90 px-3 py-2 text-xs">
+      <div className="mb-1 flex items-center justify-between gap-4">
+        <span className="font-medium">Groups</span>
+        {open.size > 0 && (
+          <button className="text-muted-foreground underline-offset-2 hover:underline" onClick={onCloseAll}>
+            Close all
+          </button>
+        )}
+      </div>
+      <ul className="grid grid-cols-3 gap-x-2 gap-y-1" aria-label="Groups">
+        {[...counts].map(([tag, n]) => (
+          <li key={tag}>
+            <button
+              aria-expanded={open.has(tag)}
+              onClick={() => onToggle(tag)}
+              className={`flex w-full items-center gap-1.5 rounded-sm px-1 py-0.5 hover:bg-muted ${open.has(tag) ? 'font-medium' : ''}`}
+            >
+              <span className="inline-block size-2.5 rounded-full" style={{ background: tagColor(tags, tag) }} aria-hidden="true" />
+              {tag} <span className="text-muted-foreground tabular-nums">{n}</span>
+              <span className="ml-auto text-muted-foreground" aria-hidden="true">
+                {open.has(tag) ? '▾' : '▸'}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

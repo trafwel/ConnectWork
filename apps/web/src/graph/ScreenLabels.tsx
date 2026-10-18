@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ZoomTransform } from 'd3-zoom';
 import type { Link, Person, Ring } from '@connectwork/shared';
 import { circleBox, placeLabels, relationshipLabel, type Box, type LabelCandidate, type PlacedLabel } from './labels';
+import type { Cluster } from './groups';
 import { NODE_RADIUS } from './layout';
 import { mapTheme as T } from './theme';
 
@@ -45,6 +46,8 @@ interface Input {
   highlightIds: Set<string>;
   neighborIds: Set<string>;
   dimmedIds: Set<string>;
+  /** Groups view: closed groups get a bold name label and keep other labels off their circle. */
+  clusters?: Cluster[];
 }
 
 export function useScreenLabels(i: Input) {
@@ -65,6 +68,15 @@ export function useScreenLabels(i: Input) {
       const id = `ring:${ring}`;
       force.add(id);
       candidates.push({ id, text: RING_LABELS[ring], x: sx(i.center.x + r * Math.cos(a)), y: sy(i.center.y + r * Math.sin(a)), r: 0, priority: 1000, kind: 'ring' });
+    }
+
+    for (const c of i.clusters ?? []) {
+      const id = `group:${c.tag}`;
+      const x = sx(c.x);
+      const y = sy(c.y);
+      force.add(id);
+      obstacles.push(circleBox(x, y, (c.r + 3) * t.k));
+      candidates.push({ id, text: c.tag, x, y, r: (c.r + 3) * t.k, priority: 99, kind: 'name', bold: true });
     }
 
     for (const p of i.people) {
@@ -125,7 +137,7 @@ export function useScreenLabels(i: Input) {
     const inView = (l: PlacedLabel) =>
       l.kind !== 'ring' || (l.cx - l.width / 2 >= 0 && l.cx + l.width / 2 <= vw && l.cy - l.height / 2 >= 0 && l.cy + l.height / 2 <= vh);
     return placeLabels(candidates, measure, { height: fontSize + 3, force, obstacles }).filter(inView);
-  }, [t, i.people, i.byId, i.links, i.positions, i.ringAnchors, i.center, vw, vh, i.selectedId, i.hoverId, i.highlightIds, i.neighborIds, i.dimmedIds, family, fontSize]);
+  }, [t, i.people, i.byId, i.links, i.positions, i.ringAnchors, i.center, vw, vh, i.selectedId, i.hoverId, i.highlightIds, i.neighborIds, i.dimmedIds, i.clusters, family, fontSize]);
 
   return { placed, fontSize, animate: !i.zooming };
 }
