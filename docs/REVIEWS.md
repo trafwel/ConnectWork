@@ -1234,3 +1234,13 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
   - Smallest edge-to-edge gap between ring 1–2 people is now 26 px at normal zoom (the old padding allowed about 14).
   - School tab → zoom 2.1× onto all six School people, names clear of each other. All → back to 1×.
 - **Checks:** typecheck, lint, 219 tests, build.
+
+### Follow-up (Oct 18): texts answered from the wrong copy of the network
+
+- **Report:** "Text me M. Richard Hurtz's information" → "I couldn't find M. Richard Hurtz", although he's on the user's map.
+- **Cause:** the network lives in each browser. Texts were answered by a different tab (the Claude app's browser pane), whose copy didn't have him. Worse, when a second tab connected, the server closed the first tab's stream without saying why. The first tab saw a dropped connection, reconnected within seconds, and took over again, so the two tabs would keep trading the texting connection.
+- **Fix:**
+  - The server sends the old tab a `replaced` event before closing its stream.
+  - The tab then stops for good (no reconnect, no watchdog), and Settings → Texting agent says "Another tab took over texting… Save the token again here to take it back".
+- **Checked live:** two tabs, then exactly two stream connections and no reconnect fight. The first tab shows "Another tab took over", the second "Connected". Also a new relay test.
+- **Checks:** typecheck, lint, 220 tests (+1), build.

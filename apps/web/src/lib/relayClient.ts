@@ -57,7 +57,7 @@ import { clip, digestText, dueText, HELP_TEXT, resolvePerson, whichOne } from '.
 import { readDriftThresholds } from './useDriftThresholds';
 import { weeklyCandidates } from './weeklyCandidates';
 
-export type RelayStatus = 'off' | 'connecting' | 'connected' | 'error';
+export type RelayStatus = 'off' | 'connecting' | 'connected' | 'error' | 'replaced';
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? '/api';
 
@@ -77,6 +77,15 @@ export function connectRelay(token: string, onStatus: (status: RelayStatus) => v
       delay = 2000;
       heardAt = Date.now();
       onStatus('connected');
+    });
+    // Oct 18: another tab (maybe another browser, with its own copy of the network) took over.
+    // Stop for good: reconnecting would take texting back and the two tabs would trade it.
+    es.addEventListener('replaced', () => {
+      stopped = true;
+      clearTimeout(retry);
+      clearInterval(watchdog);
+      es?.close();
+      onStatus('replaced');
     });
     // The server pings every 25 s. Oct 18: when the server restarted behind the dev proxy, the
     // proxy kept the browser's side of the stream open, so no error ever fired and texts went
