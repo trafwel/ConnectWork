@@ -52,6 +52,17 @@ export const DEFAULT_TAGS: Tag[] = [
 /** Tags that can be a person's primary (color-defining) tag. */
 export const PRIMARY_TAGS = ['Work', 'School', 'Friends', 'Family', 'Clubs', 'LinkedIn'];
 
+/**
+ * Oct 18: colors for groups made in "Move people" (Paul Tol's muted scheme, also built to stay
+ * apart for color-blind viewers). The first one no existing tag uses is picked.
+ */
+export const GROUP_COLORS = ['#882255', '#44AA99', '#AA4499', '#999933', '#332288', '#661100', '#117733', '#88CCEE'];
+
+export function nextGroupColor(tags: Tag[] | undefined): string {
+  const used = new Set((tags ?? []).map((t) => t.color.toLowerCase()));
+  return GROUP_COLORS.find((c) => !used.has(c.toLowerCase())) ?? GROUP_COLORS[(tags?.length ?? 0) % GROUP_COLORS.length]!;
+}
+
 /** Color for tags the user invents. */
 export const FALLBACK_COLOR = '#8C8C8C';
 

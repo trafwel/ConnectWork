@@ -25,6 +25,8 @@ Resolved items move to the table at the bottom, with what changed.
 ## Team decision
 | ID | Question | Claude's suggested default |
 | --- | --- | --- |
+| MP-O1 | Creating a new group needs a drag; there's no keyboard path yet (joining one works from the card's group picker). | Add "New group…" to the card's group picker, which opens a name field. |
+| MP-O2 | Undo toasts close after about 4 s, which is easy to miss after a drag. | Keep Undo toasts for 8 s app-wide (one `duration` setting on the Toaster). |
 | M4-I4 | Import drop zone not yet checked with a real keyboard. | Tab to the drop zone and press Space/Enter once. |
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
 | F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |

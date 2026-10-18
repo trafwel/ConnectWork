@@ -1187,3 +1187,39 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **Found on the way:** after the project folder was renamed, the dev server's file watcher kept watching the old path, so server changes didn't reload. `pnpm dev` was restarted from `ConnectWork`, and the texting tab reconnected on its own within 12 s.
 - **Checked live:** "Text me the Lena's items" → "I am texting you Lena's information now. Sent to your phone." Query 2.2 s, then `/relay/notify` 200 in 0.3 s.
 - **Checks:** typecheck, lint, 214 tests (+2: `asksForText`, the route passing `textMe` through), build.
+
+## Move people: free placement and grouping (Oct 18)
+
+**Team request:** dragging should allow "move to anywhere on the ring without snapping" and "grouping two nodes together creates a category or adds to an existing one".
+
+**What changed and why**
+- **Free placement (pins).** A drop now saves where it landed: `Person.pin = { angle, dist }`.
+  - **Why polar and relative:** the distance is a fraction of the map's smaller side, so the spot survives window resizes.
+  - **Layout:** pinned people get d3's `fx/fy`, so they stay fixed while everyone else flows around them (fixed nodes still collide). The ring is still derived from the distance (`ringForDistance`), so the rings keep their meaning.
+  - **Ring and pin can't disagree:** `updatePerson` clears a pin when the ring changes any other way (AI sort, the card, the 1/2/3 keys, search-bar edits), unless the change brings its own pin.
+  - **Undo:** every drop gets one (ring and pin restored).
+  - **Backups:** `PersonRow` validates `pin` (angle −7..7, dist 0..1).
+- **Drop onto someone to group.**
+  - While dragging, the person under the pointer is highlighted. The status line says "Drop on X to group them together".
+  - The hit test only counts people actually drawn; closed groups in the Groups view hide theirs.
+  - Dropping opens a small form, in the same spot as the Connect tool's: **Add to {their group}** (hidden when they're already in the same group), or **name a new group** for both.
+  - The dragged person lands right beside the other one, on the side they came from, and stays there. With a new group, the other person is pinned too: a custom group has no sector of its own, so they would otherwise jump.
+  - **New groups** get their own color from Paul Tol's muted, colorblind-safe palette (`GROUP_COLORS`; initials stay ≥ 4.5:1, tested), instead of the grey invented tags got before. `ensureGroup` reuses an existing group whatever the capitalization.
+  - **Undo** restores both people and removes the group if it's now empty.
+  - **Everywhere else:** made groups appear in the filter list (while anyone is in them) and in the person card's group picker, which is the keyboard and list-view way to join one.
+
+| | Area | Finding | Status |
+| --- | --- | --- | --- |
+| E1 | Efficiency | The layout key now includes the pin, so the simulation re-runs only when someone's spot changes. | OK |
+| I1 | Integration | Every other ring change clears the pin, including the text agent and search-bar edits, since they write through `updatePerson`. | OK (tested) |
+| A1 | Accessibility | The exact position has no keyboard equivalent. The meaningful part, the ring, does (1/2/3), and joining a group does (card picker). **Creating** a new group still needs a drag. | Open (MP-O1) |
+| O1 | Other | Undo toasts close after about 4 s, which is easy to miss after a drag (found while testing). | Open (MP-O2) |
+| S1 | Security | Group names are capped at 40 characters and rendered as text; colors come from a fixed palette. | OK |
+
+**Checked live (real mouse drags, `localhost:5173`):**
+- Theo dropped on an empty spot stays there; the pin is saved, ring 1.
+- Yuna dropped on Theo → form → "Hackathon": both in a new wine-colored group, with a filter tab, a legend entry and a toast with Undo.
+- Nora dropped on Samuel → **Add to Work**, then Undo → back in Friends, unpinned.
+- Test edits reverted afterwards.
+
+**Checks:** typecheck, lint, 219 tests (+5: pin round trip, pin cleared on other ring changes, group create/reuse/remove, group colors and contrast), build.

@@ -4,6 +4,8 @@
  * WHAT THIS ACHIEVES
  *   In edit mode you press on a person, drag them across the dashed ring lines and let go:
  *   they move to the ring you dropped them in. Escape during a drag cancels it.
+ *   Oct 18: they also STAY where you dropped them (RingMap saves a pin), and dropping them onto
+ *   another person offers to group the two (hitTest finds who is under the pointer).
  *
  * HOW IT FITS
  *   RingMap passes `start` to PersonNode as onDragStart and draws the dragged person at
@@ -40,9 +42,24 @@ export interface DragState {
   pos: { x: number; y: number } | null;
   /** The ring the person would land in if dropped now (null until moved). */
   ring: Ring | null;
+  /** Oct 18: the person under the pointer, if any: dropping there groups the two. */
+  over: string | null;
 }
 
-export function useRingDrag(svgRef: RefObject<SVGSVGElement | null>, g: Geometry, onDrop: (id: string, ring: Ring) => void) {
+/** Oct 18: what a drop means. `over` set → group with that person; otherwise place at `pos`. */
+export interface Drop {
+  ring: Ring;
+  pos: { x: number; y: number };
+  over: string | null;
+}
+
+export function useRingDrag(
+  svgRef: RefObject<SVGSVGElement | null>,
+  g: Geometry,
+  onDrop: (id: string, drop: Drop) => void,
+  /** Oct 18: who is under a map point (excluding `id`); must be stable, like onDrop. */
+  hitTest: (pos: { x: number; y: number }, id: string) => string | null = () => null,
+) {
   const [start, setStart] = useState<Start | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const dragged = useRef(false);
@@ -65,7 +82,7 @@ export function useRingDrag(svgRef: RefObject<SVGSVGElement | null>, g: Geometry
     };
     const finish = (commit: boolean) => {
       // RingMap compares with the person's current ring, so a drop in the same ring is a no-op.
-      if (commit && moved && last) onDrop(start.id, ringForDistance(g, Math.hypot(last.x - g.cx, last.y - g.cy)));
+      if (commit && moved && last) onDrop(start.id, { ring: ringForDistance(g, Math.hypot(last.x - g.cx, last.y - g.cy)), pos: last, over: hitTest(last, start.id) });
       dragged.current = moved;
       // If the drop wasn't on the node, no click follows: don't swallow the user's NEXT click.
       if (moved) setTimeout(() => (dragged.current = false), 0);
@@ -95,7 +112,7 @@ export function useRingDrag(svgRef: RefObject<SVGSVGElement | null>, g: Geometry
       window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('keydown', onKey, true);
     };
-  }, [start, svgRef, g, onDrop]);
+  }, [start, svgRef, g, onDrop, hitTest]);
 
   /** True once, right after a real drag: the click that follows it should be ignored. */
   const consumeClick = useCallback(() => {
@@ -105,7 +122,7 @@ export function useRingDrag(svgRef: RefObject<SVGSVGElement | null>, g: Geometry
   }, []);
 
   const drag: DragState | null = start
-    ? { id: start.id, pos, ring: pos ? ringForDistance(g, Math.hypot(pos.x - g.cx, pos.y - g.cy)) : null }
+    ? { id: start.id, pos, ring: pos ? ringForDistance(g, Math.hypot(pos.x - g.cx, pos.y - g.cy)) : null, over: pos ? hitTest(pos, start.id) : null }
     : null;
   return { drag, begin, consumeClick };
 }

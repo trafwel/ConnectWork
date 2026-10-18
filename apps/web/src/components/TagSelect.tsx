@@ -13,10 +13,16 @@
  * Guide: §7.2
  */
 
-import { PRIMARY_TAGS } from '@/lib/colors';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/db/db';
+import { GROUP_COLORS, PRIMARY_TAGS } from '@/lib/colors';
 
 export function TagSelect({ value, onChange, id }: { value: string; onChange: (tag: string) => void; id?: string }) {
-  const options = PRIMARY_TAGS.includes(value) ? PRIMARY_TAGS : [value, ...PRIMARY_TAGS];
+  // Oct 18: groups made by dropping people onto each other (they get a GROUP_COLORS color) are
+  // choices here too: the keyboard and list-view way to join one.
+  const made = useLiveQuery(() => db.tags.filter((t) => GROUP_COLORS.includes(t.color) && !PRIMARY_TAGS.includes(t.name)).toArray(), []) ?? [];
+  const all = [...PRIMARY_TAGS, ...made.map((t) => t.name)];
+  const options = all.includes(value) ? all : [value, ...all];
   return (
     <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className="h-8 rounded-md border bg-background px-2 text-sm">
       {options.map((t) => (

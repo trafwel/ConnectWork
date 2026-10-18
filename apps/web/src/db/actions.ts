@@ -87,6 +87,9 @@ export async function updatePerson(id: string, patch: Partial<Omit<Person, 'id'>
     const before = await db.people.get(id);
     if (!before) return;
     const next: Person = { ...before, ...patch, id };
+    // Oct 18: a saved drop spot belongs to the ring it was dropped in. Any other ring change (AI
+    // sort, the card, the 1/2/3 keys) clears it, so the two can never disagree.
+    if (patch.ring !== undefined && patch.ring !== before.ring && !('pin' in patch)) delete next.pin;
     next.name = next.name.trim() || before.name; // a blank name would leave an empty card title
     if (!next.tags.includes(next.primaryTag)) next.tags = [next.primaryTag, ...next.tags];
     await db.people.put(next);
@@ -335,6 +338,29 @@ export async function setRelayToken(token: string | null): Promise<void> {
 /** Oct 18: the day Photon last texted the owner what's due (device-local, not in backups). */
 export async function markDueTexted(day: string): Promise<void> {
   await db.meta.put({ key: 'dueTextedOn', value: day });
+}
+
+/**
+ * Oct 18: "Move people" grouping. Creates a group (a tag with its own color) if it doesn't exist
+ * yet; returns the group's real name and whether it was created (so Undo can remove it).
+ */
+export async function ensureGroup(name: string, color: string): Promise<{ name: string; created: boolean }> {
+  const wanted = name.trim().slice(0, 40);
+  if (!wanted) throw new Error('A group needs a name');
+  return db.transaction('rw', db.tags, async () => {
+    const existing = (await db.tags.toArray()).find((t) => t.name.toLowerCase() === wanted.toLowerCase());
+    if (existing) return { name: existing.name, created: false };
+    await db.tags.add({ name: wanted, color, behavior: 'none' });
+    return { name: wanted, created: true };
+  });
+}
+
+/** Undo for ensureGroup: removes the group only if nobody uses it any more. */
+export async function deleteGroupIfUnused(name: string): Promise<void> {
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    const used = await db.people.filter((p) => p.tags.includes(name)).count();
+    if (!used) await db.tags.delete(name);
+  });
 }
 
 export const LINK_LABEL_MAX = 60;
