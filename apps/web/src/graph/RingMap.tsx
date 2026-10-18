@@ -272,6 +272,7 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                 highlighted={highlightIds.has(p.id)}
                 dimmed={dimmedIds.has(p.id)}
                 neighbor={neighborIds.has(p.id)}
+                flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
                 onSelect={selectPerson}
               />
             );

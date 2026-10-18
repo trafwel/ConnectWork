@@ -19,6 +19,8 @@ import type { Filter } from '@/store/useStore';
 export interface FilterContext {
   dueIds: Set<string>;
   driftingIds: Set<string>;
+  /** M7: people with an overdue reminder (their map flag turns orange-red). */
+  overdueIds?: Set<string>;
 }
 
 export function matchesFilter(p: Person, filter: Filter, ctx: FilterContext): boolean {

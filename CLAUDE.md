@@ -25,6 +25,8 @@ Connectwork is a local-first web app that maps a user's personal network as ring
 4. **Teach-back check before moving on.** At the end of the milestone, summarize the key concepts and write 2–4 short questions into `docs/TEACH_BACK.md` (the team answers them there or in chat). Do NOT start the next milestone until the team says they understand and asks to continue. If an answer shows a gap, explain that concept again (differently) first.
 5. **Update the architecture graph** (`docs/ARCHITECTURE.md`) at the end of every milestone: mark what is now built, add new parts and connections, and add a changelog line. The graph must always match the code on the branch.
 6. Each milestone lands as its own branch + pull request (so VEYZL audits it); merging and pushing only when the team says so.
+7. **Git work goes to a helper agent (team rule, Oct 17).** Commits, pushes, propagating a change up the stacked milestone branches, and opening or updating PRs are delegated to a subagent with exact instructions (branches, files, commit messages, what not to touch). This session writes the code and docs, runs the checks, and then **reviews what the agent did** (`git log`, the diff, the PR) before reporting it as done. Never force-push, never push to `main`, never commit `.env` or the nested `conNetWork/` clone.
+8. **CI is real:** `.github/workflows/ci.yml` runs typecheck, lint, tests and build on every PR. A PR is ready only when its checks are green.
 
 ## Scaffold files
 

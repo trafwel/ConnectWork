@@ -240,3 +240,18 @@
     @apply font-sans;
     }
 }
+
+/* M7: reminder flags pulse (scale 1 → 1.15 → 1, 1.6 s). Runs on an INNER <g>: the node's own
+   transform is its position. Off for anyone who asked their OS for reduced motion. */
+@keyframes cw-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.cw-pulse {
+  animation: cw-pulse 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cw-pulse { animation: none; }
+}

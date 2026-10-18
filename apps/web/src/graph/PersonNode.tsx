@@ -1,5 +1,5 @@
 /**
- * M2 — One person on the map · done (step T restyles it; M7 adds flags, M10 drift)
+ * M2 — One person on the map · done; M7 added reminder flags (step T restyles it; M10 drift)
  *
  * WHAT THIS ACHIEVES
  *   Level of detail that keeps 150+ people readable: ring 1 shows initials and a
@@ -46,10 +46,12 @@ interface Props {
   dimmed: boolean;
   /** Connected to the selected person: always show the name. */
   neighbor?: boolean;
+  /** M7: a follow-up due within 7 days, or overdue. */
+  flag?: 'due' | 'overdue';
   onSelect: (id: string) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimmed, neighbor = false, onSelect }: Props) {
+function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimmed, neighbor = false, flag, onSelect }: Props) {
   const [hover, setHover] = useState(false);
   const r = NODE_RADIUS[person.ring];
   const showLabel =
@@ -60,7 +62,9 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
     hover ||
     (person.ring === 2 && zoom >= 1.3) ||
     (person.ring === 3 && zoom >= 2.2);
-  const description = [person.name, `ring ${person.ring}`, person.primaryTag, person.company].filter(Boolean).join(', ');
+  // Color is never the only signal: the flag's state is also in the label screen readers read.
+  const flagText = flag === 'overdue' ? 'follow-up overdue' : flag === 'due' ? 'follow-up due' : undefined;
+  const description = [person.name, `ring ${person.ring}`, person.primaryTag, person.company, flagText].filter(Boolean).join(', ');
 
   return (
     <g
@@ -90,7 +94,11 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
       <circle className="focus" r={r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
       {highlighted && !selected && <circle r={r + 5} fill="none" stroke={T.highlight} strokeWidth={2} strokeDasharray={T.highlightDash} />}
       {selected && <circle r={r + 4} fill="none" stroke={T.selected} strokeWidth={2.5} />}
-      <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
+      {/* M7: the pulse lives on this inner group, because the outer <g>'s transform is the position. */}
+      <g className={flag ? 'cw-pulse' : undefined}>
+        <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
+      </g>
+      {flag && <Flag r={r} overdue={flag === 'overdue'} />}
       {person.ring === 1 && (
         <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}
@@ -111,6 +119,20 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
           {person.name}
         </text>
       )}
+    </g>
+  );
+}
+
+/** A small flag at the node's top-right: a pole and a pennant. Overdue = orange-red. */
+function Flag({ r, overdue }: { r: number; overdue: boolean }) {
+  const s = Math.max(6, r * 0.55);
+  const x = r * 0.55;
+  const y = -r * 0.95;
+  const fill = overdue ? 'var(--destructive)' : 'var(--map-ink)';
+  return (
+    <g transform={`translate(${x} ${y})`} pointerEvents="none" aria-hidden="true">
+      <line x1={0} y1={0} x2={0} y2={s * 1.6} stroke="var(--map-ink)" strokeWidth={1.2} />
+      <path d={`M0 0 L${s} ${s * 0.4} L0 ${s * 0.8} Z`} fill={fill} stroke="var(--map-paper)" strokeWidth={0.75} />
     </g>
   );
 }
@@ -138,6 +160,7 @@ function sameNode(a: Props, b: Props): boolean {
     a.highlighted === b.highlighted &&
     a.dimmed === b.dimmed &&
     a.neighbor === b.neighbor &&
+    a.flag === b.flag && // M7 (PX-I1: every new prop must be compared here)
     a.onSelect === b.onSelect
   );
 }

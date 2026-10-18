@@ -1,5 +1,5 @@
 /**
- * M3 — A person's reminders · done (Add to calendar arrives in M7)
+ * M3 — A person's reminders · done (M7 added Add to calendar)
  *
  * WHAT THIS ACHIEVES
  *   Lists, adds, completes and deletes follow-up reminders for one person. Overdue
@@ -19,11 +19,12 @@
 
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2 } from 'lucide-react';
+import { CalendarPlus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { addReminder, deleteReminder, setReminderDone } from '@/db/actions';
 import { db } from '@/db/db';
+import { addToCalendar } from '@/lib/addToCalendar';
 import { addDays, formatDate, isoDate } from '@/lib/dates';
 import { isOverdue } from '@/lib/people';
 import { cn, sectionHeading } from '@/lib/utils';
@@ -56,6 +57,17 @@ export function PersonReminders({ personId }: { personId: string }) {
                   {overdue && ' · overdue'}
                 </time>
                 <span className={cn('flex-1 truncate', r.done && 'text-muted-foreground line-through')}>{r.note}</span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={`Add "${r.note}" to calendar`}
+                  onClick={async () => {
+                    const person = await db.people.get(personId);
+                    if (person) await addToCalendar([{ reminder: r, person }]);
+                  }}
+                >
+                  <CalendarPlus />
+                </Button>
                 <Button variant="ghost" size="icon-xs" aria-label={`Delete reminder "${r.note}"`} onClick={() => deleteReminder(r.id)}>
                   <Trash2 />
                 </Button>

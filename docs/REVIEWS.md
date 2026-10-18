@@ -426,3 +426,49 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#step-s-style-switching).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m6).
+
+## M7
+
+**Reminder flags, filter tabs, the Due panel, calendar export (.ics)** · Oct 17 · branch `m7-flags`
+
+**How it was checked:** typecheck, lint, 109 tests (new: calendar file, including an injection test and safe file names), production build. In the browser, on the demo:
+- **Flags:** exactly the 4 people with reminders in the next 7 days. Lena and Maya are **overdue** (orange-red pennant); John and Samuel are **due** (ink pennant). All pulse, and each node's label says "follow-up due/overdue".
+- **Tabs:** counts 40 · Work 12 · School 10 · Friends 9 · Family 3 · Clubs 6 (sum 40) · Due 4 · Drifting 5. **Due** dims 36 and opens the panel, overdue first. **Drifting** shows exactly the 5 from the drift rule, and the panel closes.
+- **Panel buttons:** Done removed Lena's row and flag (Due 3). Snooze moved Maya to Sat, Oct 24, and her flag changed from overdue to due.
+- **Calendar:** "Add to calendar" for John produced `connectwork-john-park.ics` with one all-day event (`DTSTART 20261018`, `DTEND 20261019`). Settings → Export all reminders produced one file with all 3. Both were captured in the page, not downloaded.
+- No console errors.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | The `ics` package plus its yup dependency is a **68 KB** chunk. | **Lazy-loaded** on the first "Add to calendar" (`lib/addToCalendar.ts`). The main bundle only grew 17 KB, for M7's own components. |
+| E2 | Due, overdue and drifting sets are computed once per data change in App, not per node per render. | ✅ |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | `PersonNode`'s custom memo comparison had to learn the new `flag` prop (the PX-I1 warning). | **Done**, with a comment. M10's drift prop must do the same. |
+| I2 | The pulse animates `transform`, which the node's outer `<g>` already uses for its position. | **Avoided:** the pulse is on an inner group (`transform-box: fill-box`). |
+| I3 | Right panel priority: review → person card → Due panel. | Closing a card returns to the Due panel while Due is selected. |
+| I4 | The Drifting tab would read 0 until M10. | **Made real now** (M10 step 3, using M5's `driftLevel`), so Ask Connectwork's "lost touch" answers switch to the Drifting view. Map fading stays M10. |
+| I5 | The first import of a *new* dependency (`ics`) makes Vite reload the page in development. | Dev-only and one-time. Noted because it cut off a test script. |
+| I6 | `addToCalendar` was first exported from a component file, which breaks React Fast Refresh. | **Moved** to `lib/addToCalendar.ts`. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | A reminder note or name containing a line break and `BEGIN:VEVENT` could inject a fake event into the calendar file. | **Tested safe:** the library escapes text, and a test proves one event stays one event. |
+| S2 | File names come from people's names. | **Slugged** to letters, digits and dashes (`../../etc/passwd` → `connectwork-etc-passwd.ics`). |
+| S3 | A calendar file contains the reminder note and the LinkedIn URL. | User-initiated download; it's their data. The person's own notes are not included. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | **The `ics` library writes `DURATION:P1DT` for all-day events**, which is invalid in the calendar standard (RFC 5545 needs a time after "T"). Strict calendar apps may reject it. Found by reading the real output, not the test. | **Fixed:** an explicit next-day `DTEND`; a test asserts no `DURATION` line. |
+| O2 | The pulse turns off for "reduce motion". | Built (`@media (prefers-reduced-motion)`); **not checked live** because the browser pane can't emulate it. |
+| O3 | On ring-3 dots the flag is bigger than the dot. | Cosmetic: theme step T. |
+| O4 | "Done" has no undo toast. | Won't fix: untick the reminder in the person card. |
+| O5 | Snoozing an overdue reminder sets *today* + 7, not due + 7. | Intended: "remind me in a week". |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m7).

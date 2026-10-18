@@ -1,5 +1,5 @@
 /**
- * App shell · M6 state (grows in every milestone)
+ * App shell · M7 state (grows in every milestone)
  *
  * WHAT THIS DOES NOW (M3)
  *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar
@@ -7,6 +7,7 @@
  *   the right, Quick add (N), CSV import, Settings and toasts. Escape closes the card.
  *   M5: "Ask Connectwork" in the top bar, the answer card over the map, the free-tier banner.
  *   M6: "Find hidden links", and the review sheet on the right for AI suggestions.
+ *   M7: filter tabs on the left, reminder flags on the map, the Due panel on the right.
  *   Step S: Appearance (Neutral/Atlas × System/Light/Dark) via lib/appearance.ts.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
@@ -57,7 +58,9 @@ import { Plus, Upload, Waypoints } from 'lucide-react';
 import { AgentAnswer } from '@/components/AgentAnswer';
 import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
+import { FilterTabs } from '@/components/FilterTabs';
 import { PersonCard } from '@/components/PersonCard';
+import { RemindersPanel } from '@/components/RemindersPanel';
 import { ReviewSheet } from '@/components/ReviewSheet';
 import { QuickAdd } from '@/components/QuickAdd';
 import { SettingsDialog } from '@/components/SettingsDialog';
@@ -70,7 +73,8 @@ import { RingMap } from '@/graph/RingMap';
 import { findHiddenLinks } from '@/lib/aiFlows';
 import { useAppearance } from '@/lib/appearance';
 import type { FilterContext } from '@/lib/filters';
-import { dueReminders } from '@/lib/people';
+import { driftLevel } from '@/lib/drift';
+import { dueReminders, isOverdue } from '@/lib/people';
 import { useHotkey } from '@/lib/useHotkey';
 import { useStore } from '@/store/useStore';
 
@@ -82,6 +86,7 @@ export default function App() {
   const [seedError, setSeedError] = useState(false);
   const selectedId = useStore((s) => s.selectedPersonId);
   const rightPanel = useStore((s) => s.rightPanel);
+  const filter = useStore((s) => s.filter);
   // Step S: style + mode, applied to <html>; Settings changes it, toasts follow it.
   const [appearance, setAppearance] = useAppearance();
   const setDialog = useStore((s) => s.setDialog);
@@ -108,11 +113,24 @@ export default function App() {
   const tags = useLiveQuery(() => db.tags.toArray(), []);
   const reminders = useLiveQuery(() => db.reminders.toArray(), []);
 
-  // Step 5. Computed once per reminders change, not once per person per render.
-  const filterContext = useMemo<FilterContext>(
-    () => ({ dueIds: new Set(dueReminders(reminders ?? []).map((r) => r.personId)), driftingIds: new Set() }),
-    [reminders],
-  );
+  // Step 5. Computed once per data change, not once per person per render.
+  // M7: overdue ids for the map flags; drifting ids from driftLevel (M10 step 3, done early so
+  // the Drifting tab is real; the map's drift fading is still M10).
+  const filterContext = useMemo<FilterContext>(() => {
+    const due = dueReminders(reminders ?? []);
+    return {
+      dueIds: new Set(due.map((r) => r.personId)),
+      overdueIds: new Set(due.filter((r) => isOverdue(r)).map((r) => r.personId)),
+      driftingIds: new Set((people ?? []).filter((p) => driftLevel(p) > 0).map((p) => p.id)),
+    };
+  }, [reminders, people]);
+
+  // M7: tab counts (people per primary tag, plus Due and Drifting).
+  const counts = useMemo(() => {
+    const out: Record<string, number> = { all: people?.length ?? 0, due: filterContext.dueIds.size, drifting: filterContext.driftingIds.size };
+    for (const p of people ?? []) out[p.primaryTag] = (out[p.primaryTag] ?? 0) + 1;
+    return out;
+  }, [people, filterContext]);
 
   const loaded = ready && people && links && tags;
 
@@ -134,6 +152,8 @@ export default function App() {
       </TopBar>
       <DemoBanner />
       <div className="flex min-h-0 flex-1">
+        {/* M7 step 4 */}
+        {loaded && people.length > 0 && <FilterTabs counts={counts} />}
         {/* Step 6 */}
         <main className="relative min-w-0 flex-1">
           <AgentAnswer />
@@ -151,7 +171,14 @@ export default function App() {
           )}
         </main>
         {/* Steps 7 and 11: the review sheet, or the selected person's card */}
-        {rightPanel === 'review' ? <ReviewSheet /> : selectedId && <PersonCard personId={selectedId} />}
+        {/* M7 step 5: the Due tab opens the reminders panel when nothing else is open. */}
+        {rightPanel === 'review' ? (
+          <ReviewSheet />
+        ) : selectedId ? (
+          <PersonCard personId={selectedId} />
+        ) : filter === 'due' ? (
+          <RemindersPanel />
+        ) : null}
       </div>
       <QuickAdd />
       {importLoaded && (

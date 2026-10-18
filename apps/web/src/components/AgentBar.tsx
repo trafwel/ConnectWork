@@ -23,8 +23,8 @@
  *   5. Success → ids = model ids that exist locally (grounded, see exactMatch.ts) ∪ exactMatches(question, people);
  *      for filterHint 'drifting' the ids come from driftLevel() instead (M5 review);
  *      setAgent({ agentBusy: false, agentAnswer: answer }); setHighlights(ids);
- *      if filterHint === 'due' → setFilter('due') ('drifting' waits for M10: its set is empty
- *      until then and would dim everyone); if exactly one id → selectPerson(id).
+ *      if filterHint !== 'none' → setFilter(filterHint) (M7: the drifting set is real now);
+ *      if exactly one id → selectPerson(id).
  *   6. Escape in the input clears the text and calls clearFocus().
  *
  * DONE WHEN
@@ -104,7 +104,8 @@ export function AgentBar() {
     const checked = ids.length !== modelIds.size || ids.some((id) => !modelIds.has(id));
     setAgent({ agentBusy: false, agentAnswer: result.data.answer, agentChecked: checked });
     setHighlights(ids);
-    if (result.data.filterHint === 'due') setFilter('due');
+    // M7: driftingIds is real now (App computes it with driftLevel), so both hints switch the view.
+    if (result.data.filterHint !== 'none') setFilter(result.data.filterHint);
     if (ids.length === 1) selectPerson(ids[0]!);
   };
 

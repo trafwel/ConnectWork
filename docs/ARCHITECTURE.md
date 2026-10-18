@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M6 + step S built** — everything through Ask Connectwork, plus *Sort with AI* and *Find hidden links* (one review sheet: the AI proposes, the user accepts; every AI route uses `structured()`), and Settings → Appearance (Neutral/Atlas × System/Light/Dark). Flags and filters (M7) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M7 built** — everything through M6 and Appearance, plus reminder flags on the map (due / overdue, pulsing), filter tabs (tags, Due, Drifting) with the Due panel, and calendar export (.ics, loaded on demand). Weekly review (M8) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -84,6 +84,15 @@ flowchart LR
   Seed -->|"one transaction per action"| DB
   App -->|"selected person → card"| Card
   Card -->|"select, close"| Store
+  Tabs["Filter tabs · Due panel<br/><small>FilterTabs, RemindersPanel · M7</small>"]:::built
+  Ics["Calendar export<br/><small>lib/ics.ts (lazy chunk), addToCalendar · M7</small>"]:::built
+  IcsFile[/".ics file<br/><small>opens in Google / Apple / Outlook</small>"/]:::built
+  Tabs -->|"setFilter"| Store
+  Tabs -->|"Done, Snooze"| Actions
+  Tabs -->|"Add to calendar"| Ics
+  Card -->|"Add to calendar"| Ics
+  Ics --> IcsFile
+  App -->|"due / overdue / drifting sets → flags"| Map
   Card -->|"read: useLiveQuery"| DB
   Card -->|"every write"| Actions
   Actions -->|"one transaction per rule"| DB
@@ -166,8 +175,9 @@ flowchart LR
 | M5 | Ask Connectwork → `/api/ai/query` → Gemini | ✅ built ([review](REVIEWS.md#m5)) |
 | R, M6 | Route helper; review sheet; classify + links | ✅ built ([review](REVIEWS.md#m6)) |
 | S | Style switching (intermediary step, requested Oct 17) | ✅ built ([review](REVIEWS.md#step-s-style-switching)) |
-| M7 | Flags and filter tabs | ⬜ next |
-| M8–M14 | Weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
+| M7 | Flags, filter tabs, Due panel, .ics | ✅ built ([review](REVIEWS.md#m7)) |
+| M8 | Weekly review | ⬜ next |
+| M9–M14 | Snap, drift, Google Calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -183,3 +193,4 @@ flowchart LR
 | Oct 17 | M5 | Big picture: browser → server → Gemini is built. Browser: Ask Connectwork, summary + guardrails, API client. Server: rate limit, `/api/ai/query`, demo cache, Gemini helper (fallback chain, 60 s budget) and prompts are built. Status: M5 ✅, R/M6 next. |
 | Oct 17 | R + M6 | Server: every AI route goes through the route helper; classify and links are built. Browser: AI flows (sort, hidden links) and the review sheet are built; accepting writes through `actions.ts`. Status: R/M6 ✅, style switching next. |
 | Oct 17 | S | Browser: Appearance (style + mode) built; Settings sets it, `localStorage` remembers it per device, and the map's colours come from `--map-*` variables. Status: S ✅, M7 next. |
+| Oct 17 | M7 | Browser: filter tabs + Due panel and calendar export (with the .ics file as an output) are built; App feeds due/overdue/drifting sets to the map for flags. Status: M7 ✅, M8 next. |
