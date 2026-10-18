@@ -1247,6 +1247,19 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **Also (Oct 18):** "Text me M. Richard Hurtz's information" sent *as a text* got "I am texting you … now" and no details. Over iMessage the reply already is the text, so the relay now replies with the model's `textMe` message (up to 600 characters) when there is one, instead of the search bar's one-line sentence.
 - **Also (Oct 18, team screenshot): Settings overflowed its right edge.** Four Style options no longer fit the dialog's default 24rem. Because the dialog lays out its content as one grid, that row stretched the whole grid, so every row (pickers, About you, the texting row) ran past the edge. Now: the dialog is 28rem wide, its children have `min-width: 0`, option rows wrap if they ever don't fit, and the dialog scrolls on short screens. The token field, Save and Disconnect are centered on one line. Measured: nothing overflows at desktop or 375 px phone width.
 
+## Spiderweb style, redesigned (Oct 18)
+
+**Team request:** "Change the spiderweb design to look cooler."
+
+**What changed and why:** the first version was beige "linen paper", with the web visible only as a 7%-opacity pattern. Now it's a moonlit web, still pure CSS (`themes.css`), so switching styles re-renders nothing.
+- **A real web behind the map.** Sixteen spokes and a fine spiral meet where "You" sits, under a soft moon glow in one corner and a vignette, so the rings read as the web's spiral.
+- **Silk and dew.** Silver rings and link threads (round caps); people get a faint violet glow (`drop-shadow` on node circles only).
+- **A hanging spider.** It sways on a thread at the top of the map: an inline SVG, which the CSP already allows (`img-src data:`). It ignores the pointer, and stays still with reduced motion.
+- **Light mode** is a misty dawn version with a dark spider. Violet is the accent in both modes.
+- **Contrast** (every text pair ≥ 4.5:1): light body 14.1, muted 6.5; dark body 16.2, muted 8.0; primary buttons 10.5 / 11.0.
+
+**Checked:** screenshots in both modes on `localhost:5173`; typecheck, lint, tests, build.
+
 ## Profile pictures (Oct 18)
 
 **Team request:** "Add profile picture support as an option you can toggle in the menu, but keep the categorical color as an outline and pull free stock images to fill in."

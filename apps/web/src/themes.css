@@ -6,9 +6,9 @@
  *   <html data-style="spiderweb|phantom" class="dark?">. Like Atlas, each is only CSS variables
  *   plus a few touches on existing elements, so switching re-renders nothing.
  *
- *   Spiderweb: the map as a web. Linen paper (dark: a night web), hairline silk threads, solid
- *     rings like the spiral, faint radial threads behind the map meeting at you, an old-style serif
- *     for the title, square corners, one sienna accent (dark: dew-gold).
+ *   Spiderweb: the map as a moonlit web (redesigned later on Oct 18, see its section): a real
+ *     web behind the map, silver silk rings and threads, people glowing like dew, a hanging spider,
+ *     an old-style serif title, one violet accent. Light is a misty dawn version.
  *   Phantom: a Persona 5-inspired red, black and white. Ink borders with hard offset shadows,
  *     a skewed title stamped on red, slanted buttons, a halftone dot texture on the map, and a red
  *     slash in the corner.
@@ -22,88 +22,155 @@
  */
 
 /* ───────────────────────────── Spiderweb ───────────────────────────── */
+/*
+ * Oct 18 redesign (team: "make it look cooler"): a moonlit web instead of linen paper.
+ *   - Behind the map: a real web. Spokes (conic) meeting at "You", fine spiral threads (radial),
+ *     a soft moon glow in one corner and a vignette, so the rings read as the web's spiral.
+ *   - Silver silk rings and threads; people glow faintly violet like dew in moonlight.
+ *   - A small spider hangs from the top of the map on a thread and sways (still with reduced
+ *     motion). It ignores the pointer, so it never blocks a click.
+ *   - Dark is the hero; light is a misty dawn version of the same web.
+ * Text pairs stay ≥ 4.5:1. The spider is an inline SVG (the CSP allows data: images).
+ */
 :root[data-style="spiderweb"] {
-    --background: #eeeae2;
-    --foreground: #23211d;
-    --card: #f7f5f0;
-    --card-foreground: #23211d;
-    --popover: #f7f5f0;
-    --popover-foreground: #23211d;
-    --primary: #23211d;
-    --primary-foreground: #f7f5f0;
-    --secondary: #e3ded3;
-    --secondary-foreground: #23211d;
-    --muted: #e3ded3;
-    --muted-foreground: #5e5950;
-    --accent: #e3ded3;
-    --accent-foreground: #23211d;
-    --destructive: #a3401f;
-    --border: #cfc8ba;
-    --input: #b3ab9b;
-    --ring: #8a4b2a;
-    --radius: 0.125rem;
+    --background: #e9ebef;
+    --foreground: #1b1d24;
+    --card: #f5f6f8;
+    --card-foreground: #1b1d24;
+    --popover: #f5f6f8;
+    --popover-foreground: #1b1d24;
+    --primary: #4b2a8c;
+    --primary-foreground: #ffffff;
+    --secondary: #dde0e7;
+    --secondary-foreground: #1b1d24;
+    --muted: #dde0e7;
+    --muted-foreground: #4d5361;
+    --accent: #dde0e7;
+    --accent-foreground: #1b1d24;
+    --destructive: #a3341f;
+    --border: #cbcfd9;
+    --input: #a9afbd;
+    --ring: #6b3fd1;
+    --radius: 0.25rem;
 
-    --map-ring: #8d8576;
-    --map-ring-width: 0.8;
+    --map-paper: #e9ebef;
+    --map-ink: #1b1d24;
+    --map-ring: #8a90a0;
+    --map-ring-width: 0.9;
     --map-ring-dash: none;
-    --map-ring-label: #5e5950;
-    --map-link: #23211d;
-    --map-link-opacity: 0.45;
-    --map-link-width: 0.6;
-    --map-suggested: #8a4b2a;
+    --map-ring-label: #4d5361;
+    --map-link: #1b1d24;
+    --map-link-opacity: 0.42;
+    --map-link-width: 0.7;
+    --map-suggested: #6b3fd1;
     --map-suggested-dash: 1 3;
-    --map-node-stroke: #23211d;
-    --map-node-stroke-width: 0.75;
-    --map-highlight: #8a4b2a;
-    --map-you: #23211d;
+    --map-node-stroke: #ffffff;
+    --map-node-stroke-width: 1;
+    --map-highlight: #6b3fd1;
+    --map-you: #1b1d24;
 
-    --web-thread: rgb(35 33 29 / 0.07);
+    --web-thread: rgb(27 29 36 / 0.09);
+    --web-spiral: rgb(27 29 36 / 0.045);
+    --web-moon: rgb(255 255 255 / 0.85);
+    --web-shade: rgb(27 29 36 / 0.1);
+    --web-glow: rgb(107 63 209 / 0.3);
+    --web-title-glow: transparent;
 }
 
 :root[data-style="spiderweb"].dark {
-    --background: #0e0f11;
-    --foreground: #dcd8d0;
-    --card: #16171a;
-    --card-foreground: #dcd8d0;
-    --popover: #16171a;
-    --popover-foreground: #dcd8d0;
-    --primary: #dcd8d0;
-    --primary-foreground: #0e0f11;
-    --secondary: #1e2024;
-    --secondary-foreground: #dcd8d0;
-    --muted: #1e2024;
-    --muted-foreground: #9c978e;
-    --accent: #1e2024;
-    --accent-foreground: #dcd8d0;
-    --destructive: #e08a6a;
-    --border: #2b2d32;
-    --input: #44474e;
-    --ring: #d4b45c;
+    --background: #08090d;
+    --foreground: #e6e8ee;
+    --card: #101219;
+    --card-foreground: #e6e8ee;
+    --popover: #101219;
+    --popover-foreground: #e6e8ee;
+    --primary: #c9b8ff;
+    --primary-foreground: #0b0b12;
+    --secondary: #1b1e2a;
+    --secondary-foreground: #e6e8ee;
+    --muted: #1b1e2a;
+    --muted-foreground: #9ea4b3;
+    --accent: #1b1e2a;
+    --accent-foreground: #e6e8ee;
+    --destructive: #ff8a7a;
+    --border: #252a38;
+    --input: #3c4254;
+    --ring: #b48cff;
 
-    --map-ring: #4a4c52;
-    --map-ring-label: #9c978e;
-    --map-link: #dcd8d0;
-    --map-link-opacity: 0.4;
-    --map-suggested: #d4b45c;
-    --map-node-stroke: #dcd8d0;
-    --map-highlight: #d4b45c;
-    --map-you: #dcd8d0;
+    --map-paper: #08090d;
+    --map-ink: #e6e8ee;
+    --map-ring: #6b7286;
+    --map-ring-label: #9ea4b3;
+    --map-link: #d7dbe6;
+    --map-link-opacity: 0.5;
+    --map-suggested: #b48cff;
+    --map-node-stroke: #e6e8ee;
+    --map-highlight: #b48cff;
+    --map-you: #e6e8ee;
 
-    --web-thread: rgb(220 216 208 / 0.06);
+    --web-thread: rgb(200 205 220 / 0.1);
+    --web-spiral: rgb(200 205 220 / 0.05);
+    --web-moon: rgb(180 160 255 / 0.13);
+    --web-shade: rgb(0 0 0 / 0.55);
+    --web-glow: rgb(180 140 255 / 0.55);
+    --web-title-glow: rgb(180 140 255 / 0.45);
 }
 
-/* Radial threads behind the map, meeting where "You" starts (the centre of the map area). */
+/* The web behind the map: moon glow, vignette, 16 spokes and a spiral, all meeting where "You" is
+   (the centre of the map area). It stays put while the map pans, like a backdrop. */
 :root[data-style="spiderweb"] main {
-    background-image: repeating-conic-gradient(from 7deg at 50% 50%, var(--web-thread) 0deg 0.35deg, transparent 0.35deg 30deg);
+    background-color: var(--background);
+    background-image:
+        radial-gradient(circle at 88% 6%, var(--web-moon), transparent 42%),
+        radial-gradient(circle at 50% 50%, transparent 58%, var(--web-shade) 100%),
+        repeating-conic-gradient(from 7deg at 50% 50%, var(--web-thread) 0deg 0.3deg, transparent 0.3deg 22.5deg),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0 21px, var(--web-spiral) 21px 22px);
 }
+
+/* People glow like dew; the rings and threads read as silk. */
+:root[data-style="spiderweb"] main svg g[role="button"] circle:not([fill="none"]) {
+    filter: drop-shadow(0 0 4px var(--web-glow));
+}
+:root[data-style="spiderweb"] main svg line {
+    stroke-linecap: round;
+}
+
+/* The spider: a thread and a body in one inline SVG, hanging from the top of the map. */
+:root[data-style="spiderweb"] main::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 14%;
+    z-index: 1;
+    width: 40px;
+    height: 120px;
+    pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='120' viewBox='0 0 40 120' fill='none' stroke='%232a2d36' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M20 0V80' stroke-width='0.6' opacity='.7'/%3E%3Cg fill='%232a2d36' stroke='none'%3E%3Ccircle cx='20' cy='84' r='4'/%3E%3Cellipse cx='20' cy='95' rx='6.5' ry='8.5'/%3E%3C/g%3E%3Cpath d='M15 86 6 80 3 72M15 89 4 88 1 82M15 93 5 98 2 104M16 97 8 106 6 113M25 86 34 80 37 72M25 89 36 88 39 82M25 93 35 98 38 104M24 97 32 106 34 113'/%3E%3Cg fill='%236b3fd1' stroke='none'%3E%3Ccircle cx='18.4' cy='83.2' r='1'/%3E%3Ccircle cx='21.6' cy='83.2' r='1'/%3E%3C/g%3E%3C/svg%3E") no-repeat top center;
+    transform-origin: 50% 0;
+    animation: cw-spider-sway 6s ease-in-out infinite;
+}
+:root[data-style="spiderweb"].dark main::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='120' viewBox='0 0 40 120' fill='none' stroke='%23c9cdd6' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M20 0V80' stroke-width='0.6' opacity='.7'/%3E%3Cg fill='%23c9cdd6' stroke='none'%3E%3Ccircle cx='20' cy='84' r='4'/%3E%3Cellipse cx='20' cy='95' rx='6.5' ry='8.5'/%3E%3C/g%3E%3Cpath d='M15 86 6 80 3 72M15 89 4 88 1 82M15 93 5 98 2 104M16 97 8 106 6 113M25 86 34 80 37 72M25 89 36 88 39 82M25 93 35 98 38 104M24 97 32 106 34 113'/%3E%3Cg fill='%23b48cff' stroke='none'%3E%3Ccircle cx='18.4' cy='83.2' r='1'/%3E%3Ccircle cx='21.6' cy='83.2' r='1'/%3E%3C/g%3E%3C/svg%3E");
+}
+@keyframes cw-spider-sway {
+    0%, 100% { transform: rotate(-4deg) translateY(0); }
+    50% { transform: rotate(4deg) translateY(6px); }
+}
+
 :root[data-style="spiderweb"] header > span:first-child {
     font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
     font-style: italic;
     font-weight: 600;
-    letter-spacing: 0;
+    letter-spacing: 0.01em;
+    text-shadow: 0 0 12px var(--web-title-glow);
 }
 :root[data-style="spiderweb"] [data-slot="button"] {
     box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    :root[data-style="spiderweb"] main::after {
+        animation: none;
+    }
 }
 
 /* ───────────────────────────── Phantom ───────────────────────────── */
