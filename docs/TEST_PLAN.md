@@ -2,7 +2,7 @@
 
 Every feature built so far (52 tests, M1–M9 and Appearance), as steps and what you should see. Generated from [`testing/connectwork-test-run.html`](testing/connectwork-test-run.html) (the same tests as an interactive checklist; the team copy with shared results is a private claude.ai artifact). Edit the tests there and regenerate this file.
 
-**Before you start:** get the newest milestone branch (`git fetch origin && git switch m9-snap && pnpm install`). `main` only shows the starting screen until the milestone PRs are merged. Then run `pnpm dev`, open http://localhost:5173, and use **Settings → Reset demo data**. The server lives at `localhost:8787/api/…`; its root address answering 404 is normal. Import tests use `demo/Connections.csv`; Snap tests use `demo/roster.pdf`. The AI runs on Gemini's free tier, so use the fictional demo data, or your own business card, only (never someone else's). Demo dates are relative to today.
+**Before you start:** get the latest `main`, which has every milestone through M10 (`git switch main && git pull && pnpm install`). Then run `pnpm dev`, open http://localhost:5173, and use **Settings → Reset demo data**. The server lives at `localhost:8787/api/…`; its root address answering 404 is normal. Import tests use `demo/Connections.csv`; Snap tests use `demo/roster.pdf`. The AI runs on Gemini's free tier, so use the fictional demo data, or your own business card, only (never someone else's). Demo dates are relative to today.
 
 | Section | Tests |
 | --- | --- |

@@ -117,7 +117,7 @@ footer { display: grid; gap: 10px; color: var(--muted); font-size: 13px; border-
   <div class="setup">
     <span class="eyebrow">Before you start</span>
     <ol>
-      <li>Get the newest milestone branch. <b>main only has the starting screen</b> (a title and “Server ok”) until the milestone pull requests are merged: <span class="copy-row"><code id="cmd-branch">git fetch origin &amp;&amp; git switch m9-snap &amp;&amp; pnpm install</code><button class="copy" data-copy="cmd-branch" type="button">Copy</button></span></li>
+      <li>Get the latest <b>main</b>, which has every milestone through M10: <span class="copy-row"><code id="cmd-branch">git switch main &amp;&amp; git pull &amp;&amp; pnpm install</code><button class="copy" data-copy="cmd-branch" type="button">Copy</button></span></li>
       <li>Start the app from the repo: <span class="copy-row"><code id="cmd-dev">pnpm dev</code><button class="copy" data-copy="cmd-dev" type="button">Copy</button></span> (The server lives at <code>localhost:8787/api/…</code>; its root address showing “404 Not Found” is normal.)</li>
       <li>Open <a href="http://localhost:5173" target="_blank" rel="noopener">localhost:5173</a> in Chrome on the same Mac.</li>
       <li>Start from the demo: <b>Settings (gear) → Reset demo data</b>. Most expectations below assume the 40 demo people.</li>
