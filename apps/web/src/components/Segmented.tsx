@@ -13,7 +13,7 @@ export function Segmented<T extends string | number>({
   onChange,
   label,
   id,
-  className = 'inline-flex rounded-md border p-0.5',
+  className = 'inline-flex max-w-full flex-wrap rounded-md border p-0.5',
 }: {
   value: T;
   options: Array<{ value: T; label: string }>;

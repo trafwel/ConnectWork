@@ -65,9 +65,20 @@ export class RelayHub {
     return this.stream !== null && !this.stream.aborted && !this.stream.closed;
   }
 
-  /** Step 2 helper: the newest tab wins; the old stream is closed so it stops pinging. */
+  /**
+   * Step 2 helper: the newest tab wins; the old stream is closed so it stops pinging.
+   * Oct 18: the old tab is told why ('replaced') first. A plain close looks like a dropped
+   * connection, so the old tab reconnected, took over again, and two tabs (two different copies
+   * of the network) kept taking turns answering texts.
+   */
   attach(stream: SSEStreamingApi): void {
-    if (this.stream && this.stream !== stream) void this.stream.close();
+    const old = this.stream;
+    if (old && old !== stream) {
+      void old
+        .writeSSE({ event: 'replaced', data: '{}' })
+        .catch(() => undefined)
+        .finally(() => void old.close());
+    }
     this.stream = stream;
   }
 

@@ -26,6 +26,18 @@ describe('relay (M16)', () => {
     expect(tokenMatches('anything', '')).toBe(false);
   });
 
+  it('tells the old tab it was replaced when a newer tab connects (Oct 18)', async () => {
+    const { hub, app } = setup();
+    const first = (await app.request(`/api/relay/stream?token=${TOKEN}`)).body!.getReader();
+    await first.read(); // ready
+    const second = (await app.request(`/api/relay/stream?token=${TOKEN}`)).body!.getReader();
+    await second.read(); // ready: the newer tab is attached
+    const { value } = await first.read();
+    expect(new TextDecoder().decode(value)).toContain('event: replaced');
+    expect(hub.connected).toBe(true);
+    await second.cancel();
+  });
+
   it('answers null at once when no tab is open', async () => {
     const { hub } = setup();
     const t = Date.now();

@@ -1234,3 +1234,15 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
   - Smallest edge-to-edge gap between ring 1–2 people is now 26 px at normal zoom (the old padding allowed about 14).
   - School tab → zoom 2.1× onto all six School people, names clear of each other. All → back to 1×.
 - **Checks:** typecheck, lint, 219 tests, build.
+
+### Follow-up (Oct 18): texts answered from the wrong copy of the network
+
+- **Report:** "Text me M. Richard Hurtz's information" → "I couldn't find M. Richard Hurtz", although he's on the user's map.
+- **Cause:** the network lives in each browser. Texts were answered by a different tab (the Claude app's browser pane), whose copy didn't have him. Worse, when a second tab connected, the server closed the first tab's stream without saying why. The first tab saw a dropped connection, reconnected within seconds, and took over again, so the two tabs would keep trading the texting connection.
+- **Fix:**
+  - The server sends the old tab a `replaced` event before closing its stream.
+  - The tab then stops for good (no reconnect, no watchdog), and Settings → Texting agent says "Another tab took over texting… Save the token again here to take it back".
+- **Checked live:** two tabs, then exactly two stream connections and no reconnect fight. The first tab shows "Another tab took over", the second "Connected". Also a new relay test.
+- **Checks:** typecheck, lint, 220 tests (+1), build.
+- **Also (Oct 18):** "Text me M. Richard Hurtz's information" sent *as a text* got "I am texting you … now" and no details. Over iMessage the reply already is the text, so the relay now replies with the model's `textMe` message (up to 600 characters) when there is one, instead of the search bar's one-line sentence.
+- **Also (Oct 18, team screenshot): Settings overflowed its right edge.** Four Style options no longer fit the dialog's default 24rem. Because the dialog lays out its content as one grid, that row stretched the whole grid, so every row (pickers, About you, the texting row) ran past the edge. Now: the dialog is 28rem wide, its children have `min-width: 0`, option rows wrap if they ever don't fit, and the dialog scrolls on short screens. The token field, Save and Disconnect are centered on one line. Measured: nothing overflows at desktop or 375 px phone width.

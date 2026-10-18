@@ -39,6 +39,7 @@ const STATUS: Record<string, string> = {
   connecting: 'Connecting…',
   connected: 'Connected: texts are answered while this tab is open',
   error: 'Error: check the token (it must match RELAY_TOKEN in the server .env)',
+  replaced: 'Another tab took over texting. Texts are answered from that tab’s data. Save the token again here to take it back.',
 };
 
 export function AgentConnection() {
@@ -80,7 +81,7 @@ export function AgentConnection() {
         Texting agent
       </h3>
       {/* Step 1. A password field: the token is a secret, so it's never shown again once saved. */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <label className="sr-only" htmlFor="relay-token">
           Relay token
         </label>

@@ -99,8 +99,8 @@ export interface UIState {
 
   setView: (view: 'map' | 'groups' | 'list' | 'month') => void;
   /** M16: this tab's connection to the texting agent's relay. */
-  relayStatus: 'off' | 'connecting' | 'connected' | 'error';
-  setRelayStatus: (s: 'off' | 'connecting' | 'connected' | 'error') => void;
+  relayStatus: 'off' | 'connecting' | 'connected' | 'error' | 'replaced';
+  setRelayStatus: (s: 'off' | 'connecting' | 'connected' | 'error' | 'replaced') => void;
   /** Groups view: tags the user opened. Kept while switching views. */
   expandedGroups: Set<string>;
   toggleGroup: (tag: string) => void;
