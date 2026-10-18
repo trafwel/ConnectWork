@@ -96,7 +96,10 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setDialog('settings', true) : close())}>
-      <DialogContent>
+      {/* Oct 18 (team screenshot): four styles no longer fit the default 24rem, and one wide row
+          stretched the dialog's whole grid past its edge. 28rem fits them; min-w-0 lets rows
+          shrink and wrap instead; the dialog scrolls on short screens. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>Your data lives only in this browser. Export it to keep a copy.</DialogDescription>

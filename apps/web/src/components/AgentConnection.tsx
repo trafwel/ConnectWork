@@ -81,7 +81,7 @@ export function AgentConnection() {
         Texting agent
       </h3>
       {/* Step 1. A password field: the token is a secret, so it's never shown again once saved. */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <label className="sr-only" htmlFor="relay-token">
           Relay token
         </label>
