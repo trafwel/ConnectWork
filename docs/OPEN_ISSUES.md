@@ -18,13 +18,11 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Issue | Milestone |
 | --- | --- | --- |
 | M1-S4 | `javascript:` URLs in `linkedinUrl` or `email` would run if ever rendered as links. | Both import paths are now closed (CSV: M4-S1; backup: the M1-S2 row schemas drop unsafe links). Still: any milestone that renders them as `<a href>` must allow only `https:`/`mailto:`, because users can *type* anything into the card. |
-| M2-E5 | Main bundle is over Vite's 500 KB warning: 648 KB, because d3 is on the first screen and zod (about 77 KB) arrived with backup validation. | M14 deploy: measure. zod stays in the main bundle (M5 must validate AI replies in the browser); keep snap/calendar behind `import()` like the import dialog. |
+| M2-E5 | Main bundle is over Vite's 500 KB warning: 700 KB at M10 (648 KB at M2), because d3 is on the first screen and zod (about 77 KB) arrived with backup validation. | M14 deploy: measure. zod stays in the main bundle (M5 must validate AI replies in the browser); keep snap/calendar behind `import()` like the import dialog. |
 | M2-O5 | Filter tabs have no UI yet (highlights now come from Ask Connectwork, M5). | M7 (filter tabs). |
-| M5-I5 | "Lost touch" thresholds live in the prompt and in `lib/drift.ts`. | M10: if Settings makes them editable, send the current values with each query. |
 | S-S1 | The no-flash appearance script in `index.html` is inline; a strict CSP would block it. | M13: allow it by hash in the CSP (or move it to a tiny external file). |
 | M5-S9 | The deployed server has no login: anyone who can reach it can spend our Gemini quota (30/min per IP). | M13/M14: serve web and API from one origin behind Caddy (`TRUST_PROXY=1`), and consider a shared demo passcode or lower per-IP limits. |
-| PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 added `flag` ✓. M10 (drift): add any new drawn field or prop to `sameNode`, or that node won't update. |
-| M4-O4 | Imported "connected on" dates become last contact, so most imports look "drifting". | M10: treat imported people with no logged contact gently. |
+| PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 `flag` ✓, fix 2 ✓, M10 `drift` ✓. Any later milestone that draws a new field or prop must add it to `sameNode`, or that node won't update. |
 
 ## Team decision
 | ID | Question | Claude's suggested default |
@@ -33,6 +31,8 @@ Resolved items move to the table at the bottom, with what changed.
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
 | F1-I5 | `pnpm lint` fails locally because of the untracked nested `conNetWork/` folder (a second copy of the repo). CI is unaffected. | It looks like a stray clone. If nobody needs it, delete it yourselves (Claude never touches it); otherwise add `conNetWork/**` to the ESLint ignores. |
 | F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |
+| M10-I7 | In the demo John Park drifts only slightly (210 days vs 180: 93% opacity, a little outward, dotted). | Leave the seed alone (the weekly review relies on it). If you want a stronger visual in the demo, set Settings → Drifting → Ring 2 to **120 days** before presenting, then Reset after. |
+| M10-O3 | Highlighted list rows not yet checked with a screen reader. | Turn on VoiceOver (Cmd+F5), switch to List, ask a question, and listen to a highlighted row: it should say "(in the answer)". |
 | M1-O5 | Import replaces everything without confirming. Should it ask first, or auto-export a backup? | A two-step confirm like Delete ("Replace all your data with this backup?"). It's consistent, needs no extra download, and is easy to change. *Applied in the fix step unless you say otherwise.* |
 
 ## Won't fix (for now)
@@ -56,8 +56,10 @@ Resolved items move to the table at the bottom, with what changed.
 | F1-O1 | Labels move ahead of gliding nodes for about half a second when a click both pans and re-lays out the map. | Cosmetic; lines already did this. |
 | F1-O2 | A label with no free spot is skipped. | Still in the node's screen-reader label and tooltip; hover or focus always shows it. |
 | F1-O5 | Escape inside the Add connection form not checked live. | Check once by hand: it should close the form, not the card. |
+| M10-O2 | The 8 filter tabs are 8 Tab stops before the table. | An arrow-key group would be faster; acceptable for the demo. |
+| M10-O5 | For imported people the AI summary still includes the LinkedIn connect date as last contact, so the model's sentence about "lost touch" could count them. | The highlighted list is computed in code with the gentle rule; the card flags when code changed the model's list. |
+| M10-O6 | Map / List choice isn't remembered after a reload. | UI state by design; easy to persist later. |
 | M2-E6 | Layout blocks the main thread for about 86 ms at 154 people. | Fine at hackathon scale; move to a Web Worker only above about 400 people. |
-| M2-O2 | Keyboard Tab order goes ring 3 → 1 (it follows paint order). | Fixing it needs a roving focus model for the SVG. The M10 list view is the keyboard-first path. |
 | M2-O4 | 114 unsorted imports form a thick wedge slightly outside ring 3. | M6 "Sort with AI" spreads them; zoom and pan reach them meanwhile. |
 | M3-O6 | Removing the follow-up tag keeps its reminder. | By design: the reminder is a real task. |
 | M4-O1 | The same person with no URL, email or company in two different files is imported twice. | The price of not merging namesakes; the user can delete one. |
@@ -68,6 +70,9 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| M5-I5 | "Lost touch" thresholds lived in the prompt and in `lib/drift.ts`. | M10: limits are editable in Settings and sent with each question when they differ from the defaults; the prompt uses the given limits. Server-tested. |
+| M4-O4 | Imported "connected on" dates became last contact, so most imports looked "drifting". | M10: a LinkedIn person whose last contact is still their connect date doesn't drift, and the card/list say "No contact logged · connected …". Unit-tested. |
+| M2-O2 | Keyboard Tab order on the map goes ring 3 → 1. | M10: the list view is the keyboard-first path (Enter opens the card and moves focus into it; Escape returns). Checked live. |
 | M2-O3 | Neighbour names can overlap when someone is selected. | Fix step 1: all map text is placed by `placeLabels` in screen space, so no two labels overlap (tested; checked in the browser). |
 | M5-S7 | `.env` (holds the Gemini key) was readable by every user account on the Mac. | The team ran `chmod 600 .env` (now `-rw-------`); the server still reads the key. |
 | M6-O1 | A sort could silently skip people. | Post-M6 step: the review says "N people had no suggestion and stay unsorted: …" (checked with a stubbed reply). |

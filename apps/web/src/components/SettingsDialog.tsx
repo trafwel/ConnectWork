@@ -26,7 +26,7 @@
  *   4b. (Step S) Appearance: Style (Neutral / Atlas) and Mode (System / Light / Dark), saved
  *       per device by lib/appearance.ts. Fix step 2 adds Reminders (Flag / Ripple).
  *   5. Later sections: M6 ✓ "About you" textarea saved to db.meta 'userContext' on blur;
- *      M7 ✓ "Export all reminders"; M10 drift thresholds; M16 <AgentConnection />.
+ *      M7 ✓ "Export all reminders"; M10 ✓ drift thresholds (DriftSettings); M16 <AgentConnection />.
  *
  * DONE WHEN
  *   - Each button does what it says, and the delete needs two clicks.
@@ -44,6 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { db } from '@/db/db';
 import type { Appearance } from '@/lib/appearance';
 import { addToCalendar } from '@/lib/addToCalendar';
+import { DriftSettings } from './DriftSettings';
 import { Segmented } from './Segmented';
 import { deleteEverything, exportAll, importBackup, resetDemoData } from '@/db/seed';
 import { today } from '@/lib/dates';
@@ -141,6 +142,8 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
         </section>
 
         <AboutYou />
+
+        <DriftSettings />
 
         <section className="space-y-2">
           <h3 className="text-sm font-medium">Your data</h3>

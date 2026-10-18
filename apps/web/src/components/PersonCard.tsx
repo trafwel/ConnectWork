@@ -54,7 +54,9 @@ import { db } from '@/db/db';
 import { DraftResponse } from '@connectwork/shared';
 import { aiPost } from '@/lib/api';
 import { safeColor, tagColor } from '@/lib/colors';
+import { driftLevel } from '@/lib/drift';
 import { describeLastContact } from '@/lib/people';
+import { useDriftThresholds } from '@/lib/useDriftThresholds';
 import { sectionHeading } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import { PersonLinks } from './PersonLinks';
@@ -78,7 +80,13 @@ export function PersonCard({ personId }: { personId: string }) {
 
   return (
     // Step 1
-    <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l bg-background" aria-label={`${person.name} details`}>
+    // M10: id + tabIndex -1 so the list view can move keyboard focus here when it opens a card.
+    <aside
+      id="person-card"
+      tabIndex={-1}
+      className="flex h-full w-[26rem] shrink-0 flex-col border-l bg-background outline-none"
+      aria-label={`${person.name} details`}
+    >
       <div className="flex items-start justify-between gap-2 border-b p-4">
         <div className="min-w-0 flex-1">
           <EditableText
@@ -106,6 +114,8 @@ export function PersonCard({ personId }: { personId: string }) {
 
 function CardBody({ person }: { person: Person }) {
   const tags = useLiveQuery(() => db.tags.toArray(), []);
+  const thresholds = useDriftThresholds();
+  const drifting = person ? driftLevel(person, new Date(), thresholds) > 0 : false;
   const selectPerson = useStore((s) => s.selectPerson);
   const [newTag, setNewTag] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -197,7 +207,11 @@ function CardBody({ person }: { person: Person }) {
             Log contact today
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">{describeLastContact(person)}</p>
+        {/* M10 step 6: the word "drifting" carries the meaning; the color only adds to it. */}
+        <p className={`text-sm ${drifting ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {describeLastContact(person)}
+          {drifting && ' · drifting'}
+        </p>
       </section>
 
       {/* Step 7 */}

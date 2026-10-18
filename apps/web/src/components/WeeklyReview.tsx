@@ -56,6 +56,7 @@ import { formatDate, today } from '@/lib/dates';
 import { buildSummary } from '@/lib/graphSummary';
 import { cn, sectionHeading } from '@/lib/utils';
 import { weeklyCandidates } from '@/lib/weeklyCandidates';
+import { readDriftThresholds } from '@/lib/useDriftThresholds';
 import { useStore } from '@/store/useStore';
 
 type Action = WeeklyReviewResponse['actions'][number];
@@ -64,8 +65,8 @@ type Action = WeeklyReviewResponse['actions'][number];
 async function runWeekly(): Promise<void> {
   const { setWeekly } = useStore.getState();
   setWeekly({ status: 'loading', done: [], message: undefined });
-  const [people, links, reminders] = await Promise.all([db.people.toArray(), db.links.toArray(), db.reminders.toArray()]);
-  const candidates = weeklyCandidates(people, links, reminders);
+  const [people, links, reminders, thresholds] = await Promise.all([db.people.toArray(), db.links.toArray(), db.reminders.toArray(), readDriftThresholds()]);
+  const candidates = weeklyCandidates(people, links, reminders, new Date(), thresholds);
   if (!candidates.length) {
     setWeekly({ status: 'ready', candidates, plan: { headline: "You're all caught up", actions: [] } });
     return;

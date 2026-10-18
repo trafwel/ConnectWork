@@ -1,5 +1,5 @@
 /**
- * M10 — Drift: relationships fading over time · step 1 done early (M5 review: "lost touch" answers use it); steps 3–7 are M10
+ * M10 — Drift: relationships fading over time · done (step 1 landed early, in M5)
  *
  * WHAT THIS ACHIEVES
  *   Close people you haven't talked to in a while visibly drift outward and
@@ -37,11 +37,46 @@ import type { Person, Ring } from '@connectwork/shared';
 import { daysSince } from './dates';
 
 export const DEFAULT_THRESHOLDS: Record<Ring, number> = { 1: 90, 2: 180, 3: Infinity };
+export type Thresholds = Record<Ring, number>;
+
+/** Step 7. Settings accepts 7 days to 10 years; ring 2 is never stricter than ring 1. */
+export const THRESHOLD_MIN = 7;
+export const THRESHOLD_MAX = 3650;
+
+/**
+ * Step 7. Reads the stored `driftThresholds` (db.meta) defensively: it may be missing, from an
+ * old backup or hand-edited, so anything odd falls back to the default for that ring.
+ */
+export function parseThresholds(value: unknown): Thresholds {
+  const v = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const pick = (ring: 1 | 2) => {
+    const n = v[ring];
+    return typeof n === 'number' && Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX ? n : DEFAULT_THRESHOLDS[ring];
+  };
+  return { 1: pick(1), 2: pick(2), 3: Infinity };
+}
+
+export const isDefaultThresholds = (t: Thresholds) => t[1] === DEFAULT_THRESHOLDS[1] && t[2] === DEFAULT_THRESHOLDS[2];
+
+/**
+ * M4-O4. A LinkedIn import copies "Connected on" into lastContact, because it's the only date
+ * we have. But clicking "Connect" is not keeping in touch: after an AI sort moves 100 imported
+ * people into ring 2, all of them would "drift" at once. Until the user logs a real contact
+ * (which changes lastContact), that date doesn't count.
+ */
+export const isConnectDateOnly = (p: Person) => p.source === 'linkedin' && Boolean(p.metAt) && p.lastContact === p.metAt;
 
 // Step 1 (done in M5: AgentBar uses it so "who have I lost touch with?" is computed, not guessed).
-export function driftLevel(person: Person, now: Date = new Date(), thresholds: Record<Ring, number> = DEFAULT_THRESHOLDS): number {
+export function driftLevel(person: Person, now: Date = new Date(), thresholds: Thresholds = DEFAULT_THRESHOLDS): number {
   const limit = thresholds[person.ring];
-  if (!person.lastContact || !Number.isFinite(limit)) return 0;
+  if (!person.lastContact || !Number.isFinite(limit) || isConnectDateOnly(person)) return 0;
   return Math.min(1, Math.max(0, (daysSince(person.lastContact, now) - limit) / limit));
 }
-// TODO(M10) steps 3–7: driftingIds in App, map offset and fading, card label, Settings thresholds.
+
+/**
+ * Step 4. How far outward a drifting person sits, as a share of the map's size (SPEC §12:
+ * 0.06 × base at full drift). Rounded to 1/20 so the value is stable from render to render
+ * and the layout only re-runs when someone's drift visibly changes.
+ */
+export const DRIFT_OFFSET = 0.06;
+export const driftStep = (level: number) => Math.round(level * 20) / 20;

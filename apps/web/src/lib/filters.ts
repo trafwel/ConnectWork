@@ -21,6 +21,8 @@ export interface FilterContext {
   driftingIds: Set<string>;
   /** M7: people with an overdue reminder (their map flag turns orange-red). */
   overdueIds?: Set<string>;
+  /** M10: drift level (0–1) of everyone who is drifting; computed once in App. */
+  drift?: Map<string, number>;
 }
 
 export function matchesFilter(p: Person, filter: Filter, ctx: FilterContext): boolean {

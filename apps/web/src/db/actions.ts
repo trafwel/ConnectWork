@@ -265,6 +265,15 @@ export async function removeLink(id: string): Promise<void> {
   await db.links.delete(id);
 }
 
+/**
+ * M10 step 7. Settings → Drifting: how many days without contact before a ring-1 or ring-2
+ * person drifts. Stored in db.meta (so backups carry it); `null` goes back to the defaults.
+ */
+export async function setDriftThresholds(t: { 1: number; 2: number } | null): Promise<void> {
+  if (t === null) await db.meta.delete('driftThresholds');
+  else await db.meta.put({ key: 'driftThresholds', value: { 1: t[1], 2: t[2] } });
+}
+
 /** Longest relationship name we keep: short enough to fit on a line on the map. */
 export const LINK_LABEL_MAX = 60;
 

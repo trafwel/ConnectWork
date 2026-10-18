@@ -9,7 +9,8 @@
  *
  * HOW IT FITS
  *   Rendered by RingMap; wrap in React.memo so only changed nodes re-render.
- *   M7 adds the reminder flag + pulse; M10 adds drift fading.
+ *   M7 adds the reminder flag + pulse; M10 adds drift: fading to half opacity at full drift
+ *   plus a dotted outline, and "drifting" in the screen-reader label.
  *
  * STEPS
  *   1. A <g> positioned with CSS: style={{ transform: `translate(${x}px, ${y}px)`,
@@ -54,6 +55,8 @@ interface Props {
   dimmed: boolean;
   /** M7: a follow-up due within 7 days, or overdue. */
   flag?: 'due' | 'overdue';
+  /** M10: 0 = in touch … 1 = twice past the limit (rounded to 1/20 by RingMap). */
+  drift?: number;
   onSelect: (id: string) => void;
   /** Hover or keyboard focus, so RingMap shows this name even where it's crowded. */
   onHover: (id: string | null) => void;
@@ -65,11 +68,14 @@ interface Props {
   onSetRing?: (id: string, ring: Ring) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
+function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
   const r = NODE_RADIUS[person.ring];
   // Color is never the only signal: the flag's state is also in the label screen readers read.
   const flagText = flag === 'overdue' ? 'follow-up overdue' : flag === 'due' ? 'follow-up due' : undefined;
-  const description = [person.name, `ring ${person.ring}`, person.primaryTag, person.company, flagText].filter(Boolean).join(', ');
+  // M10: "drifting" is in the label too; fading and the dotted outline are only the visual half.
+  const description = [person.name, `ring ${person.ring}`, person.primaryTag, person.company, flagText, drift > 0 ? 'drifting' : undefined]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <g
@@ -81,7 +87,7 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       className={`${editing ? (dragging ? 'cursor-grabbing' : 'cursor-grab') + ' touch-none' : 'cursor-pointer'} outline-none [&:focus-visible>circle.focus]:opacity-100`}
       // Step 1: a CSS transform (not the x/y attributes) so layout changes animate.
       style={{
-        opacity: dimmed ? 0.15 : 1,
+        opacity: dimmed ? 0.15 : 1 - 0.5 * drift, // M10 step 5: fades to half at full drift
         transform: `translate(${x}px, ${y}px)`,
         transition: dragging ? 'opacity 200ms' : 'opacity 200ms, transform 450ms ease-out',
       }}
@@ -108,6 +114,8 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       <circle className="focus" r={r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
       {highlighted && !selected && <circle r={r + 5} fill="none" stroke={T.highlight} strokeWidth={2} strokeDasharray={T.highlightDash} />}
       {selected && <circle r={r + 4} fill="none" stroke={T.selected} strokeWidth={2.5} />}
+      {/* M10 step 5: a dotted outline, so drift isn't shown by fading alone. */}
+      {drift > 0 && !selected && <circle r={r + 2.5} fill="none" stroke={T.ink} strokeWidth={1.2} strokeDasharray="2 3" pointerEvents="none" />}
       {/* M7: the pulse lives on this inner group, because the outer <g>'s transform is the position. */}
       <g className={flag ? 'cw-pulse' : undefined}>
         <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
@@ -174,6 +182,7 @@ function sameNode(a: Props, b: Props): boolean {
     a.highlighted === b.highlighted &&
     a.dimmed === b.dimmed &&
     a.flag === b.flag && // M7 (PX-I1: every new prop must be compared here)
+    a.drift === b.drift && // M10
     a.onSelect === b.onSelect &&
     a.onHover === b.onHover &&
     a.editing === b.editing && // fix step 2

@@ -32,7 +32,7 @@
  */
 import type { Candidate, Link, Person, Reminder } from '@connectwork/shared';
 import { daysSince } from './dates';
-import { driftLevel } from './drift';
+import { DEFAULT_THRESHOLDS, driftLevel, type Thresholds } from './drift';
 import { dueReminders } from './people';
 
 /** The schema's maximum (WeeklyReviewRequest.candidates). */
@@ -43,7 +43,13 @@ const MAX_INTRO = 5;
 const norm = (s?: string) => (s ?? '').trim().toLowerCase();
 const byRingThenName = (a: Person, b: Person) => a.ring - b.ring || a.name.localeCompare(b.name);
 
-export function weeklyCandidates(people: Person[], links: Link[], reminders: Reminder[], now: Date = new Date()): Candidate[] {
+export function weeklyCandidates(
+  people: Person[],
+  links: Link[],
+  reminders: Reminder[],
+  now: Date = new Date(),
+  thresholds: Thresholds = DEFAULT_THRESHOLDS, // M10: the user's limits from Settings
+): Candidate[] {
   const byId = new Map(people.map((p) => [p.id, p]));
 
   // Step 1. Every undone reminder due within 7 days or overdue (oldest first).
@@ -54,8 +60,8 @@ export function weeklyCandidates(people: Person[], links: Link[], reminders: Rem
 
   // Step 2. Close people drifting away, most drifted first (ties by name, so the order is stable).
   const reconnect: Candidate[] = people
-    .filter((p) => p.ring !== 3 && p.lastContact && driftLevel(p, now) > 0)
-    .sort((a, b) => driftLevel(b, now) - driftLevel(a, now) || a.name.localeCompare(b.name))
+    .filter((p) => p.ring !== 3 && p.lastContact && driftLevel(p, now, thresholds) > 0)
+    .sort((a, b) => driftLevel(b, now, thresholds) - driftLevel(a, now, thresholds) || a.name.localeCompare(b.name))
     .slice(0, MAX_RECONNECT)
     .map((p) => ({ kind: 'reconnect', personId: p.id, daysSinceContact: daysSince(p.lastContact!, now) }));
 

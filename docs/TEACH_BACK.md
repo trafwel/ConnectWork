@@ -118,3 +118,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 3. `ringForDistance` puts the boundary halfway between two rings. What would feel wrong if the boundary were the ring line itself?
 4. Escape can mean three things now. In what order, and how does a drag get to handle it before App does?
 
+## M10
+**Drift and the list view**
+
+1. Drift is computed once in App and handed to the map, the list and the Drifting tab. What could go wrong if each of them called `driftLevel` on its own?
+2. Why doesn't a LinkedIn "connected on" date count as contact, and what makes that person start drifting normally?
+3. Your drift limits are sent to the AI only when they differ from 90 / 180. Why does leaving them out of ordinary requests matter (think about the demo cache)?
+4. In the list view, pressing Enter on a name moves keyboard focus into the card, and Escape brings it back. Who is that for, and what was the experience before?
+

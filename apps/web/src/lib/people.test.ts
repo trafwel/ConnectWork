@@ -45,5 +45,8 @@ describe('describeLastContact', () => {
     expect(describeLastContact(person('2026-03-21'), now)).toBe('7 months ago'); // John, 210 days
     expect(describeLastContact(person('2024-10-17'), now)).toBe('2 years ago');
     expect(describeLastContact(person('2026-10-20'), now)).toBe('Today'); // future date from a bad import
+    // M10: a LinkedIn connect date alone is not contact.
+    const imported = { ...person('2024-10-17'), source: 'linkedin' as const, metAt: '2024-10-17' };
+    expect(describeLastContact(imported, now)).toBe('No contact logged · connected 2 years ago');
   });
 });
