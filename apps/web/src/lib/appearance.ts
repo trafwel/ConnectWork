@@ -21,7 +21,7 @@
 import { useEffect, useState } from 'react';
 
 /** Oct 18 (team request): Spiderweb and Phantom (a Persona 5-inspired red/black/white look). */
-export const STYLES = ['neutral', 'atlas', 'spiderweb', 'phantom'] as const;
+export const STYLES = ['neutral', 'atlas', 'spiderweb', 'phantom', 'solar'] as const;
 export type Style = (typeof STYLES)[number];
 export type Mode = 'system' | 'light' | 'dark';
 /** How a due/overdue follow-up shows on the map: a pennant + pulse, or rings rippling out. */
@@ -91,14 +91,18 @@ export function useAppearance(): [Appearance & { dark: boolean }, (next: Partial
     return () => mq?.removeEventListener('change', onChange);
   }, [appearance]);
 
+  // Oct 18: merge into the LATEST state, not this render's copy. Two quick changes (e.g. Style
+  // then Mode) used to lose the first one, because both merged into the same stale object.
   const update = (next: Partial<Appearance>) => {
-    const merged = { ...appearance, ...next };
-    setAppearance(merged);
-    try {
-      localStorage.setItem(APPEARANCE_KEY, JSON.stringify(merged));
-    } catch {
-      // not remembered, but applied for this visit
-    }
+    setAppearance((current) => {
+      const merged = { ...current, ...next };
+      try {
+        localStorage.setItem(APPEARANCE_KEY, JSON.stringify(merged));
+      } catch {
+        // not remembered, but applied for this visit
+      }
+      return merged;
+    });
   };
 
   return [{ ...appearance, dark: resolveDark(appearance.mode, osDark) }, update];

@@ -1282,3 +1282,21 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - Uploading through the card stored an 8 KB JPEG data URL.
 
 **Checks:** typecheck, lint, 223 tests (+3: `isSafePhoto` accepts and refuses, backup row drops an unsafe photo; appearance default), build (the avatars ship in `dist/avatars`).
+
+## Solar style (Oct 18)
+
+**Team request:** "Add another style for an astronomical design, like a solar system."
+
+**What it is:** a fifth style, the same way as the others (CSS variables plus a few touches in `themes.css`, so switching re-renders nothing).
+- **Dark (deep space):**
+  - two star layers (one twinkles), faint violet and teal nebulas, and a warm glow at the centre;
+  - **"You" is the Sun:** gold, with a slowly pulsing corona;
+  - **rings are orbits, people are planets** with a faint blue glow;
+  - gold accent, and a title in spaced-out capitals.
+- **Light (a star chart):** parchment with faint navy declination circles and hour lines meeting at the Sun, printed stars, a gold Sun.
+- Twinkle and pulse stop with reduced motion. Nothing is downloaded: the stars are CSS gradients and the fonts are system fonts.
+- **Contrast:** every text pair ≥ 4.5:1 (lowest 6.2). The "You" label on the Sun is 8.9 / 10.7.
+- **Wiring:** `STYLES` and the Settings picker gain Solar. The pre-load script in `index.html` accepts `solar`, so its CSP hash in `deploy/Caddyfile` is updated (`scripts/deploy.test.ts` checks it).
+- **Bug fixed on the way:** two quick appearance changes (Style, then Mode) lost the first one, because `update` merged into a stale copy of the settings. It now merges into the latest state.
+
+**Checked:** screenshots in dark and light on a preview of this branch; typecheck, lint, tests, build.

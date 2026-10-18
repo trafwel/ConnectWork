@@ -10,7 +10,7 @@
       try {
         var a = JSON.parse(localStorage.getItem('cw-appearance') || '{}');
         var dark = a.mode === 'dark' || (a.mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.dataset.style = ['atlas', 'spiderweb', 'phantom'].indexOf(a.style) >= 0 ? a.style : 'neutral';
+        document.documentElement.dataset.style = ['atlas', 'spiderweb', 'phantom', 'solar'].indexOf(a.style) >= 0 ? a.style : 'neutral';
         document.documentElement.dataset.reminders = a.reminders === 'ripple' ? 'ripple' : 'flag';
         document.documentElement.classList.toggle('dark', dark);
         document.documentElement.style.colorScheme = dark ? 'dark' : 'light';

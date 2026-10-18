@@ -121,6 +121,7 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
                 { value: 'atlas', label: 'Atlas' },
                 { value: 'spiderweb', label: 'Spiderweb' },
                 { value: 'phantom', label: 'Phantom' },
+                { value: 'solar', label: 'Solar' },
               ]}
             />
             <span>Mode</span>

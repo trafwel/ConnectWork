@@ -312,3 +312,176 @@
         transition: none;
     }
 }
+
+/* ───────────────────────────── Solar ───────────────────────────── */
+/*
+ * Oct 18 (team request: "an astronomical design, like a solar system"). Same mechanism as the
+ * other styles: CSS variables plus a few touches, so switching re-renders nothing.
+ *   - Dark (the hero): deep space. Two star layers (one twinkles), faint violet and teal nebulas,
+ *     a warm glow at the centre. "You" is the Sun: gold with a slowly pulsing corona. The rings
+ *     are orbits, people are planets with a faint blue glow. Gold is the accent.
+ *   - Light: a star chart on parchment: faint navy declination circles and hour lines meeting at
+ *     the Sun, a few printed stars, a gold Sun.
+ * Motion stops with reduced motion. Text pairs ≥ 4.5:1. No images or fonts are downloaded.
+ */
+:root[data-style="solar"] {
+    --background: #f4f2ec;
+    --foreground: #141a33;
+    --card: #fbfaf6;
+    --card-foreground: #141a33;
+    --popover: #fbfaf6;
+    --popover-foreground: #141a33;
+    --primary: #1f2a5c;
+    --primary-foreground: #ffffff;
+    --secondary: #e8e5dc;
+    --secondary-foreground: #141a33;
+    --muted: #e8e5dc;
+    --muted-foreground: #4a5170;
+    --accent: #e8e5dc;
+    --accent-foreground: #141a33;
+    --destructive: #a3341f;
+    --border: #d4d0c4;
+    --input: #aeb2c2;
+    --ring: #b07508;
+    --radius: 0.5rem;
+
+    --map-paper: #f4f2ec;
+    --map-ink: #141a33;
+    --map-ring: #9aa0b8;
+    --map-ring-width: 0.8;
+    --map-ring-dash: none;
+    --map-ring-label: #4a5170;
+    --map-link: #141a33;
+    --map-link-opacity: 0.35;
+    --map-link-width: 0.6;
+    --map-suggested: #b07508;
+    --map-suggested-dash: 1 3;
+    --map-node-stroke: #ffffff;
+    --map-node-stroke-width: 0.9;
+    --map-highlight: #b07508;
+    --map-you: #f2a516;
+
+    --sky-star: rgb(20 26 51 / 0.55);
+    --sky-star-2: rgb(20 26 51 / 0.35);
+    --sky-line: rgb(31 42 92 / 0.07);
+    --sky-glow: rgb(242 165 22 / 0.18);
+    --sky-nebula-1: transparent;
+    --sky-nebula-2: transparent;
+    --planet-glow: rgb(31 42 92 / 0.18);
+    --sun-glow: rgb(242 165 22 / 0.7);
+    --sun-corona: rgb(242 120 22 / 0.3);
+}
+
+:root[data-style="solar"].dark {
+    --background: #04050b;
+    --foreground: #e8ecf7;
+    --card: #0b0e1a;
+    --card-foreground: #e8ecf7;
+    --popover: #0b0e1a;
+    --popover-foreground: #e8ecf7;
+    --primary: #ffc65c;
+    --primary-foreground: #1a1300;
+    --secondary: #141a2e;
+    --secondary-foreground: #e8ecf7;
+    --muted: #141a2e;
+    --muted-foreground: #9aa3bd;
+    --accent: #141a2e;
+    --accent-foreground: #e8ecf7;
+    --destructive: #ff8a7a;
+    --border: #1d2440;
+    --input: #2e3758;
+    --ring: #ffc65c;
+
+    --map-paper: #04050b;
+    --map-ink: #e8ecf7;
+    --map-ring: #3a4670;
+    --map-ring-label: #9aa3bd;
+    --map-link: #8fb4ff;
+    --map-link-opacity: 0.35;
+    --map-suggested: #ffc65c;
+    --map-node-stroke: #e8ecf7;
+    --map-node-stroke-width: 0.6;
+    --map-highlight: #ffc65c;
+    --map-you: #ffb83d;
+
+    --sky-star: rgb(255 255 255 / 0.85);
+    --sky-star-2: rgb(200 215 255 / 0.55);
+    --sky-line: transparent;
+    --sky-glow: rgb(255 184 61 / 0.14);
+    --sky-nebula-1: rgb(140 90 255 / 0.12);
+    --sky-nebula-2: rgb(60 200 220 / 0.08);
+    --planet-glow: rgb(150 180 255 / 0.4);
+    --sun-glow: rgb(255 184 61 / 0.95);
+    --sun-corona: rgb(255 120 40 / 0.55);
+}
+
+/* The sky: nebulas, the Sun's warm glow, chart lines (light mode only), and a tiled starfield.
+   It stays put while the map pans, like a backdrop. */
+:root[data-style="solar"] main {
+    background-color: var(--background);
+    background-image:
+        radial-gradient(circle at 50% 50%, var(--sky-glow), transparent 32%),
+        radial-gradient(ellipse at 14% 82%, var(--sky-nebula-1), transparent 45%),
+        radial-gradient(ellipse at 86% 14%, var(--sky-nebula-2), transparent 42%),
+        repeating-conic-gradient(from 0deg at 50% 50%, var(--sky-line) 0deg 0.25deg, transparent 0.25deg 15deg),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0 59px, var(--sky-line) 59px 60px),
+        radial-gradient(1px 1px at 12% 18%, var(--sky-star), transparent),
+        radial-gradient(1px 1px at 37% 71%, var(--sky-star), transparent),
+        radial-gradient(1.5px 1.5px at 63% 29%, var(--sky-star), transparent),
+        radial-gradient(1px 1px at 81% 64%, var(--sky-star), transparent),
+        radial-gradient(1px 1px at 92% 9%, var(--sky-star-2), transparent),
+        radial-gradient(1px 1px at 24% 47%, var(--sky-star-2), transparent),
+        radial-gradient(1px 1px at 55% 88%, var(--sky-star-2), transparent),
+        radial-gradient(1.5px 1.5px at 7% 93%, var(--sky-star-2), transparent);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 220px 220px, 220px 220px, 220px 220px, 220px 220px, 160px 160px, 160px 160px, 160px 160px, 160px 160px;
+}
+/* A second, sparser star layer that twinkles. */
+:root[data-style="solar"].dark main::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(1.5px 1.5px at 30% 20%, rgb(255 255 255 / 0.9), transparent),
+        radial-gradient(1px 1px at 70% 55%, rgb(255 240 210 / 0.9), transparent),
+        radial-gradient(1.5px 1.5px at 15% 75%, rgb(210 225 255 / 0.9), transparent),
+        radial-gradient(1px 1px at 85% 35%, rgb(255 255 255 / 0.8), transparent);
+    background-size: 340px 340px;
+    animation: cw-twinkle 4.5s ease-in-out infinite alternate;
+}
+@keyframes cw-twinkle {
+    from { opacity: 0.25; }
+    to { opacity: 1; }
+}
+
+/* "You" is the Sun: gold with a corona that slowly breathes. Its label stays dark on gold. */
+:root[data-style="solar"] main svg circle[fill="var(--map-you)"] {
+    filter: drop-shadow(0 0 8px var(--sun-glow)) drop-shadow(0 0 22px var(--sun-corona));
+    animation: cw-sun 5s ease-in-out infinite;
+}
+:root[data-style="solar"] main svg circle[fill="var(--map-you)"] + text {
+    fill: #1a1300;
+}
+@keyframes cw-sun {
+    50% { filter: drop-shadow(0 0 11px var(--sun-glow)) drop-shadow(0 0 34px var(--sun-corona)); }
+}
+
+/* People are planets: a faint glow, like reflected sunlight. */
+:root[data-style="solar"] main svg g[role="button"] circle:not([fill="none"]) {
+    filter: drop-shadow(0 0 3px var(--planet-glow));
+}
+
+:root[data-style="solar"] header > span:first-child {
+    font-family: 'Avenir Next', Futura, 'Century Gothic', 'Segoe UI', system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-style="solar"].dark main::before,
+    :root[data-style="solar"] main svg circle[fill="var(--map-you)"] {
+        animation: none;
+    }
+}
