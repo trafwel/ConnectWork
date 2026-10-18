@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M11 built**: everything through M10, plus *meetings*. A strip shows today's and tomorrow's meetings (Google Calendar when connected, read straight from the browser; sample meetings otherwise). Clicking one highlights the attendees and opens an AI prep card, and "Log this meeting" resets their drift. The demo cache (M12) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M12 built**: everything through M11, plus a *demo that survives bad Wi-Fi*. On judging morning the scripted demo's AI answers are recorded ([DEMO_DAY.md](DEMO_DAY.md)); the server replays them, and if the server can't be reached, the browser answers from the same recording. Deploy (M13–M14) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -66,7 +66,8 @@ flowchart LR
   Layout["Ring layout<br/><small>graph/layout.ts · d3-force, settled before paint · M2</small>"]:::built
   Helpers["Pure helpers<br/><small>lib/filters.ts, people.ts, colors.ts · M1–M2</small>"]:::built
   Summary["Summary + guardrails<br/><small>lib/graphSummary.ts, exactMatch.ts · M5<br/>drift.ts + useDriftThresholds: one drift rule for map, list, AI · M10</small>"]:::built
-  Api["API client<br/><small>lib/api.ts · typed results, re-validates · M5</small>"]:::built
+  Api["API client<br/><small>lib/api.ts · typed results, re-validates · M5<br/>offline fallback: lib/offlineCache.ts · M12</small>"]:::built
+  Recording[/"Recorded demo answers<br/><small>demo/demo-cache.json · bundled as a lazy chunk · M12</small>"/]:::built
   Relay["Texting relay client · M16"]:::planned
 
   App -->|"ensureSeeded() on mount"| Seed
@@ -99,6 +100,7 @@ flowchart LR
   Meet -->|"openMeeting: highlights + prep card"| Store
   Meet -->|"replaceMeetings, Log this meeting"| Actions
   Meet -->|"POST /meeting-brief"| Api
+  Api -->|"server unreachable or AI down → same key, recorded answer"| Recording
   List -->|"select, sort, filter"| Store
   Chrome -->|"drift limits (DriftSettings)"| Actions
   Card -->|"read: useLiveQuery"| DB
@@ -141,7 +143,7 @@ flowchart LR
   Extract["POST /api/ai/extract<br/><small>image/PDF → people · only the demo roster cached · M9</small>"]:::built
   Brief["POST /api/ai/meeting-brief<br/><small>known attendees only · ids filtered · M11</small>"]:::built
   Helper["Route helper<br/><small>routes/structured.ts · validate, cache, retry, guardrails, safe errors · R</small>"]:::built
-  Cache["Demo cache<br/><small>cache.ts · record / replay · M5</small>"]:::built
+  Cache["Demo cache<br/><small>cache.ts · record / replay · M5 · checked end to end M12</small>"]:::built
   GeminiH["Gemini helper<br/><small>schema · retry · fallback chain · 60 s budget · gemini.ts · M5</small>"]:::built
   Prompts["Prompts<br/><small>prompts.ts · DATA_FORMAT, QUERY done</small>"]:::built
   Agent["Texting agent<br/><small>photon/agent.ts · M16</small>"]:::planned
@@ -201,7 +203,8 @@ flowchart LR
 | Fix 2 | Ripple reminder style, "Move people" edit mode (drag or keys to change ring) | ✅ built ([review](REVIEWS.md#fix-step-2-map-features)) |
 | M10 | Drift on the map, drift limits in Settings, list view, keyboard path | ✅ built ([review](REVIEWS.md#m10)) |
 | M11 | Google Calendar (browser only), sample meetings, meeting strip, prep card, Log this meeting | ✅ built ([review](REVIEWS.md#m11)) |
-| M12–M14 | Demo cache, deploy | ⬜ |
+| M12 | Demo hardening: record / replay checked, browser offline fallback, DEMO_DAY runbook | ✅ built ([review](REVIEWS.md#m12)) |
+| M13–M14 | Deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -224,3 +227,4 @@ flowchart LR
 | Oct 17 | Fix 2 | Browser: Appearance gains Reminders (Flag/Ripple, an `<html>` attribute + CSS); the ring map gains "Move people" (`useRingDrag.ts`, an `editRings` flag in the UI state), which writes ring changes through `actions.ts` (`updatePerson`). No new arrows. Status: fix 2 ✅, M10 next. |
 | Oct 17 | M10 | Browser: new List view box (App → List → UI state); App computes each person's drift once and feeds the map (offset, fading) and list; Settings writes the drift limits through `actions.ts`; Summary + guardrails now names the single drift rule (`drift.ts`, `useDriftThresholds`). Server: `/query` takes optional limits. Status: M10 ✅, M11 next. |
 | Oct 17 | M11 | Big picture: browser ↔ Google Calendar is built (direct, token in memory). Browser: new Meetings box (strip + prep card) that opens meetings through the UI state, writes through `actions.ts` and calls `/meeting-brief`; calendar export sends one reminder to Google when connected. Server: `/meeting-brief` replaces the planned "more routes" box. Status: M11 ✅, M12 next. |
+| Oct 17 | M12 | Browser: the API client gains an offline fallback to the recorded demo answers (`demo/demo-cache.json`, a lazy chunk), keyed exactly like the server's cache (`cacheKeyAsync` in shared). Server: demo cache unchanged, checked end to end. Status: M12 ✅, M13 next. |

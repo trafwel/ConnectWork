@@ -11,7 +11,7 @@
  *   2. post<T>(path, body, schema):
  *      a. fetch POST with content-type JSON; a thrown fetch (server down) →
  *         { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." }
- *         (M12: look the reply up in the offline cache here first.)
+ *         (M12 ✓: lookupOffline() when the server can't answer; see offline() below.)
  *      b. Parse JSON (catch → null). Not res.ok → ApiErrorBody.safeParse(json): success →
  *         { ok: false, ...error }; else 'rate_limited' for 429 or 'internal'.
  *      c. schema.safeParse(json): success → { ok: true, data }; else 'bad_ai_response'.
@@ -22,9 +22,11 @@
  *
  * Guide: §9.6
  */
+import { toast } from 'sonner';
 import { ApiErrorBody, QueryResponse, type QueryRequest } from '@connectwork/shared';
 import type { z } from 'zod';
 import { today } from './dates';
+import { lookupOffline } from './offlineCache';
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiErrorBody['error']; message: string };
 
@@ -39,6 +41,18 @@ export interface Health {
 // Step 1
 const BASE: string = import.meta.env.VITE_API_BASE ?? '/api';
 
+/**
+ * M12. A recorded demo reply for this request, if there is one (lib/offlineCache.ts), validated
+ * like a live reply. Labelled with a toast, so nobody mistakes a replay for a live answer.
+ */
+async function offline<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<ApiResult<T> | null> {
+  const hit = await lookupOffline(`/api${path}`, body).catch(() => undefined);
+  const parsed = hit === undefined ? null : schema.safeParse(hit);
+  if (!parsed?.success) return null;
+  toast("Showing a saved demo answer: the AI server can't answer right now.", { id: 'offline-demo' });
+  return { ok: true, data: parsed.data };
+}
+
 // Step 2. Never throws: components get a typed result, and the server's reply is validated again.
 async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<ApiResult<T>> {
   let res: Response;
@@ -51,13 +65,25 @@ async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal
     });
   } catch {
     if (signal?.aborted) return { ok: false, error: 'internal', message: 'Cancelled' }; // the caller ignores it
-    return { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." };
+    // M12: no network at all (Wi-Fi down, server gone).
+    return (await offline(path, body, schema)) ?? { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." };
   }
   const json: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const err = ApiErrorBody.safeParse(json);
-    if (err.success) return { ok: false, ...err.data };
-    return { ok: false, error: res.status === 429 ? 'rate_limited' : 'internal', message: 'Something went wrong. Try again.' };
+    // M12: our server is up but Gemini isn't (overloaded, quota) → a recorded reply beats an error.
+    if (err.success) {
+      const fallback = err.data.error === 'ai_unavailable' || err.data.error === 'rate_limited' ? await offline(path, body, schema) : null;
+      return fallback ?? { ok: false, ...err.data };
+    }
+    // M12: not our server's error format (e.g. the dev proxy's error page while the server is down).
+    const unreachable = res.status === 502 || res.status === 503 || res.status === 504;
+    return (
+      (await offline(path, body, schema)) ??
+      (unreachable
+        ? { ok: false, error: 'ai_unavailable', message: "Can't reach the Connectwork server." }
+        : { ok: false, error: res.status === 429 ? 'rate_limited' : 'internal', message: 'Something went wrong. Try again.' })
+    );
   }
   const parsed = schema.safeParse(json);
   return parsed.success ? { ok: true, data: parsed.data } : { ok: false, error: 'bad_ai_response', message: 'The server sent an unexpected answer.' };

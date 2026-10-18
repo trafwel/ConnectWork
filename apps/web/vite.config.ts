@@ -12,7 +12,7 @@
  * HOW IT WAS BUILT
  *   1. Plugins: @vitejs/plugin-react and @tailwindcss/vite (Tailwind v4, no tailwind.config needed).
  *   2. Alias '@' → src (also declared in tsconfig paths and vitest.config.ts).
- *   3. server.proxy: '/api' → http://localhost:8787.
+ *   3. server.proxy: '/api' → http://localhost:8787 (or API_PROXY_TARGET, M12).
  *
  * DONE WHEN
  *   - http://localhost:5173/api/health returns the server's health JSON.
@@ -36,6 +36,8 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   server: {
     port: 5173,
-    proxy: { '/api': 'http://localhost:8787' },
+    // M12: API_PROXY_TARGET lets a second copy (e.g. a DEMO_CACHE=record server on 8788) run
+    // next to your normal `pnpm dev` without touching it. See docs/DEMO_DAY.md.
+    proxy: { '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8787' },
   },
 });

@@ -14,17 +14,18 @@ Built at **DubHacks '26** for the **Cook Smarter** track (AI agents and planning
 
 | Feature | Status |
 | --- | --- |
-| Ring map: three rings, tag clusters, level of detail, pan/zoom, keyboard access | 🚧 M2 |
-| Quick add (press `N`) and an editable person card with notes, tags, reminders, links | 🚧 M3 |
-| LinkedIn `Connections.csv` import (and any CSV), with de-duplication | 🚧 M4 |
-| Ask in plain English ("Who do I know at Microsoft?") — answers light up on the map | 🚧 M5 |
-| AI auto-sort of imported contacts into rings and tags | 🚧 M6 |
-| AI "hidden links": people you know who should know each other | 🚧 M6 |
-| Reminder flags, filters, calendar export (.ics) | 🚧 M7 |
-| Weekly review agent: plans your follow-ups, you approve, it does the work | 🚧 M8 |
-| Snap to add: photo of a business card or a club roster → people | 🚧 M9 |
-| Drift: people you haven't talked to in a while fade outward | 🚧 M10 |
-| Google Calendar sync and meeting prep | 🚧 M11 |
+| Ring map: three rings, tag clusters, level of detail, pan/zoom, keyboard access | ✅ M2 |
+| Quick add (press `N`) and an editable person card with notes, tags, reminders, links | ✅ M3 |
+| LinkedIn `Connections.csv` import (and any CSV), with de-duplication | ✅ M4 |
+| Ask in plain English ("Who do I know at Microsoft?") — answers light up on the map | ✅ M5 |
+| AI auto-sort of imported contacts into rings and tags | ✅ M6 |
+| AI "hidden links": people you know who should know each other | ✅ M6 |
+| Reminder flags, filters, calendar export (.ics) | ✅ M7 |
+| Weekly review agent: plans your follow-ups, you approve, it does the work | ✅ M8 |
+| Snap to add: photo of a business card or a club roster → people | ✅ M9 |
+| Drift: people you haven't talked to in a while fade outward | ✅ M10 |
+| Google Calendar sync and meeting prep | ✅ M11 |
+| Demo that survives bad Wi-Fi: recorded AI answers, replayed by the server or by the browser | ✅ M12 |
 | Text Connectwork from iMessage (Photon 2.0) — your open tab answers from local data | 🚧 M16 |
 | The texting agent remembers the conversation (Backboard) | 🚧 M17 |
 | Every pull request audited by VEYZL (EU AI Act, NIST AI RMF, ISO/IEC 42001) — see [AI governance](docs/AI_GOVERNANCE.md) | 🚧 M15 |
@@ -76,7 +77,7 @@ Without a Gemini key, everything works except the AI features, which say how to 
 | `ALLOWED_ORIGIN` | `http://localhost:5173` | CORS origin |
 | `PORT` | `8787` | API port |
 | `DEMO_CACHE` | `off` | `record` / `replay` AI replies for offline demos |
-| `VITE_GOOGLE_CLIENT_ID` | — | Google Calendar sign-in (coming in M11) |
+| `VITE_GOOGLE_CLIENT_ID` | — | Optional: Google Calendar sign-in (OAuth client setup: guide §2). Without it, sample meetings are shown |
 | `SPECTRUM_PROJECT_ID` / `SPECTRUM_PROJECT_SECRET` | — | Photon texting agent (M16) |
 | `AGENT_ALLOWED_SENDERS` / `RELAY_TOKEN` | — | Who may text the agent; the secret linking the server and your open tab |
 | `BACKBOARD_API_KEY` / `BACKBOARD_ASSISTANT_ID` | — | Agent conversation memory (M17) |
@@ -112,6 +113,7 @@ docs/            Implementation guide
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — living architecture graph: what's built and what's planned
 - [`docs/GEMINI.md`](docs/GEMINI.md) — how Connectwork uses Gemini, and a recipe for adding AI features
+- [`docs/DEMO_DAY.md`](docs/DEMO_DAY.md) — judging morning: record the AI answers, check replay and the offline fallback
 - [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — manual test plan (52 tests, M1–M9); interactive checklist in [`docs/testing/`](docs/testing/connectwork-test-run.html)
 - [`docs/REVIEWS.md`](docs/REVIEWS.md), [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md), [`docs/TEACH_BACK.md`](docs/TEACH_BACK.md) — milestone self-reviews, open items, and questions
 - [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md) — step-by-step build guide, M0 to submission
