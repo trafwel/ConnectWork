@@ -162,7 +162,7 @@ export function useScreenLabels(i: Input) {
  */
 export function ScreenLabels({ labels, fontSize, animate }: { labels: PlacedLabel[]; fontSize: number; animate: boolean }) {
   return (
-    <g aria-hidden="true" pointerEvents="none" fontFamily={T.font}>
+    <g className="cw-labels" aria-hidden="true" pointerEvents="none" fontFamily={T.font}>
       {labels.map((l) => (
         <g key={l.id} style={{ transform: `translate(${l.cx}px, ${l.cy}px)`, transition: animate ? 'transform 450ms ease-out' : 'none' }}>
           {l.kind === 'link' && (

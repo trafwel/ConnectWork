@@ -6,6 +6,9 @@ describe('appearance', () => {
     expect(parseAppearance('{"style":"atlas","mode":"dark","reminders":"ripple"}')).toEqual({ style: 'atlas', mode: 'dark', reminders: 'ripple' });
     // A save from before the Reminders choice existed keeps its style and gets Flag.
     expect(parseAppearance('{"style":"atlas","mode":"dark"}')).toEqual({ style: 'atlas', mode: 'dark', reminders: 'flag' });
+    // Styles (Oct 18): the two themed styles are remembered too.
+    expect(parseAppearance('{"style":"spiderweb","mode":"dark"}').style).toBe('spiderweb');
+    expect(parseAppearance('{"style":"phantom","mode":"light"}').style).toBe('phantom');
     expect(parseAppearance(null)).toEqual(DEFAULT_APPEARANCE);
     expect(parseAppearance('not json')).toEqual(DEFAULT_APPEARANCE);
     expect(parseAppearance('{"style":"retro","mode":"sepia","reminders":"confetti"}')).toEqual(DEFAULT_APPEARANCE);

@@ -41,6 +41,8 @@ Resolved items move to the table at the bottom, with what changed.
 ## Won't fix (for now)
 | ID | Issue | Why |
 | --- | --- | --- |
+| ST-O1 | Spiderweb and Phantom use fonts already on the computer (Impact, Luminari/Papyrus). On Linux they fall back to Arial Black / serif. | No font downloads by design (privacy + CSP). The demo laptop is a Mac. |
+| ST-O2 | Phantom's red slash crosses some people on the map; not checked with a large import. | Names keep a halo and nodes a thick outline; switch style if a crowded map gets hard to read. |
 | MO-O1 | In the new recording, Abbey ↔ John is the **3rd** of 11 hidden-link suggestions, not the 1st (Gemini was rate-limited, so a fallback model answered). | The demo uses Accept all, and the link is still near the top. Re-recording costs another round of rate-limited calls. If the team wants it first: sort the sheet by confidence, or re-record `/links` once. |
 | MO-O2 | In a background tab, positions don't animate (Chrome pauses frames) and the enter/leave timers slow to about 1 s. | Only tabs nobody is looking at. In a visible tab: 450 ms glide and fade, measured. |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |

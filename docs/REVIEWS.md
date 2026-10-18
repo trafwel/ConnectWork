@@ -1082,3 +1082,35 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 **Checked (live build, tab in front):** Map → Groups moves a person about 55 px toward the group centre while fading, done by ~370 ms and removed at ~520 ms. Opening Work flies its 12 people out from the group node (opacity 0.16 → 1 over ~280 ms). Back works. Import shows "30 found · 24 new · 6 already here"; All = 64.
 
 **Checks:** typecheck, lint, 198 tests (the CSV test now expects 30 rows), build.
+
+## Styles: Spiderweb + Phantom (Oct 18)
+
+**Team request: "make two alternate design styles: one Halloween themed, centered around a spiderweb; one themed like the Persona 5 UI"** · branch `claude/ui-design-dcc0bb` (on `motion`)
+
+**What changed and why**
+- **Two new styles in Settings → Appearance → Style**, next to Neutral and Atlas, each with light and dark:
+  - **Spiderweb** (Halloween): parchment by day, purple-black night with pumpkin orange after dark. The three rings become a **web**: 12 spokes from "You" and threads that sag between them, with fainter in-between threads. **"You" gets eight legs** (you are the spider at the centre of your web), a small spider dangles off the outer thread, and a cobweb sits in the map's corner. Headings and the logo use a storybook font.
+  - **Phantom** (inspired by the Persona 5 menus): red, black and white with hard edges. The rings become jagged **starbursts**, a red slash crosses the map over a halftone-dot background, "You" sits in a red burst. Buttons are slanted and set in a condensed uppercase font; dialogs get a thick outline and a hard red shadow; panel titles and section headings are black tags.
+- **How it switches without re-rendering:** the same trick as the Flag/Ripple reminders. `MapDecor.tsx` always draws both backdrops; CSS shows the one matching `<html data-style>`. The plain ring circles are hidden in these two styles **except the ring a dragged person would land in** (`.cw-ring-target`), so "Move people" still shows its drop target.
+- **The geometry is pure functions** in `graph/decor.ts` (web threads, spokes, starbursts, spider legs) with 5 tests.
+- **Phantom's black top bar** re-declares the colour variables on `<header>` (a small dark palette), so every button and input inside it stays readable without a second set of component styles.
+- **Settings scrolls inside the window** now (`max-h` + `overflow-y-auto`, a little wider): on a 740 px-tall window its title sat above the top edge, and the extra Style options made it taller. A one-line hint under Style says what each style is.
+
+| | Area | Finding | Status |
+| --- | --- | --- | --- |
+| E1 | Efficiency | The backdrop is ~20 SVG paths, memoized on the map size, so it is drawn once per resize, not per selection or hover. Switching style is a CSS change only. | OK |
+| E2 | Efficiency | Main bundle about 742 KB (was ~735 KB); the new code is small, the corner web and spider icon are inline data URIs in the CSS. | OK (M2-E5 still open) |
+| I1 | Integration | `index.html`'s boot script changed, so the **CSP hash in `deploy/Caddyfile` had to change** too; `scripts/deploy.test.ts` caught it. Without the update the live site would block the theme script (flash of the wrong theme). | Fixed |
+| I2 | Integration | Map labels measure text with the map font (`--map-font`), so Phantom's condensed font still gets correct label boxes. Uppercase is used only on HTML buttons, never on map labels (it would break the measured widths). | OK |
+| I3 | Integration | Phantom's uppercase buttons first squeezed the Ask bar to an icon at 1180 px. Buttons now use the condensed display font; the Ask bar is 166 px wide there (Neutral ≈ 190 px). | Fixed |
+| I4 | Integration | Checked in the browser: Spiderweb dark (map) and light (map + person card), Phantom light + dark (map, Due panel, Settings, Groups view). Neutral and Atlas unchanged. | Checked |
+| S1 | Security & privacy | No font downloads, no new requests: only fonts already on the computer (Impact, Luminari/Papyrus, with fallbacks). The data-URI images are allowed by the existing CSP (`img-src data:`). | OK |
+| A1 | Accessibility | Every text pair is ≥ 4.5:1 (lowest: Phantom dark, white on red buttons, 4.62). Tag colours are unchanged (Okabe-Ito), so colour-blind safety is the same. The backdrop is `aria-hidden`; ring names still come from the labels. The dangling spider stops under Reduce Motion. | Checked (computed) |
+| O1 | Other | On machines without Impact or Luminari (Linux), the styles fall back to Arial Black / fantasy / serif: still on theme, less striking. | Known (ST-O1) |
+| O2 | Other | The red slash in Phantom crosses some people; their names keep a paper-coloured halo, and node outlines are thick black, so they stay readable. Not checked with a 150-person import. | Known (ST-O2) |
+| O3 | Other | Slanted buttons are a visual transform only: focus rings, hit areas and keyboard paths are unchanged. Not tried with a screen reader (nothing in the accessibility tree changed). | OK |
+
+**Checks:** typecheck, lint, 203 tests (5 new for the decor geometry, 1 extended for the saved style), build.
+
+**Paused:** the design-polish pass for the non-AI UI (legend, person card, empty states…) was interrupted for this request. Audit notes so far: the legend explains only tag colours (not rings, flags, dotted drift outlines); ring-2 people in a filter or the Due panel show no name; the Settings dialog overflowed short windows (fixed here).
+

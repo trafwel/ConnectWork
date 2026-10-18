@@ -4,8 +4,9 @@
  * WHAT THIS DOES NOW
  *   Tailwind v4 + shadcn/ui's theme variables and the Geist font. Every component
  *   reads colors from these CSS variables, and the map reads --map-* variables
- *   (graph/theme.ts). Two STYLES × three MODES, chosen in Settings → Appearance:
- *     <html data-style="neutral|atlas" class="dark?">   (set by lib/appearance.ts and,
+ *   (graph/theme.ts). Four STYLES (Neutral, Atlas, and since Oct 18 Spiderweb + Phantom) ×
+ *   three MODES, chosen in Settings → Appearance:
+ *     <html data-style="neutral|atlas|spiderweb|phantom" class="dark?">   (set by lib/appearance.ts and,
  *     before React loads, by the tiny script in index.html — so there's no flash)
  *   Specificity picks the palette: :root < .dark < :root[data-style=atlas] < … .dark
  *   Every text pair was checked at ≥ 4.5:1 contrast (Atlas lowest: 4.83 error-on-paper).
@@ -230,6 +231,150 @@
     --map-you: #e3e8e2;
 }
 
+/* ── Styles (Oct 18): two themed styles. Same rules as Neutral/Atlas: every text pair ≥ 4.5:1
+   (lowest: Phantom dark, white on red buttons 4.62), tag colors unchanged (Okabe-Ito, colorblind
+   safe), and only fonts already on the computer (no font download, nothing leaves the browser). ── */
+
+/* Spiderweb (Halloween): candle-lit parchment by day, a purple-black night with pumpkin orange
+   after dark. The map's rings become a web (graph/MapDecor.tsx) and "You" is the spider. */
+:root[data-style="spiderweb"] {
+    --background: #f3ece0;
+    --foreground: #1f1426;
+    --card: #fbf7f0;
+    --card-foreground: #1f1426;
+    --popover: #fbf7f0;
+    --popover-foreground: #1f1426;
+    --primary: #a63f06;
+    --primary-foreground: #ffffff;
+    --secondary: #e8dccb;
+    --secondary-foreground: #1f1426;
+    --muted: #e8dccb;
+    --muted-foreground: #5f4b6b;
+    --accent: #e8dccb;
+    --accent-foreground: #1f1426;
+    --destructive: #a3122a;
+    --border: #d6c6b0;
+    --input: #bfae96;
+    --ring: #a63f06;
+    --radius: 0.5rem;
+
+    --map-ring-label: #5f4b6b;
+    --map-link: #1f1426;
+    --map-link-opacity: 0.4;
+    --map-suggested: #a63f06;
+    --map-node-stroke: #fbf7f0;
+    --map-highlight: #a63f06;
+    --map-you: #1f1426;
+    --map-font: inherit;
+    --web-silk: #4b3a57;
+    --web-major-opacity: 0.55;
+    --web-minor-opacity: 0.28;
+    --cw-display: 'Luminari', 'Papyrus', fantasy, serif;
+    --cw-corner-web: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cpath d='M0 0L172.5 0M0 0L165.8 47.7M0 0L140.4 100.2M0 0L100.3 140.3M0 0L54.4 163.7M0 0L0 172.5M28 0Q23.8 3.4 26.9 7.7Q21.7 10.5 22.8 16.3Q17 17 16.3 22.8Q10.9 21.5 8.8 26.6Q3.8 23.8 0 28M58 0Q49.4 7 55.7 16Q44.9 21.7 47.2 33.7Q35.3 35.3 33.7 47.2Q22.6 44.5 18.3 55Q8 49.2 0 58M92 0Q78.3 11 88.4 25.4Q71.2 34.4 74.9 53.5Q56 55.9 53.5 74.8Q35.9 70.5 29 87.3Q12.6 78.1 0 92M130 0Q110.7 15.6 124.9 35.9Q100.7 48.6 105.8 75.5Q79.1 79 75.6 105.7Q50.7 99.6 41 123.4Q17.9 110.4 0 130' fill='none' stroke='%234b3a57' stroke-width='0.9' stroke-opacity='0.5'/%3E%3C/svg%3E");
+}
+
+:root[data-style="spiderweb"].dark {
+    --background: #0a0610;
+    --foreground: #f1e9dc;
+    --card: #150e1d;
+    --card-foreground: #f1e9dc;
+    --popover: #150e1d;
+    --popover-foreground: #f1e9dc;
+    --primary: #ff8a2a;
+    --primary-foreground: #1a0b00;
+    --secondary: #231833;
+    --secondary-foreground: #f1e9dc;
+    --muted: #231833;
+    --muted-foreground: #bba9cc;
+    --accent: #231833;
+    --accent-foreground: #f1e9dc;
+    --destructive: #ff7a7a;
+    --border: #34264a;
+    --input: #4b3a63;
+    --ring: #ff8a2a;
+
+    --map-ring-label: #bba9cc;
+    --map-link: #f1e9dc;
+    --map-link-opacity: 0.35;
+    --map-suggested: #ff8a2a;
+    --map-node-stroke: #0a0610;
+    --map-highlight: #ff8a2a;
+    --map-you: #f1e9dc;
+    --web-silk: #d8cce6;
+    --web-major-opacity: 0.45;
+    --web-minor-opacity: 0.2;
+    --cw-corner-web: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cpath d='M0 0L172.5 0M0 0L165.8 47.7M0 0L140.4 100.2M0 0L100.3 140.3M0 0L54.4 163.7M0 0L0 172.5M28 0Q23.8 3.4 26.9 7.7Q21.7 10.5 22.8 16.3Q17 17 16.3 22.8Q10.9 21.5 8.8 26.6Q3.8 23.8 0 28M58 0Q49.4 7 55.7 16Q44.9 21.7 47.2 33.7Q35.3 35.3 33.7 47.2Q22.6 44.5 18.3 55Q8 49.2 0 58M92 0Q78.3 11 88.4 25.4Q71.2 34.4 74.9 53.5Q56 55.9 53.5 74.8Q35.9 70.5 29 87.3Q12.6 78.1 0 92M130 0Q110.7 15.6 124.9 35.9Q100.7 48.6 105.8 75.5Q79.1 79 75.6 105.7Q50.7 99.6 41 123.4Q17.9 110.4 0 130' fill='none' stroke='%23d8cce6' stroke-width='0.9' stroke-opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* Phantom (inspired by the Persona 5 menus): red, black and white, hard edges, slanted
+   buttons, comic starbursts. The top bar is always black, whatever the mode. */
+:root[data-style="phantom"] {
+    --background: #ffffff;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --primary: #d0021b;
+    --primary-foreground: #ffffff;
+    --secondary: #f0f0f0;
+    --secondary-foreground: #0a0a0a;
+    --muted: #f0f0f0;
+    --muted-foreground: #4a4a4a;
+    --accent: #f0f0f0;
+    --accent-foreground: #0a0a0a;
+    --destructive: #b0001a;
+    --border: #0a0a0a;
+    --input: #0a0a0a;
+    --ring: #d0021b;
+    --radius: 0rem;
+
+    --map-ring-label: #0a0a0a;
+    --map-link: #0a0a0a;
+    --map-link-opacity: 0.55;
+    --map-link-width: 1.4;
+    --map-suggested: #d0021b;
+    --map-suggested-dash: 10 3;
+    --map-node-stroke: #0a0a0a;
+    --map-node-stroke-width: 2;
+    --map-highlight: #d0021b;
+    --map-you: #0a0a0a;
+    --map-font: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Arial Black', sans-serif;
+    --phantom-band: #d0021b;
+    --phantom-burst-fill: #f2f2f2;
+    --cw-display: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Arial Black', sans-serif;
+}
+
+:root[data-style="phantom"].dark {
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #0e0e0e;
+    --card-foreground: #ffffff;
+    --popover: #0e0e0e;
+    --popover-foreground: #ffffff;
+    --primary: #e8112d;
+    --primary-foreground: #ffffff;
+    --secondary: #1c1c1c;
+    --secondary-foreground: #ffffff;
+    --muted: #1c1c1c;
+    --muted-foreground: #c4c4c4;
+    --accent: #1c1c1c;
+    --accent-foreground: #ffffff;
+    --destructive: #ff5c70;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
+    --ring: #e8112d;
+
+    --map-ring-label: #ffffff;
+    --map-link: #ffffff;
+    --map-suggested: #ff5c70;
+    --map-node-stroke: #ffffff;
+    --map-highlight: #ff5c70;
+    --map-you: #ffffff;
+    --phantom-band: #b0001a;
+    --phantom-burst-fill: #121212;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -293,4 +438,121 @@
 @media (prefers-reduced-motion: reduce) {
   .cw-ripple circle { animation: none; transform: scale(1.35); opacity: 0.8; }
   .cw-ripple circle + circle { display: none; }
+}
+
+/* ── Styles (Oct 18): the map backdrops (graph/MapDecor.tsx). Both are always drawn; the
+   style picks one, so switching costs no re-render. The plain rings step aside, except the
+   ring a dragged person would land in. ── */
+.cw-decor { display: none; }
+:root[data-style='spiderweb'] .cw-decor-web,
+:root[data-style='phantom'] .cw-decor-phantom { display: inline; }
+:root:is([data-style='spiderweb'], [data-style='phantom']) .cw-ring:not(.cw-ring-target) { display: none; }
+
+@keyframes cw-dangle {
+  from { transform: translateY(0); }
+  to { transform: translateY(9px); }
+}
+.cw-spider { animation: cw-dangle 2.6s ease-in-out infinite alternate; }
+/* (Reduce Motion: the "svg *" rule above already stops it.) */
+
+/* Spiderweb chrome: spooky headings, a cobweb in the map's corner, an ember glow on dialogs. */
+:root[data-style='spiderweb'] :is(.cw-brand, [data-slot='dialog-title'], aside h2) {
+  font-family: var(--cw-display);
+  letter-spacing: 0.01em;
+}
+:root[data-style='spiderweb'] .cw-brand { color: var(--primary); }
+:root[data-style='spiderweb'] .cw-brand::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.35em;
+  vertical-align: -0.12em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cg%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.6'%20stroke-linecap%3D'round'%3E%3Cpath%20d%3D'M12%204V1M9%2010%204%206%203%202M15%2010l5-4%201-4M8.5%2013H3l-2%203M15.5%2013H21l2%203M9%2015.5%205%2019l-1%204M15%2015.5l4%203.5%201%204'%2F%3E%3C%2Fg%3E%3Cellipse%20cx%3D'12'%20cy%3D'14'%20rx%3D'4'%20ry%3D'5'%2F%3E%3Ccircle%20cx%3D'12'%20cy%3D'7.5'%20r%3D'2.8'%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cg%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.6'%20stroke-linecap%3D'round'%3E%3Cpath%20d%3D'M12%204V1M9%2010%204%206%203%202M15%2010l5-4%201-4M8.5%2013H3l-2%203M15.5%2013H21l2%203M9%2015.5%205%2019l-1%204M15%2015.5l4%203.5%201%204'%2F%3E%3C%2Fg%3E%3Cellipse%20cx%3D'12'%20cy%3D'14'%20rx%3D'4'%20ry%3D'5'%2F%3E%3Ccircle%20cx%3D'12'%20cy%3D'7.5'%20r%3D'2.8'%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+:root[data-style='spiderweb'] main { background: var(--cw-corner-web) top left / 150px no-repeat; }
+:root[data-style='spiderweb'] nav[aria-label='Filters'] button[aria-pressed='true'] { box-shadow: inset 3px 0 0 var(--primary); }
+:root[data-style='spiderweb'] [data-slot='dialog-content'] {
+  box-shadow: 0 0 0 1px var(--border), 0 18px 50px -18px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+:root[data-style='spiderweb'] aside { border-left-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
+
+/* Phantom chrome: a black top bar (its own little dark palette, so everything inside it stays
+   readable), slanted buttons, hard shadows, a red slash under every panel title. */
+:root[data-style='phantom'] header {
+  --background: #000000;
+  --foreground: #ffffff;
+  --muted: #222222;
+  --muted-foreground: #c8c8c8;
+  --border: #ffffff;
+  --input: #ffffff;
+  --primary: #e8112d;
+  --primary-foreground: #ffffff;
+  color: #ffffff;
+  border-bottom: 5px solid #e8112d;
+}
+/* Condensed display font: uppercase in the body font made the top-bar buttons so wide that
+   they squeezed the Ask bar to an icon. */
+:root[data-style='phantom'] :is([data-slot='button'], [role='radiogroup'] > [role='radio']) {
+  transform: skewX(-9deg);
+  font-family: var(--cw-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+:root[data-style='phantom'] .cw-brand {
+  font-family: var(--cw-display);
+  font-weight: 400;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #e8112d;
+  color: #ffffff;
+  padding: 0 0.6em;
+  transform: skewX(-12deg) rotate(-3deg);
+}
+:root[data-style='phantom'] :is([data-slot='dialog-title'], aside h2) {
+  font-family: var(--cw-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+:root[data-style='phantom'] [data-slot='dialog-title'] {
+  align-self: flex-start;
+  width: fit-content;
+  background: var(--foreground);
+  color: var(--background);
+  padding: 0.1em 0.5em;
+  transform: skewX(-10deg) rotate(-2deg);
+}
+:root[data-style='phantom'] [data-slot='dialog-content'] {
+  border: 3px solid var(--foreground);
+  box-shadow: 10px 10px 0 var(--primary);
+}
+:root[data-style='phantom'] aside { border-left: 5px solid var(--primary); }
+:root[data-style='phantom'] aside h3 {
+  display: inline-block;
+  background: var(--foreground);
+  color: var(--background);
+  padding: 0.1em 0.5em;
+  transform: skewX(-10deg);
+}
+:root[data-style='phantom'] nav[aria-label='Filters'] button[aria-pressed='true'] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  transform: skewX(-9deg);
+}
+:root[data-style='phantom'] svg.cw-map {
+  background-image: radial-gradient(color-mix(in srgb, var(--foreground) 10%, transparent) 1.2px, transparent 1.7px);
+  background-size: 9px 9px;
+}
+:root[data-style='phantom'] .cw-labels text { font-style: italic; }
+:root[data-style='phantom'] [data-sonner-toast] {
+  border: 2px solid var(--foreground) !important;
+  box-shadow: 6px 6px 0 var(--primary) !important;
 }

@@ -172,3 +172,9 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. When you switch to Groups, people fly *into* the group, yet they're no longer in the list of visible people. How can React still draw them for half a second?
 3. Why do the motion timers use `setTimeout` instead of `requestAnimationFrame`?
 4. The demo export dropped from 120 to 30 rows. Why did the AI answers have to be recorded again?
+
+## Styles: Spiderweb + Phantom
+1. Switching from Neutral to Spiderweb turns the rings into a web, yet React doesn't re-render the map. Where does the switch happen, and why are BOTH backdrops always in the page?
+2. Phantom's top bar is black even in light mode. How can the buttons inside it be readable without writing a second set of button styles? (Hint: what does `bg-background` actually read?)
+3. Why did editing one line of the boot script in `index.html` make a *deploy* test fail, and what would have happened on the live site if that test didn't exist?
+4. Both styles use only fonts already on the computer (Impact, Luminari…). What would a Google Fonts link have cost us, given the "data stays in the browser" rule and the CSP?

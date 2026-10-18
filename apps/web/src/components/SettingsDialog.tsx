@@ -23,7 +23,7 @@
  *   4. "Danger zone": Delete everything shows an inline "Delete every person, link and
  *      reminder?" with "Yes, delete" (destructive) and Cancel. Yes → deleteEverything(),
  *      clearFocus(), close, toast.
- *   4b. (Step S) Appearance: Style (Neutral / Atlas) and Mode (System / Light / Dark), saved
+ *   4b. (Step S) Appearance: Style (Neutral / Atlas / Spiderweb / Phantom) and Mode (System / Light / Dark), saved
  *       per device by lib/appearance.ts. Fix step 2 adds Reminders (Flag / Ripple).
  *   5. Later sections: M6 ✓ "About you" textarea saved to db.meta 'userContext' on blur;
  *      M7 ✓ "Export all reminders"; M10 ✓ drift thresholds (DriftSettings); M16 <AgentConnection />.
@@ -61,6 +61,13 @@ function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+const STYLE_HINTS: Record<Appearance['style'], string> = {
+  neutral: 'Plain and quiet.',
+  atlas: 'Map paper, ink lines, one teal accent.',
+  spiderweb: 'Halloween: your rings are a web, and you are the spider.',
+  phantom: 'Bold red and black, slanted like a comic.',
+};
+
 interface Props {
   appearance: Appearance;
   onAppearance: (next: Partial<Appearance>) => void;
@@ -96,7 +103,8 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setDialog('settings', true) : close())}>
-      <DialogContent>
+      {/* Scrolls inside the window: on a short screen the title used to sit above the top edge. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>Your data lives only in this browser. Export it to keep a copy.</DialogDescription>
@@ -116,8 +124,12 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
               options={[
                 { value: 'neutral', label: 'Neutral' },
                 { value: 'atlas', label: 'Atlas' },
+                { value: 'spiderweb', label: 'Spiderweb' },
+                { value: 'phantom', label: 'Phantom' },
               ]}
             />
+            {/* Styles (Oct 18): the two themed styles need a word on what they are. */}
+            <span className="col-start-2 -mt-1 text-xs text-muted-foreground">{STYLE_HINTS[appearance.style]}</span>
             <span>Mode</span>
             <Segmented
               label="Mode"

@@ -84,6 +84,7 @@ import { ClusterNode } from './ClusterNode';
 import { aggregateLinks, buildClusters, groupConnections, linkIsShown } from './groups';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
+import { MapDecor } from './MapDecor';
 import { PersonNode } from './PersonNode';
 import { ScreenLabels, useScreenLabels } from './ScreenLabels';
 import { useRingDrag } from './useRingDrag';
@@ -448,17 +449,21 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
         ref={svgRef}
         width={width}
         height={height}
-        className="block select-none"
+        className="cw-map block select-none"
         role="group"
         aria-label="Network map. People closer to the center are closer to you."
         onClick={() => clearFocus()} // step 7: nodes stop propagation, so this is empty space
       >
         <g transform={transform.toString()}>
           {/* Step 4, back to front: rings, links, You, people, ring labels */}
+          {/* Styles (Oct 18): the web / starburst backdrop; CSS shows it only in its own style. */}
+          <MapDecor g={g} radii={[ringRadius(g, 1), ringRadius(g, 2), ringRadius(g, 3)]} />
           <g aria-hidden="true">
             {RINGS.map((ring) => (
               <circle
                 key={ring}
+                // The themed styles hide plain rings (index.css) but keep the drop target visible.
+                className={drag?.ring === ring ? 'cw-ring cw-ring-target' : 'cw-ring'}
                 cx={g.cx}
                 cy={g.cy}
                 r={ringRadius(g, ring)}

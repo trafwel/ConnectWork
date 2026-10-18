@@ -11,6 +11,10 @@
  *   loads, so a reload never flashes the wrong theme. Saved per device in localStorage:
  *   it's a display preference, not the user's data (so it isn't in backups).
  *
+ * STYLES (Oct 18): two themed styles join Neutral and Atlas: Spiderweb (Halloween, the rings
+ *   drawn as a web) and Phantom (bold red-and-black comic style). Same mechanism: palettes in
+ *   index.css, map shapes in graph/MapDecor.tsx, all switched by <html data-style>.
+ *
  * FIX STEP 2 (Oct 17): a third choice, REMINDERS (Flag or Ripple). Like the style, it's a
  *   <html data-reminders="…"> attribute and CSS does the rest, so switching re-renders nothing.
  *
@@ -20,7 +24,9 @@
  */
 import { useEffect, useState } from 'react';
 
-export type Style = 'neutral' | 'atlas';
+export type Style = 'neutral' | 'atlas' | 'spiderweb' | 'phantom';
+/** Every style, in the order Settings shows them (also what parseAppearance accepts). */
+export const STYLES: readonly Style[] = ['neutral', 'atlas', 'spiderweb', 'phantom'];
 export type Mode = 'system' | 'light' | 'dark';
 /** How a due/overdue follow-up shows on the map: a pennant + pulse, or rings rippling out. */
 export type ReminderStyle = 'flag' | 'ripple';
@@ -38,7 +44,7 @@ export function parseAppearance(raw: string | null): Appearance {
   try {
     const v = JSON.parse(raw ?? '{}') as Partial<Appearance>;
     return {
-      style: v.style === 'atlas' ? 'atlas' : 'neutral',
+      style: STYLES.includes(v.style as Style) ? (v.style as Style) : 'neutral',
       mode: v.mode === 'light' || v.mode === 'dark' ? v.mode : 'system',
       reminders: v.reminders === 'ripple' ? 'ripple' : 'flag', // older saves have no field: Flag
     };
