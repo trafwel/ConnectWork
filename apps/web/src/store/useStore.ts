@@ -47,6 +47,8 @@ export interface ReviewItem {
   checked?: boolean;
 }
 export interface ReviewPayload {
+  /** Oct 18: 'links' is the Find hidden links review; suggested links are drawn on the map only then. */
+  kind?: 'links' | 'sort' | 'snap' | 'edits';
   heading: string;
   /** Extra context shown under the heading, e.g. who got no suggestion (M6-O1). */
   note?: string;

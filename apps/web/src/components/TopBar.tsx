@@ -24,7 +24,7 @@ export function TopBar({ children, tools }: { children?: ReactNode; tools?: Reac
   const setDialog = useStore((s) => s.setDialog);
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
-      <span className="text-lg font-semibold tracking-tight">Connectwork</span>
+      <span className="text-lg font-semibold tracking-tight">ConnectWork</span>
       <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
       {tools}
       <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => setDialog('settings', true)}>

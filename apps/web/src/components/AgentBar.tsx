@@ -37,7 +37,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { db } from '@/db/db';
+import { cleanEdits } from '@connectwork/shared';
 import { askQuery } from '@/lib/api';
+import { proposeEdits } from '@/lib/networkEdits';
 import { driftLevel, isDefaultThresholds } from '@/lib/drift';
 import { readDriftThresholds } from '@/lib/useDriftThresholds';
 import { answerIds } from '@/lib/exactMatch';
@@ -90,6 +92,17 @@ export function AgentBar() {
     // Step 4
     if (!result.ok) {
       setAgent({ agentBusy: false, agentAnswer: result.message, agentError: true });
+      return;
+    }
+
+    // Oct 18: a request to CHANGE the network ("connect Abbey and John") comes back as proposed
+    // edits. Same guardrail as the server, then the review sheet: nothing is written until the
+    // user accepts.
+    const edits = cleanEdits(result.data.edits, new Set(people.map((p) => p.id)));
+    if (edits.length) {
+      const shown = await proposeEdits(edits);
+      setAgent({ agentBusy: false, agentAnswer: shown ? result.data.answer : 'Nothing to change: your map already looks like that.' });
+      setHighlights([...new Set(edits.flatMap((e) => e.personIds))]);
       return;
     }
 

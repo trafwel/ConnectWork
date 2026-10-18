@@ -36,7 +36,7 @@ describe('POST /api/ai/query', () => {
     );
     const res = await post(appWith(generate), { question: 'Who do I know at Microsoft?', summary });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ answer: 'You know Abbey Chen at Microsoft.', personIds: ['p_abbey'], filterHint: 'none' });
+    expect(await res.json()).toEqual({ answer: 'You know Abbey Chen at Microsoft.', personIds: ['p_abbey'], filterHint: 'none', edits: [] });
 
     const call = generate.mock.calls[0]![0];
     expect(call.system).toContain('network assistant');
@@ -44,6 +44,27 @@ describe('POST /api/ai/query', () => {
     expect(JSON.stringify(call.parts)).toContain('Who do I know at Microsoft?');
     expect(call.jsonSchema).toMatchObject({ type: 'object' });
     expect(call.jsonSchema).not.toHaveProperty('$schema');
+  });
+
+  it('passes proposed edits through the same guardrail (Oct 18)', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        answer: 'I propose connecting Abbey and John.',
+        personIds: ['p_abbey', 'p_john'],
+        edits: [
+          { op: 'add_link', personIds: ['p_abbey', 'p_john'], label: 'both UW' },
+          { op: 'add_link', personIds: ['p_abbey', 'p_ghost'] },
+          { op: 'set_ring', personIds: ['p_john'] },
+          { op: 'remove_suggested_links', personIds: [] },
+        ],
+      }),
+    );
+    const res = await post(appWith(generate), { question: 'Connect Abbey and John', summary });
+    const body = await res.json();
+    expect(body.edits).toEqual([
+      { op: 'add_link', personIds: ['p_abbey', 'p_john'], label: 'both UW' },
+      { op: 'remove_suggested_links', personIds: [] },
+    ]);
   });
 
   it('sends the user\'s lost-touch limits with the question (M10), defaults otherwise', async () => {
@@ -67,7 +88,7 @@ describe('POST /api/ai/query', () => {
       .mockResolvedValueOnce(JSON.stringify({ answer: 'Nobody matches.', personIds: [] }));
     const res = await post(appWith(generate), { question: 'Who works at Nowhere?', summary });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ answer: 'Nobody matches.', personIds: [], filterHint: 'none' });
+    expect(await res.json()).toEqual({ answer: 'Nobody matches.', personIds: [], filterHint: 'none', edits: [] });
     expect(generate).toHaveBeenCalledTimes(2);
     expect(JSON.stringify(generate.mock.calls[1]![0].parts)).toContain('did not match the schema');
   });
@@ -112,7 +133,7 @@ describe('POST /api/ai/query', () => {
     const offline = vi.fn<Generate>();
     const res = await post(appWith(offline, new DemoCache('replay', file)), body);
     expect(res.headers.get('x-cache')).toBe('hit');
-    expect(await res.json()).toEqual({ answer: 'Abbey.', personIds: ['p_abbey'], filterHint: 'none' });
+    expect(await res.json()).toEqual({ answer: 'Abbey.', personIds: ['p_abbey'], filterHint: 'none', edits: [] });
     expect(offline).not.toHaveBeenCalled();
   });
 });

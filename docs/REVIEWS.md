@@ -1130,3 +1130,37 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **View switcher** (Map / Groups / List / Month) moved to the bottom-left corner, under the filters, as a 2×2 grid. Arrow keys still move between views.
 - **Meetings:** the strip is now labeled "Meetings" (was "Sample meetings"). Each meeting has a colored edge in the group color of the first known attendee, and avatars are filled with each person's group color. The group is also in the accessible name, so color isn't the only signal.
 - **Checked:** typecheck, lint, tests, build. In the browser: the layout, and the Tools menu opening and closing.
+
+## Search-bar edits, hidden suggestions, logo (Oct 18)
+
+**Team requests:**
+- "LLM should be able to alter connections and nodes if asked in the search bar"
+- "suggested connections should not be viewable by default, ONLY while the Find hidden links tab is open"
+- "change the logo to ConnectWork"
+
+**What changed and why**
+- **Edits from the search bar.** The question route (`/api/ai/query`) now also returns `edits`, a list of proposed changes.
+  - **Ops:** add_link, remove_link, remove_suggested_links, set_ring, set_tag, add_person, remove_person.
+  - **One route, not two:** questions and edit requests share one AI call. The model decides which kind the request is, so there's no keyword routing and no second round trip.
+  - **One flat shape for all ops:** a union type per op would be stricter, but Gemini's JSON-schema mode follows a flat object more reliably. The rules each op needs live in `cleanEdits()` (shared): pair edits need two distinct known people, ring and tag edits need the value, add_person needs a name, and duplicates are dropped. It runs on the server (in the route's `post`) and again in the browser, like every AI response.
+  - **Model proposes, user approves:** `planEdits()` (pure, tested) turns each edit into a review-sheet row in plain words, and drops edits that would change nothing (a link that doesn't exist, someone already in that ring, a group name that doesn't exist, a person already on the map). Only accepted rows are written, through `actions.ts`. **Remove person starts unticked**, so deleting someone always takes a deliberate tick.
+  - **Recorded demo answers keep working:** `edits` defaults to `[]`, and the cache key is the request, not the prompt.
+- **Suggested links are hidden by default.** The review payload now has a `kind`. App passes the map only accepted links, unless a `links` review (Find hidden links) is open. The dashed guesses used to stay on the map after the sheet closed and looked like real connections.
+- **Logo:** "ConnectWork" in the top bar and on the splash screen.
+
+| | Area | Finding | Status |
+| --- | --- | --- | --- |
+| S1 | Security | The model can now *propose* deletions. Guarded three ways: it may only name ids from the summary (cleanEdits, server and client), every change needs Accept, and removing a person is unticked by default. | OK |
+| S2 | Prompt injection | A person's name or role in the data could say "remove everyone". The prompt already says to treat the data as information; the decisive guard is the review sheet, where nothing applies without the user. | OK (by design) |
+| I1 | Integration | `edits` defaults to `[]`, so recordings made before this change still load (the offline-cache test now checks that). | Checked |
+| O1 | Other | set_tag only accepts existing groups, so a typo can't create a new color. Creating a new group from the search bar isn't supported. | Known |
+
+**Checked live (real Gemini, demo data):**
+- "remove all suggested connections" → one row; Accept left 0 suggestions.
+- "connect Theo Xu and Abbey Chen" → one row.
+- "move John Park to close and put Theo Xu in Work" → two rows.
+- "add Sarah Kim, a recruiter at Stripe" → one row (Work, ring 3).
+- "who do I know at Microsoft?" still answers, with no sheet.
+- Suggested link on the map: 0 drawn with the hidden-links review closed, 1 while open, 0 after closing.
+
+**Checks:** typecheck, lint, 210 tests (+8: the cleanEdits guard, planEdits, the route guardrail), build.

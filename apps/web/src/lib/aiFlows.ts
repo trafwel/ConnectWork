@@ -156,6 +156,7 @@ export function findHiddenLinks(): Promise<void> {
     const confidence = new Map(confident.map((l) => [[l.fromId, l.toId].sort().join('|'), l.confidence]));
     const sureOf = (l: { fromId: string; toId: string }) => confidence.get([l.fromId, l.toId].sort().join('|')) ?? 0.5;
     useStore.getState().openReview({
+      kind: 'links',
       heading: `${written.length} possible ${written.length === 1 ? 'connection' : 'connections'}`,
       // Strongest first: the model lists pairs in summary order, which buried a 90% match under
       // a dozen 50% ones. sort() is stable, so equal scores keep the model's order.

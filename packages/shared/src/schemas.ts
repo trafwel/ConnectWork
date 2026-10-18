@@ -33,10 +33,37 @@ export const QueryRequest = z.object({
 });
 export type QueryRequest = z.infer<typeof QueryRequest>;
 
+const Ring = z.union([z.literal(1), z.literal(2), z.literal(3)]);
+
+/**
+ * Oct 18 (team request): changes the user asks for in the search bar ("connect Abbey and John",
+ * "move Theo to ring 1", "remove all suggested connections"). The model only PROPOSES them; the
+ * browser lists them in the review sheet and applies only the ones the user accepts. One flat
+ * shape (not a union per op) because Gemini's JSON-schema mode handles flat objects best;
+ * cleanEdits() (edits.ts) enforces what each op needs.
+ */
+export const EDIT_OPS = ['add_link', 'remove_link', 'remove_suggested_links', 'set_ring', 'set_tag', 'add_person', 'remove_person'] as const;
+export const NetworkEdit = z.object({
+  op: z.enum(EDIT_OPS),
+  /** The people the edit is about: two for links, one for ring/tag/remove, none otherwise. */
+  personIds: z.array(z.string()).max(2).default([]),
+  ring: Ring.optional(),
+  tag: z.string().trim().min(1).max(40).optional(),
+  /** add_person only. */
+  name: z.string().trim().min(1).max(120).optional(),
+  company: z.string().trim().max(120).optional(),
+  role: z.string().trim().max(120).optional(),
+  /** add_link only: what connects them. */
+  label: z.string().trim().max(60).optional(),
+});
+export type NetworkEdit = z.infer<typeof NetworkEdit>;
+
 export const QueryResponse = z.object({
   answer: z.string().max(400),
   personIds: z.array(z.string()).max(50),
   filterHint: z.enum(['none', 'due', 'drifting']).default('none'),
+  /** Oct 18: empty for questions. Recorded demo answers predate it, hence the default. */
+  edits: z.array(NetworkEdit).max(20).default([]),
 });
 export type QueryResponse = z.infer<typeof QueryResponse>;
 
@@ -54,7 +81,6 @@ export type ApiErrorBody = z.infer<typeof ApiErrorBody>;
 // schema; the client validates the server's reply with it again.
 // ---------------------------------------------------------------------------
 
-const Ring = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 
 /** Minimal person fields the model needs to sort someone (no notes). */
 // M6 review: every field is capped like the person card, so a request can't smuggle huge text to the model.
