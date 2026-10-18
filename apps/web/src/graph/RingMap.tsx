@@ -494,17 +494,18 @@ function GroupPanel({ people, tags, open, onToggle, onCloseAll }: { people: Pers
           </button>
         )}
       </div>
-      <ul className="grid grid-cols-3 gap-x-2 gap-y-1" aria-label="Groups">
+      {/* Wraps instead of a fixed 3-column grid: with a side panel open the map is narrow and names got cut off. */}
+      <ul className="flex flex-wrap gap-x-1 gap-y-0.5" aria-label="Groups">
         {[...counts].map(([tag, n]) => (
           <li key={tag}>
             <button
               aria-expanded={open.has(tag)}
               onClick={() => onToggle(tag)}
-              className={`flex w-full items-center gap-1.5 rounded-sm px-1 py-0.5 hover:bg-muted ${open.has(tag) ? 'font-medium' : ''}`}
+              className={`flex items-center gap-1.5 rounded-sm px-1 py-0.5 whitespace-nowrap hover:bg-muted ${open.has(tag) ? 'font-medium' : ''}`}
             >
               <span className="inline-block size-2.5 rounded-full" style={{ background: tagColor(tags, tag) }} aria-hidden="true" />
               {tag} <span className="text-muted-foreground tabular-nums">{n}</span>
-              <span className="ml-auto text-muted-foreground" aria-hidden="true">
+              <span className="text-muted-foreground" aria-hidden="true">
                 {open.has(tag) ? '▾' : '▸'}
               </span>
             </button>

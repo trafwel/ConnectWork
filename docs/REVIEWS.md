@@ -946,3 +946,30 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 | A1 | Accessibility. | Every day is a button whose label reads the date and its items; empty days are disabled; today has `aria-current="date"`; overdue is in words, not only red. |
 | E1 | The grid is 42 small objects, computed per render; items-by-day is memoized on the data. | Fine. |
 
+## Bug pass (Oct 18)
+
+**The whole demo story end to end, plus the everyday actions** · branch `bugfix-pass` (on `m14-month`)
+
+**Run in the browser, live Gemini, demo data only:**
+- **Reset → Import** `demo/Connections.csv`: 120 found, 114 new, 6 already here.
+- **Sort with AI → Accept all:** 114 applied. All went to Work, which is right: the imported rows are all professionals. 8 moved to ring 2. Drifting stayed at 5, so LinkedIn connect dates aren't counted as contact (M10).
+- **"Who do I know at Microsoft?"** highlighted 11 people, Abbey included.
+- **Find hidden links:** **Abbey ↔ John came first at 90%** ("both UW, both Microsoft"). It took **about 65 s** on the live free tier with 154 people, so record it on demo morning ([DEMO_DAY.md](DEMO_DAY.md)).
+- **Review my week:** 4 follow-ups and 2 reconnects, with drafts. Approve works (clipboard refusal handled).
+- **Snap** `roster.pdf`: 8 officers, nothing saved until accepted.
+- **Groups view after linking:** merged lines appear (Work–School "5 connections").
+- **Quick add** (N), **delete + Undo**, and the **Due panel → Snooze** all work.
+- **Escape inside Add connection** closes only the form, with the card staying open (F1-O5, now checked).
+- Dark mode in the Groups view looks right. No runtime errors were caught during the run.
+
+| | Bug | Fix |
+| --- | --- | --- |
+| B1 | The List view's table couldn't scroll in its own area (the M10 layout change had landed in a code comment). | Fixed in M14 (#20). |
+| B2 | The Groups panel used a fixed 3-column grid; with a side panel open, group names were cut off ("Friend…"). | It wraps now. |
+| B3 | With the weekly review open, clicking the **Due** tab changed the filter but kept showing the weekly review (it ranks above the Due panel), so the Due panel was unreachable. | Clicking Due closes the weekly review and any person card. Checked: the Due panel opens; Snooze works. |
+
+**Not bugs (checked):**
+- The model's sentence said "10 people" with 11 highlighted: the card's own count is right.
+- Weekly dates a day later than earlier screens: Reset demo data re-anchors the seed to today.
+- The view switch's highlight seemed to lag: CSS transitions don't run in a hidden browser pane.
+

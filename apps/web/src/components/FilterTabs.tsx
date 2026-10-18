@@ -43,6 +43,8 @@ const TAG_TABS = ['Work', 'School', 'Friends', 'Family', 'Clubs'];
 export function FilterTabs({ counts }: { counts: Record<string, number> }) {
   const filter = useStore((s) => s.filter);
   const setFilter = useStore((s) => s.setFilter);
+  const setWeeklyOpen = useStore((s) => s.setWeeklyOpen);
+  const selectPerson = useStore((s) => s.selectPerson);
   const setHighlights = useStore((s) => s.setHighlights);
   const tags = useLiveQuery(() => db.tags.toArray(), []);
 
@@ -73,6 +75,12 @@ export function FilterTabs({ counts }: { counts: Record<string, number> }) {
             onClick={() => {
               setFilter(t.value);
               setHighlights([]);
+              // Bug pass (Oct 18): the open weekly review ranks above the Due panel, so clicking Due
+              // showed nothing new. Clicking Due is a request for that panel: close what hides it.
+              if (t.value === 'due') {
+                setWeeklyOpen(false);
+                selectPerson(null);
+              }
             }}
             className={cn(
               'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
