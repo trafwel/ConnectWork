@@ -93,3 +93,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. Approving a follow-up reschedules its existing reminder. What would go wrong if it created a new one?
 3. Why does approving an action never change anyone's "last contact"?
 4. "Draft a message" is the only AI call that sends notes. Why is that acceptable there but not in Ask Connectwork?
+
+## M9
+**Snap to add**
+
+1. Why do we shrink photos in the browser before sending them, and what privacy bonus does redrawing on a canvas give?
+2. Why may the demo roster be cached but a real photo never?
+3. The live test first failed with "did not respond", but the real reason was the free-tier quota. What changed so the user now sees the true reason?
+4. Why did the fallback model reject the extract schema, and why is it safe to leave that cap out of what we send Gemini?

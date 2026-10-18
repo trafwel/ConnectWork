@@ -103,3 +103,36 @@ describe('withFallback chain', () => {
     expect(fb).not.toHaveBeenCalled();
   });
 });
+
+// M9 live findings.
+describe('M9 fixes', async () => {
+  const { toGeminiSchema } = await import('./gemini');
+  const { ExtractResponse, WeeklyReviewResponse } = await import('@connectwork/shared');
+
+  it('reports rate limiting when any model was rate limited, even if the last failed differently', async () => {
+    const err = await withFallback(
+      async () => {
+        throw apiError(429);
+      },
+      [
+        async () => {
+          throw apiError(429);
+        },
+        async () => {
+          throw apiError(400);
+        },
+      ],
+      () => {},
+    ).catch((e) => e);
+    expect(err).toBeInstanceOf(AiError);
+    expect(err.code).toBe('rate_limited');
+  });
+
+  it('sends Gemini no list caps above 100 (flash-lite rejects maxItems 200), but keeps small ones', () => {
+    const extract = JSON.stringify(toGeminiSchema(ExtractResponse));
+    expect(extract).not.toContain('"maxItems":200');
+    expect(JSON.stringify(toGeminiSchema(WeeklyReviewResponse))).toContain('"maxItems":6');
+    // zod still enforces the real cap on the reply:
+    expect(ExtractResponse.safeParse({ people: Array.from({ length: 201 }, () => ({ name: 'x' })) }).success).toBe(false);
+  });
+});

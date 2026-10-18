@@ -1,8 +1,8 @@
 # Connectwork — Manual test plan
 
-Every feature built so far, as steps and what you should see. Generated from [`testing/connectwork-test-run.html`](testing/connectwork-test-run.html) (the same tests as an interactive checklist; the team copy with shared results is a private claude.ai artifact).
+Every feature built so far (52 tests, M1–M9 and Appearance), as steps and what you should see. Generated from [`testing/connectwork-test-run.html`](testing/connectwork-test-run.html) (the same tests as an interactive checklist; the team copy with shared results is a private claude.ai artifact). Edit the tests there and regenerate this file.
 
-**Before you start:** get the newest milestone branch (`git fetch origin && git switch m8-weekly && pnpm install`). `main` only shows the starting screen until the milestone PRs are merged. Then run `pnpm dev`, open http://localhost:5173, and use **Settings → Reset demo data**. The server lives at `localhost:8787/api/…`; its root address answering 404 is normal. Import tests use `demo/Connections.csv`. The AI runs on Gemini's free tier, so use the fictional demo data only. Demo dates are relative to today.
+**Before you start:** get the newest milestone branch (`git fetch origin && git switch m9-snap && pnpm install`). `main` only shows the starting screen until the milestone PRs are merged. Then run `pnpm dev`, open http://localhost:5173, and use **Settings → Reset demo data**. The server lives at `localhost:8787/api/…`; its root address answering 404 is normal. Import tests use `demo/Connections.csv`; Snap tests use `demo/roster.pdf`. The AI runs on Gemini's free tier, so use the fictional demo data, or your own business card, only (never someone else's). Demo dates are relative to today.
 
 | Section | Tests |
 | --- | --- |
@@ -14,6 +14,8 @@ Every feature built so far, as steps and what you should see. Generated from [`t
 | [M6 · AI suggestions you review](#m6--ai-suggestions-you-review) | 4 |
 | [Appearance](#appearance) | 2 |
 | [M7 · Flags, filters, reminders](#m7--flags-filters-reminders) | 6 |
+| [M8 · Weekly review](#m8--weekly-review) | 7 |
+| [M9 · Snap to add](#m9--snap-to-add) | 7 |
 
 ## M1 · Your data
 
@@ -413,3 +415,139 @@ Reset demo data first.
 
 **You should see**
 - Flags stop pulsing (they stay visible)
+
+## M8 · Weekly review
+
+Live Gemini. Reset demo data first. The plan’s wording varies; check what it does.
+
+### Review my week `m8-plan`
+
+**Do**
+1. Click Review my week (top bar)
+
+**You should see**
+- “Looking at your week…”, then a headline and 5–6 action cards
+- John Park is in it
+- Each card says why, using real dates or shared schools
+
+### Who a card is about `m8-hover`
+
+**Do**
+1. Hover an action card
+
+**You should see**
+- Its person (or two people) is highlighted on the map
+- Moving away restores what was highlighted before
+
+### Approve a follow-up `m8-approve-followup`
+
+**Do**
+1. Approve “Follow up with John Park”
+2. Open John’s card
+
+**You should see**
+- The card shows a check and “Done”
+- John still has ONE reminder (moved to the plan’s date), not two
+- His “last contact” did not change
+
+### Approve a reconnect `m8-approve-reconnect`
+
+**Do**
+1. Approve a “Reconnect with …” card
+
+**You should see**
+- That person gets a new reminder on the suggested date
+
+### Drafts are editable `m8-drafts`
+
+**Do**
+1. Edit a draft in a card, then click Copy
+2. Paste it somewhere
+
+**You should see**
+- Your edited text is what gets pasted
+- Drafts don’t invent meetings or places that aren’t in the person’s data
+
+### The plan stays put `m8-roundtrip`
+
+**Do**
+1. Click a person’s name in a card to open their card
+2. Close the card
+
+**You should see**
+- You’re back on the same plan, approvals still checked, without “Looking at your week…” again
+
+### Draft a message from a card `m8-draft-card`
+
+**Do**
+1. Open John Park → Message → Draft a message
+
+**You should see**
+- A short message that uses his real notes (CSE 332, the Microsoft internship)
+- Copy works
+
+## M9 · Snap to add
+
+Live Gemini. Free tier: test with YOUR OWN card or the demo files, never someone else’s card (it would send their details to Google).
+
+### A roster PDF `m9-roster`
+
+**Do**
+1. Click Snap → Choose a photo or PDF → demo/roster.pdf
+
+**You should see**
+- “Reading…”, then the review: “Add 8 people from roster.pdf”
+- All 8 are ticked, each with a role and the Clubs tag
+
+### Add them `m9-accept`
+
+**Do**
+1. Accept all
+
+**You should see**
+- 8 new people appear on the outer ring (Clubs color)
+- Their card says last contact “Today”
+
+### Snapping again finds them `m9-dedupe`
+
+**Do**
+1. Snap demo/roster.pdf again
+
+**You should see**
+- All 8 rows are UNticked and say “Already in your network as …”
+- Dismiss changes nothing
+
+### Your own business card `m9-own-card`
+
+**Do**
+1. Take a photo of YOUR card (good light, card fills the frame)
+2. Get it onto this Mac (AirDrop or Photos) and choose it in Snap
+
+**You should see**
+- A thumbnail shows while it reads
+- “Add 1 person from …” with your name, role and company copied exactly
+- Fields not on the card are left empty (no guessed email or LinkedIn)
+
+### An iPhone HEIC photo `m9-heic`
+
+**Do**
+1. Choose an iPhone photo in HEIC format (the default when AirDropped)
+
+**You should see**
+- Either it works, or a plain message explains how to switch the camera to “Most Compatible” (JPEG). No crash.
+
+### A file that is too big or the wrong type `m9-big`
+
+**Do**
+1. Choose a PDF over 7 MB, or a non-image file
+
+**You should see**
+- A plain message: the 7 MB limit, or “Choose a photo (JPEG, PNG, WebP) or a PDF”
+
+### When the AI is busy `m9-busy`
+
+**Do**
+1. If Snap says “The agent is busy”, wait a minute and try again
+
+**You should see**
+- It works on a later try (the free tier allows only a few requests per minute)

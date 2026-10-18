@@ -83,6 +83,7 @@ export interface UIState {
   quickAddOpen: boolean;
   importOpen: boolean;
   settingsOpen: boolean;
+  snapOpen: boolean;
   reviewPayload: ReviewPayload | null;
   weeklyOpen: boolean;
   weekly: WeeklyState;
@@ -93,7 +94,7 @@ export interface UIState {
   setHighlights: (ids: Iterable<string>) => void;
   clearFocus: () => void;
   setAgent: (patch: Partial<Pick<UIState, 'agentAnswer' | 'agentBusy' | 'agentError' | 'agentChecked'>>) => void;
-  setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
+  setDialog: (dialog: 'quickAdd' | 'import' | 'settings' | 'snap', open: boolean) => void;
   openReview: (payload: ReviewPayload) => void;
   closeReview: () => void;
   setWeeklyOpen: (open: boolean) => void;
@@ -111,7 +112,7 @@ const noFocus = {
   filter: 'all',
 } satisfies Partial<UIState>;
 
-const DIALOG_FLAG = { quickAdd: 'quickAddOpen', import: 'importOpen', settings: 'settingsOpen' } as const;
+const DIALOG_FLAG = { quickAdd: 'quickAddOpen', import: 'importOpen', settings: 'settingsOpen', snap: 'snapOpen' } as const;
 
 export const useStore = create<UIState>((set, get) => ({
   view: 'map',
@@ -120,6 +121,7 @@ export const useStore = create<UIState>((set, get) => ({
   quickAddOpen: false,
   importOpen: false,
   settingsOpen: false,
+  snapOpen: false,
   reviewPayload: null,
   weeklyOpen: false,
   weekly: { status: 'idle', done: [] },

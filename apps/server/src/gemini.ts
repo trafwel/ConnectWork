@@ -113,6 +113,9 @@ export async function withFallback(
   const chain = [primary, ...(Array.isArray(fallbacks) ? fallbacks : [fallbacks])];
   const started = Date.now();
   let lastErr: unknown;
+  // M9 live finding: main + fallback 1 were rate-limited and fallback 2 failed differently, so
+  // users saw "did not respond" instead of "busy, try again in a minute". Remember a 429.
+  let rateLimited = false;
   for (const [i, attempt] of chain.entries()) {
     if (i > 0) {
       if (!isRetryable(lastErr) || Date.now() - started > budgetMs) break;
@@ -122,8 +125,10 @@ export async function withFallback(
       return await attempt();
     } catch (err) {
       lastErr = err;
+      if (err instanceof ApiError && err.status === 429) rateLimited = true;
     }
   }
+  if (rateLimited) throw new AiError('rate_limited', `Gemini rate limit reached (last error: ${describe(lastErr)})`);
   throw toAiError(lastErr);
 }
 
@@ -155,10 +160,26 @@ export function geminiGenerate(apiKey: string, model: string, fallbackModels: st
     );
 }
 
+/** List caps above this are our safety net (zod still enforces them), not guidance for the model. */
+const MAX_ITEMS_SENT = 100;
+
+/** Removes `maxItems` above MAX_ITEMS_SENT everywhere in a JSON schema (in place). */
+function dropLargeMaxItems(node: unknown): void {
+  if (Array.isArray(node)) return node.forEach(dropLargeMaxItems);
+  if (!node || typeof node !== 'object') return;
+  const obj = node as Record<string, unknown>;
+  if (typeof obj.maxItems === 'number' && obj.maxItems > MAX_ITEMS_SENT) delete obj.maxItems;
+  Object.values(obj).forEach(dropLargeMaxItems);
+}
+
 // Step 2. Gemini's responseJsonSchema rejects the "$schema" meta key that zod adds.
+// M9 live finding: gemini-3.5-flash-lite (our last fallback) answers 400 to the extract schema
+// because of `maxItems: 200`; without it the same request works. Large caps are only sent to
+// zod, which still rejects an over-long reply (and callStructured retries once).
 export function toGeminiSchema(schema: z.ZodType): unknown {
   const json = z.toJSONSchema(schema) as Record<string, unknown>;
   delete json.$schema;
+  dropLargeMaxItems(json);
   return json;
 }
 

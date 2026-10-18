@@ -70,8 +70,9 @@ export interface StructuredRoute<Req, Res> {
   parts: (body: Req, today: string) => Part[];
   /** Guardrails applied to the model's reply: drop unknown ids, clamp values. */
   post?: (result: Res, body: Req) => Res;
-  /** Default true. Set false when the body may contain real personal photos (M9). */
-  cacheable?: boolean;
+  /** Default true. False, or a per-request check, when the body may hold real personal photos
+   * (M9: only the fictional demo roster may be cached). */
+  cacheable?: boolean | ((body: Req) => boolean);
 }
 
 // Step 1. One copy of the error codes and texts for every AI route.
@@ -120,7 +121,7 @@ export function structured<Req, Res>(routes: Hono, deps: AppDeps, route: Structu
     if (!parsed.success) return c.json({ error: 'bad_request', message: 'Invalid request body' }, 400);
     const body = parsed.data;
 
-    const cacheable = route.cacheable !== false;
+    const cacheable = typeof route.cacheable === 'function' ? route.cacheable(body) : route.cacheable !== false;
     const key = cacheKey(`/api/ai${route.path}`, body);
     const cached = cacheable ? deps.cache?.get(key) : undefined;
     if (cached) {

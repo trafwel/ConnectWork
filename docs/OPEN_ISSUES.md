@@ -12,7 +12,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Fix now
 | ID | Issue | Plan |
 | --- | --- | --- |
-| — | Nothing open. M8 left no "fix now" items (see the M8 review). | — |
+| — | Nothing open. M9's two live findings were fixed inside M9 (see the M9 review). | — |
 
 ## Waits for a milestone
 | ID | Issue | Milestone |
@@ -43,6 +43,8 @@ Resolved items move to the table at the bottom, with what changed.
 | M7-O4 | "Done" on a reminder has no undo toast. | Untick it in the person card. |
 | M6-O2 | No undo after accepting a sort. | The review sheet is the confirmation; each person can be changed on their card. |
 | P5-O1 | Cancelling a question stops the *browser* waiting, but the server still finishes the Gemini call (quota is spent). | Passing the client's abort through to Gemini (`c.req.raw.signal` → SDK `abortSignal`) is possible; worth it only if quota gets tight. |
+| M9-O1 | iPhone HEIC photos can't be decoded in Chrome. | A plain message tells the user how to switch to JPEG; not tested (no HEIC file). |
+| M9-O2 | No undo after accepting snapped people. | The review is the confirmation; each person can be deleted with Undo. |
 | M8-O1 | AI drafts may still invent small details (models vary). | Prompt rule added; drafts stay editable and are labelled "edit before sending". |
 | M5-E2 | Every question sends the whole network (about 10k tokens at 154 people). | Fine on the free tier; the model needs the data. Trim only if cost matters. |
 | M5-S5 | A crafted contact name could make the answer *sentence* misleading (prompt injection). | Ids are filtered in code and the answer is plain text; the residual risk is wording only. |

@@ -111,17 +111,17 @@ footer { display: grid; gap: 10px; color: var(--muted); font-size: 13px; border-
   <header>
     <span class="eyebrow">DubHacks ’26 · Connectwork · manual test run</span>
     <h1>Connectwork Test Run</h1>
-    <p>Every feature built so far (M1–M7 and Appearance), written as steps and what you should see. Mark each one Pass, Fail or Skip. Results are shared with your teammate and with Claude, so a failed test can be fixed straight from here.</p>
+    <p>Every feature built so far (M1–M9 and Appearance), written as steps and what you should see. Mark each one Pass, Fail or Skip. Results are shared with your teammate and with Claude, so a failed test can be fixed straight from here.</p>
   </header>
 
   <div class="setup">
     <span class="eyebrow">Before you start</span>
     <ol>
-      <li>Get the newest milestone branch. <b>main only has the starting screen</b> (a title and “Server ok”) until the milestone pull requests are merged: <span class="copy-row"><code id="cmd-branch">git fetch origin &amp;&amp; git switch m8-weekly &amp;&amp; pnpm install</code><button class="copy" data-copy="cmd-branch" type="button">Copy</button></span></li>
+      <li>Get the newest milestone branch. <b>main only has the starting screen</b> (a title and “Server ok”) until the milestone pull requests are merged: <span class="copy-row"><code id="cmd-branch">git fetch origin &amp;&amp; git switch m9-snap &amp;&amp; pnpm install</code><button class="copy" data-copy="cmd-branch" type="button">Copy</button></span></li>
       <li>Start the app from the repo: <span class="copy-row"><code id="cmd-dev">pnpm dev</code><button class="copy" data-copy="cmd-dev" type="button">Copy</button></span> (The server lives at <code>localhost:8787/api/…</code>; its root address showing “404 Not Found” is normal.)</li>
       <li>Open <a href="http://localhost:5173" target="_blank" rel="noopener">localhost:5173</a> in Chrome on the same Mac.</li>
       <li>Start from the demo: <b>Settings (gear) → Reset demo data</b>. Most expectations below assume the 40 demo people.</li>
-      <li>For import tests you need the demo LinkedIn file: <span class="copy-row"><code id="csv-path">demo/Connections.csv</code><button class="copy" data-copy="csv-path" type="button">Copy</button></span></li>
+      <li>For import tests you need the demo LinkedIn file: <span class="copy-row"><code id="csv-path">demo/Connections.csv</code><button class="copy" data-copy="csv-path" type="button">Copy</button></span> For Snap tests, the demo roster: <code>demo/roster.pdf</code>.</li>
     </ol>
     <p class="note-box">The AI runs on Gemini’s free tier, so use the fictional demo data only. Dates in the demo are relative to today, so the exact days you see will differ from any day named here.</p>
   </div>
@@ -206,6 +206,24 @@ const PLAN = [
     { id: 'm7-calendar', title: 'Add to calendar', steps: ['In the Due panel, click Add to calendar', 'Open the downloaded .ics file'], expect: ['Your calendar app adds an all-day “Follow up: Name” event on the due date'] },
     { id: 'm7-export-all', title: 'Export all reminders', steps: ['Settings → Export all reminders'], expect: ['One .ics file with every open reminder'] },
     { id: 'm7-reduce-motion', title: 'Pulse respects Reduce Motion', issue: 'M7-O2', steps: ['macOS System Settings → Accessibility → Display → Reduce motion: on', 'Look at the flags'], expect: ['Flags stop pulsing (they stay visible)'] },
+  ]},
+  { id: 'm8', title: 'M8 · Weekly review', intro: 'Live Gemini. Reset demo data first. The plan’s wording varies; check what it does.', tests: [
+    { id: 'm8-plan', title: 'Review my week', steps: ['Click Review my week (top bar)'], expect: ['“Looking at your week…”, then a headline and 5–6 action cards', 'John Park is in it', 'Each card says why, using real dates or shared schools'] },
+    { id: 'm8-hover', title: 'Who a card is about', steps: ['Hover an action card'], expect: ['Its person (or two people) is highlighted on the map', 'Moving away restores what was highlighted before'] },
+    { id: 'm8-approve-followup', title: 'Approve a follow-up', steps: ['Approve “Follow up with John Park”', 'Open John’s card'], expect: ['The card shows a check and “Done”', 'John still has ONE reminder (moved to the plan’s date), not two', 'His “last contact” did not change'] },
+    { id: 'm8-approve-reconnect', title: 'Approve a reconnect', steps: ['Approve a “Reconnect with …” card'], expect: ['That person gets a new reminder on the suggested date'] },
+    { id: 'm8-drafts', title: 'Drafts are editable', steps: ['Edit a draft in a card, then click Copy', 'Paste it somewhere'], expect: ['Your edited text is what gets pasted', 'Drafts don’t invent meetings or places that aren’t in the person’s data'] },
+    { id: 'm8-roundtrip', title: 'The plan stays put', steps: ['Click a person’s name in a card to open their card', 'Close the card'], expect: ['You’re back on the same plan, approvals still checked, without “Looking at your week…” again'] },
+    { id: 'm8-draft-card', title: 'Draft a message from a card', steps: ['Open John Park → Message → Draft a message'], expect: ['A short message that uses his real notes (CSE 332, the Microsoft internship)', 'Copy works'] },
+  ]},
+  { id: 'm9', title: 'M9 · Snap to add', intro: 'Live Gemini. Free tier: test with YOUR OWN card or the demo files, never someone else’s card (it would send their details to Google).', tests: [
+    { id: 'm9-roster', title: 'A roster PDF', steps: ['Click Snap → Choose a photo or PDF → demo/roster.pdf'], expect: ['“Reading…”, then the review: “Add 8 people from roster.pdf”', 'All 8 are ticked, each with a role and the Clubs tag'] },
+    { id: 'm9-accept', title: 'Add them', steps: ['Accept all'], expect: ['8 new people appear on the outer ring (Clubs color)', 'Their card says last contact “Today”'] },
+    { id: 'm9-dedupe', title: 'Snapping again finds them', steps: ['Snap demo/roster.pdf again'], expect: ['All 8 rows are UNticked and say “Already in your network as …”', 'Dismiss changes nothing'] },
+    { id: 'm9-own-card', title: 'Your own business card', steps: ['Take a photo of YOUR card (good light, card fills the frame)', 'Get it onto this Mac (AirDrop or Photos) and choose it in Snap'], expect: ['A thumbnail shows while it reads', '“Add 1 person from …” with your name, role and company copied exactly', 'Fields not on the card are left empty (no guessed email or LinkedIn)'] },
+    { id: 'm9-heic', title: 'An iPhone HEIC photo', steps: ['Choose an iPhone photo in HEIC format (the default when AirDropped)'], expect: ['Either it works, or a plain message explains how to switch the camera to “Most Compatible” (JPEG). No crash.'] },
+    { id: 'm9-big', title: 'A file that is too big or the wrong type', steps: ['Choose a PDF over 7 MB, or a non-image file'], expect: ['A plain message: the 7 MB limit, or “Choose a photo (JPEG, PNG, WebP) or a PDF”'] },
+    { id: 'm9-busy', title: 'When the AI is busy', steps: ['If Snap says “The agent is busy”, wait a minute and try again'], expect: ['It works on a later try (the free tier allows only a few requests per minute)'] },
   ]},
 ];
 const ALL_TESTS = PLAN.flatMap((m) => m.tests);

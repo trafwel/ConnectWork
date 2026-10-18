@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M8 built** — everything through M7, plus *Review my week*: code computes candidates (follow-ups, drifting people, suggested links, intros), Gemini picks 5–6 and drafts messages, and approving does the work (reschedules or adds reminders, accepts links, copies drafts). Person cards can *Draft a message*. Snap (M9) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M9 built** — everything through M8, plus *Snap to add*: a photo (downscaled, metadata stripped) or PDF goes to `/extract`, Gemini reads the people, the server cleans them, and the review sheet shows who's new and who's already in your network. Drift (M10) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -58,7 +58,7 @@ flowchart LR
     Ask["Ask Connectwork<br/><small>AgentBar, AgentAnswer, DemoBanner · M5</small>"]:::built
     Review["Review sheet<br/><small>ReviewSheet · AI proposes, you accept · M6</small>"]:::built
     Weekly["Weekly review · Draft a message<br/><small>WeeklyReview, PersonCard · M8</small>"]:::built
-    Snap["Snap to add · M9"]:::planned
+    Snap["Snap to add<br/><small>SnapDialog (lazy), lib/image.ts · M9</small>"]:::built
   end
 
   Layout["Ring layout<br/><small>graph/layout.ts · d3-force, settled before paint · M2</small>"]:::built
@@ -111,7 +111,9 @@ flowchart LR
   Weekly -->|"candidates"| Cands
   Weekly -->|"aiPost /weekly-review, /draft"| Api
   Weekly -->|"approve → reschedule / add reminder, accept link"| Actions
-  Snap -.-> Api
+  Snap -->|"aiPost /extract (≤1600 px JPEG or PDF)"| Api
+  Snap -->|"findMatch → openReview"| Store
+  Snap -->|"accept → planImport, applyImport"| Actions
   Relay -.->|"answers from local data"| DB
 
   classDef built fill:#e6f2ec,stroke:#2e7d5b,stroke-width:2px,color:#1d2a24;
@@ -128,7 +130,8 @@ flowchart LR
   Classify["POST /api/ai/classify<br/><small>ring 1 → 2, allowed tags only · M6</small>"]:::built
   Links["POST /api/ai/links<br/><small>no self / unknown / existing pairs · M6</small>"]:::built
   WeeklyR["POST /api/ai/weekly-review · /draft<br/><small>actions must match candidates · M8</small>"]:::built
-  Routes["POST /api/ai/* (more)<br/><small>routes/* · M9–M11</small>"]:::planned
+  Extract["POST /api/ai/extract<br/><small>image/PDF → people · only the demo roster cached · M9</small>"]:::built
+  Routes["POST /api/ai/* (more)<br/><small>routes/* · M11</small>"]:::planned
   Helper["Route helper<br/><small>routes/structured.ts · validate, cache, retry, guardrails, safe errors · R</small>"]:::built
   Cache["Demo cache<br/><small>cache.ts · record / replay · M5</small>"]:::built
   GeminiH["Gemini helper<br/><small>schema · retry · fallback chain · 60 s budget · gemini.ts · M5</small>"]:::built
@@ -141,11 +144,13 @@ flowchart LR
   Limit --> Classify
   Limit --> Links
   Limit --> WeeklyR
+  Limit --> Extract
   Limit -.-> Routes
   Query --> Helper
   Classify --> Helper
   Links --> Helper
   WeeklyR --> Helper
+  Extract --> Helper
   Routes -.-> Helper
   Helper --> Cache
   Helper --> GeminiH
@@ -183,8 +188,9 @@ flowchart LR
 | S | Style switching (intermediary step, requested Oct 17) | ✅ built ([review](REVIEWS.md#step-s-style-switching)) |
 | M7 | Flags, filter tabs, Due panel, .ics | ✅ built ([review](REVIEWS.md#m7)) |
 | M8 | Weekly review, Draft a message | ✅ built ([review](REVIEWS.md#m8)) |
-| M9 | Snap to add (photo / PDF → people) | ⬜ next |
-| M10–M14 | Drift, Google Calendar, demo cache, deploy | ⬜ |
+| M9 | Snap to add (photo / PDF → people) | ✅ built ([review](REVIEWS.md#m9)) |
+| M10 | Drift on the map, settings | ⬜ next |
+| M11–M14 | Google Calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -202,3 +208,4 @@ flowchart LR
 | Oct 17 | S | Browser: Appearance (style + mode) built; Settings sets it, `localStorage` remembers it per device, and the map's colours come from `--map-*` variables. Status: S ✅, M7 next. |
 | Oct 17 | M7 | Browser: filter tabs + Due panel and calendar export (with the .ics file as an output) are built; App feeds due/overdue/drifting sets to the map for flags. Status: M7 ✅, M8 next. |
 | Oct 17 | M8 | Browser: weekly review panel + candidates (code) built; approving writes through `actions.ts`. Server: `/weekly-review` and `/draft` on the route helper. Status: M8 ✅, M9 next. |
+| Oct 17 | M9 | Browser: Snap dialog (lazy, shares the CSV chunk) + image prep built. Server: `/extract` on the route helper, roster-only caching. Status: M9 ✅, M10 next. |
