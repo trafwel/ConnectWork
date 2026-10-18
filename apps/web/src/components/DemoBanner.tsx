@@ -13,6 +13,10 @@
  *        "Demo mode: the AI runs on Gemini's free tier, so use sample data only."
  *        + " AI is not configured yet (no GEMINI_API_KEY)." when !health.aiConfigured
  *
+ * Oct 18 (team request): the free-tier line is gone from the screen; the banner now only shows
+ *   when the AI isn't configured, which is a setup problem worth seeing. The free-tier guard
+ *   itself stays where it matters (real calendar meetings get no AI brief on the free tier).
+ *
  * Guide: §9.6
  */
 
@@ -30,13 +34,10 @@ export function DemoBanner() {
     };
   }, []);
 
-  // Step 2
-  if (health?.tier !== 'free') return null;
-  // Step 3
+  if (!health || health.aiConfigured) return null;
   return (
     <div role="note" className="border-b bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-      Demo mode: the AI runs on Gemini&apos;s free tier, so use sample data only.
-      {!health.aiConfigured && ' AI is not configured yet (no GEMINI_API_KEY).'}
+      AI is not configured yet (no GEMINI_API_KEY).
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Link, Person } from '@connectwork/shared';
-import { aggregateLinks, buildClusters, clusterRadius, groupConnections, linkIsShown } from './groups';
+import { aggregateLinks, buildClusters, clusterRadius, groupConnections, linkIsShown, separateClusters } from './groups';
 
 const p = (id: string, tag: string): Person => ({ id, name: id, ring: 2, primaryTag: tag, tags: [tag], source: 'seed', createdAt: '' });
 const people = [p('w1', 'Work'), p('w2', 'Work'), p('s1', 'School'), p('f1', 'Friends')];
@@ -69,3 +69,34 @@ describe('declutter rules', () => {
   });
 });
 
+
+describe('separateClusters (bug fix: a big group covered visible people)', () => {
+  const gapBetween = (a: { x: number; y: number; r: number }, b: { x: number; y: number; r: number }) => Math.hypot(a.x - b.x, a.y - b.y) - a.r - b.r;
+
+  it('moves a group off a visible person, and leaves the person where they are', () => {
+    const person = { x: 0, y: 0, r: 14 };
+    const [group] = separateClusters([{ x: 10, y: 0, r: 57 }], [person]);
+    expect(gapBetween(group!, person)).toBeGreaterThan(0);
+    expect(person).toEqual({ x: 0, y: 0, r: 14 });
+    expect(group!.x).toBeGreaterThan(10); // pushed straight away, not somewhere random
+  });
+
+  it('pulls two overlapping groups apart, even when they start on the same spot', () => {
+    const [a, b] = separateClusters([{ x: 0, y: 0, r: 30 }, { x: 0, y: 0, r: 20 }], []);
+    expect(gapBetween(a!, b!)).toBeGreaterThan(0);
+  });
+
+  it('leaves groups that already have room alone', () => {
+    expect(separateClusters([{ x: 500, y: 0, r: 20 }], [{ x: 0, y: 0, r: 14 }])).toEqual([{ x: 500, y: 0, r: 20 }]);
+  });
+
+  it('keeps closed groups clear of the selected person and of You in buildClusters', () => {
+    const many = [...Array.from({ length: 30 }, (_, i) => p(`w${i}`, 'Work')), p('s1', 'School')];
+    const pos = new Map(many.map((m) => [m.id, { x: 100, y: 0 }]));
+    pos.set('s1', { x: 100, y: 0 }); // the selected person sits right where the Work group lands
+    const { clusters } = buildClusters(many, pos, new Set(), new Set(['s1']), { x: 0, y: 0 });
+    const work = clusters.find((c) => c.tag === 'Work')!;
+    expect(gapBetween(work, { x: 100, y: 0, r: 14 })).toBeGreaterThan(0);
+    expect(gapBetween(work, { x: 0, y: 0, r: 18 })).toBeGreaterThan(0);
+  });
+});

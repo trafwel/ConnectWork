@@ -20,7 +20,9 @@
  */
 import { useEffect, useState } from 'react';
 
-export type Style = 'neutral' | 'atlas';
+/** Oct 18 (team request): Spiderweb and Phantom (a Persona 5-inspired red/black/white look). */
+export const STYLES = ['neutral', 'atlas', 'spiderweb', 'phantom'] as const;
+export type Style = (typeof STYLES)[number];
 export type Mode = 'system' | 'light' | 'dark';
 /** How a due/overdue follow-up shows on the map: a pennant + pulse, or rings rippling out. */
 export type ReminderStyle = 'flag' | 'ripple';
@@ -38,7 +40,7 @@ export function parseAppearance(raw: string | null): Appearance {
   try {
     const v = JSON.parse(raw ?? '{}') as Partial<Appearance>;
     return {
-      style: v.style === 'atlas' ? 'atlas' : 'neutral',
+      style: STYLES.find((s) => s === v.style) ?? 'neutral',
       mode: v.mode === 'light' || v.mode === 'dark' ? v.mode : 'system',
       reminders: v.reminders === 'ripple' ? 'ripple' : 'flag', // older saves have no field: Flag
     };

@@ -1,0 +1,247 @@
+/*
+ * Styles · Spiderweb and Phantom (Oct 18, team request)
+ *
+ * WHAT THIS ADDS
+ *   Two more choices in Settings → Appearance → Style, on the same switch as Neutral and Atlas:
+ *   <html data-style="spiderweb|phantom" class="dark?">. Like Atlas, each is only CSS variables
+ *   plus a few touches on existing elements, so switching re-renders nothing.
+ *
+ *   Spiderweb: the map as a web. Linen paper (dark: a night web), hairline silk threads, solid
+ *     rings like the spiral, faint radial threads behind the map meeting at you, an old-style serif
+ *     for the title, square corners, one sienna accent (dark: dew-gold).
+ *   Phantom: a Persona 5-inspired red, black and white. Ink borders with hard offset shadows,
+ *     a skewed title stamped on red, slanted buttons, a halftone dot texture on the map, and a red
+ *     slash in the corner.
+ *
+ * WHY A SEPARATE FILE
+ *   index.css is being edited on another branch; keeping these here avoids merge conflicts.
+ *   Imported after index.css (main.tsx), so equal-specificity rules here win.
+ *
+ * Fonts are system fonts (Iowan Old Style / Palatino / Georgia; Impact / Arial Black), so no
+ * font download and no request to a font server. Text pairs are ≥ 4.5:1 contrast.
+ */
+
+/* ───────────────────────────── Spiderweb ───────────────────────────── */
+:root[data-style="spiderweb"] {
+    --background: #eeeae2;
+    --foreground: #23211d;
+    --card: #f7f5f0;
+    --card-foreground: #23211d;
+    --popover: #f7f5f0;
+    --popover-foreground: #23211d;
+    --primary: #23211d;
+    --primary-foreground: #f7f5f0;
+    --secondary: #e3ded3;
+    --secondary-foreground: #23211d;
+    --muted: #e3ded3;
+    --muted-foreground: #5e5950;
+    --accent: #e3ded3;
+    --accent-foreground: #23211d;
+    --destructive: #a3401f;
+    --border: #cfc8ba;
+    --input: #b3ab9b;
+    --ring: #8a4b2a;
+    --radius: 0.125rem;
+
+    --map-ring: #8d8576;
+    --map-ring-width: 0.8;
+    --map-ring-dash: none;
+    --map-ring-label: #5e5950;
+    --map-link: #23211d;
+    --map-link-opacity: 0.45;
+    --map-link-width: 0.6;
+    --map-suggested: #8a4b2a;
+    --map-suggested-dash: 1 3;
+    --map-node-stroke: #23211d;
+    --map-node-stroke-width: 0.75;
+    --map-highlight: #8a4b2a;
+    --map-you: #23211d;
+
+    --web-thread: rgb(35 33 29 / 0.07);
+}
+
+:root[data-style="spiderweb"].dark {
+    --background: #0e0f11;
+    --foreground: #dcd8d0;
+    --card: #16171a;
+    --card-foreground: #dcd8d0;
+    --popover: #16171a;
+    --popover-foreground: #dcd8d0;
+    --primary: #dcd8d0;
+    --primary-foreground: #0e0f11;
+    --secondary: #1e2024;
+    --secondary-foreground: #dcd8d0;
+    --muted: #1e2024;
+    --muted-foreground: #9c978e;
+    --accent: #1e2024;
+    --accent-foreground: #dcd8d0;
+    --destructive: #e08a6a;
+    --border: #2b2d32;
+    --input: #44474e;
+    --ring: #d4b45c;
+
+    --map-ring: #4a4c52;
+    --map-ring-label: #9c978e;
+    --map-link: #dcd8d0;
+    --map-link-opacity: 0.4;
+    --map-suggested: #d4b45c;
+    --map-node-stroke: #dcd8d0;
+    --map-highlight: #d4b45c;
+    --map-you: #dcd8d0;
+
+    --web-thread: rgb(220 216 208 / 0.06);
+}
+
+/* Radial threads behind the map, meeting where "You" starts (the centre of the map area). */
+:root[data-style="spiderweb"] main {
+    background-image: repeating-conic-gradient(from 7deg at 50% 50%, var(--web-thread) 0deg 0.35deg, transparent 0.35deg 30deg);
+}
+:root[data-style="spiderweb"] header > span:first-child {
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+:root[data-style="spiderweb"] [data-slot="button"] {
+    box-shadow: none;
+}
+
+/* ───────────────────────────── Phantom ───────────────────────────── */
+:root[data-style="phantom"] {
+    --background: #f4f1ec;
+    --foreground: #0b0b0b;
+    --card: #ffffff;
+    --card-foreground: #0b0b0b;
+    --popover: #ffffff;
+    --popover-foreground: #0b0b0b;
+    --primary: #d7141c;
+    --primary-foreground: #ffffff;
+    --secondary: #e8e3da;
+    --secondary-foreground: #0b0b0b;
+    --muted: #e8e3da;
+    --muted-foreground: #4a4744;
+    --accent: #0b0b0b;
+    --accent-foreground: #ffffff;
+    --destructive: #b0101a;
+    --border: #0b0b0b;
+    --input: #0b0b0b;
+    --ring: #d7141c;
+    --radius: 0rem;
+
+    --map-ring: #0b0b0b;
+    --map-ring-width: 2;
+    --map-ring-dash: none;
+    --map-ring-label: #0b0b0b;
+    --map-link: #0b0b0b;
+    --map-link-opacity: 0.55;
+    --map-link-width: 1.2;
+    --map-suggested: #d7141c;
+    --map-suggested-dash: 10 4;
+    --map-node-stroke: #0b0b0b;
+    --map-node-stroke-width: 2;
+    --map-highlight: #d7141c;
+    --map-you: #0b0b0b;
+    --map-font: Impact, 'Arial Black', 'Helvetica Neue', sans-serif;
+
+    --phantom-ink: #0b0b0b;
+    --phantom-red: #d7141c;
+    --phantom-dots: rgb(11 11 11 / 0.09);
+}
+
+:root[data-style="phantom"].dark {
+    --background: #0b0b0b;
+    --foreground: #f4f1ec;
+    --card: #151515;
+    --card-foreground: #f4f1ec;
+    --popover: #151515;
+    --popover-foreground: #f4f1ec;
+    --primary: #ff3a3a;
+    --primary-foreground: #0b0b0b;
+    --secondary: #1f1f1f;
+    --secondary-foreground: #f4f1ec;
+    --muted: #1f1f1f;
+    --muted-foreground: #b8b2a8;
+    --accent: #ff3a3a;
+    --accent-foreground: #0b0b0b;
+    --destructive: #ff6b6b;
+    --border: #f4f1ec;
+    --input: #f4f1ec;
+    --ring: #ff3a3a;
+
+    --map-ring: #f4f1ec;
+    --map-ring-label: #f4f1ec;
+    --map-link: #f4f1ec;
+    --map-suggested: #ff3a3a;
+    --map-node-stroke: #0b0b0b;
+    --map-highlight: #ff3a3a;
+    --map-you: #ff3a3a;
+
+    --phantom-ink: #f4f1ec;
+    --phantom-red: #ff3a3a;
+    --phantom-dots: rgb(255 58 58 / 0.16);
+}
+
+/* The title, stamped: white on a skewed red block with a hard black offset. */
+:root[data-style="phantom"] header > span:first-child {
+    display: inline-block;
+    padding: 0.05em 0.45em;
+    background: var(--phantom-red);
+    color: #ffffff;
+    font-family: Impact, 'Arial Black', 'Helvetica Neue', sans-serif;
+    font-weight: 400;
+    font-size: 1.35rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transform: skew(-12deg) rotate(-2deg);
+    box-shadow: 4px 4px 0 var(--phantom-ink);
+}
+:root[data-style="phantom"] header {
+    border-bottom-width: 3px;
+}
+
+/* Buttons lean forward; the main ones get the hard shadow, and press down when clicked. */
+:root[data-style="phantom"] [data-slot="button"] {
+    transform: skew(-8deg);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 3px 3px 0 var(--phantom-ink);
+    transition: transform 80ms ease-out, box-shadow 80ms ease-out, background-color 120ms;
+}
+:root[data-style="phantom"] [data-slot="button"]:active {
+    transform: skew(-8deg) translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--phantom-ink);
+}
+:root[data-style="phantom"] [data-slot="button"]:hover {
+    background-color: var(--phantom-red);
+    color: #ffffff;
+}
+/* Icon-only buttons (Settings, close) stay quiet. */
+:root[data-style="phantom"] [data-slot="button"]:has(> svg:only-child) {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Side panels and dialogs: ink edges and a hard shadow instead of soft blur. */
+:root[data-style="phantom"] aside {
+    border-left-width: 3px;
+}
+:root[data-style="phantom"] [data-slot="dialog-content"] {
+    border-width: 3px;
+    box-shadow: 8px 8px 0 var(--phantom-red);
+}
+
+/* The map: halftone dots, and a red slash across the bottom-right corner. */
+:root[data-style="phantom"] main {
+    background-image:
+        linear-gradient(118deg, transparent 0 82%, var(--phantom-red) 82% 86%, transparent 86% 88%, var(--phantom-ink) 88% 89%, transparent 89%),
+        radial-gradient(circle, var(--phantom-dots) 1.2px, transparent 1.6px);
+    background-size: 100% 100%, 9px 9px;
+}
+
+/* Reduced motion: no press animation. */
+@media (prefers-reduced-motion: reduce) {
+    :root[data-style="phantom"] [data-slot="button"] {
+        transition: none;
+    }
+}

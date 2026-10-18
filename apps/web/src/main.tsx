@@ -17,6 +17,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import './themes.css'; // Oct 18: Spiderweb and Phantom styles, after index.css so they win ties
 import App from './App';
 
 createRoot(document.getElementById('root')!).render(
