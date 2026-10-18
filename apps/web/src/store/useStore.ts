@@ -70,7 +70,8 @@ export type Filter = 'all' | 'due' | 'drifting' | (string & {});
 export type RightPanel = null | 'person' | 'weekly' | 'review' | 'meeting';
 
 export interface UIState {
-  view: 'map' | 'list';
+  /** Groups view (Oct 18): the map with each tag collapsed into one node. */
+  view: 'map' | 'groups' | 'list';
   filter: Filter;
   selectedPersonId: string | null;
   highlightIds: Set<string>;
@@ -94,7 +95,11 @@ export interface UIState {
   /** M11: Google Calendar connected (the token itself lives only in lib/googleCalendar.ts). */
   calendarConnected: boolean;
 
-  setView: (view: 'map' | 'list') => void;
+  setView: (view: 'map' | 'groups' | 'list') => void;
+  /** Groups view: tags the user opened. Kept while switching views. */
+  expandedGroups: Set<string>;
+  toggleGroup: (tag: string) => void;
+  collapseGroups: () => void;
   setFilter: (filter: Filter) => void;
   selectPerson: (id: string | null) => void;
   setHighlights: (ids: Iterable<string>) => void;
@@ -137,6 +142,7 @@ export const useStore = create<UIState>((set, get) => ({
   weekly: { status: 'idle', done: [] },
   editRings: false,
   calendarConnected: false,
+  expandedGroups: new Set<string>(),
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
@@ -154,6 +160,14 @@ export const useStore = create<UIState>((set, get) => ({
   openMeeting: (id, attendeeIds) =>
     set({ selectedMeetingId: id, selectedPersonId: null, rightPanel: 'meeting', highlightIds: new Set(attendeeIds), weeklyOpen: false }),
   setCalendarConnected: (on) => set({ calendarConnected: on }),
+  // A new Set each time (Zustand compares by reference).
+  toggleGroup: (tag) => {
+    const next = new Set(get().expandedGroups);
+    if (next.has(tag)) next.delete(tag);
+    else next.add(tag);
+    set({ expandedGroups: next });
+  },
+  collapseGroups: () => set({ expandedGroups: new Set<string>() }),
   openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
   closeReview: () => set({ reviewPayload: null, rightPanel: get().selectedPersonId ? 'person' : null, highlightIds: new Set<string>() }),
   // M8. The panel shows whenever it's open and no review or person card is in front of it.

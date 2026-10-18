@@ -184,6 +184,7 @@ export default function App() {
           onChange={setView}
           options={[
             { value: 'map', label: 'Map' },
+            { value: 'groups', label: 'Groups' },
             { value: 'list', label: 'List' },
           ]}
         />
@@ -228,7 +229,7 @@ export default function App() {
           ) : view === 'list' ? (
             <ListView people={people} tags={tags} reminders={reminders ?? []} filterContext={filterContext} />
           ) : (
-            <RingMap people={people} links={links} tags={tags} filterContext={filterContext} />
+            <RingMap people={people} links={links} tags={tags} filterContext={filterContext} grouped={view === 'groups'} />
           )}
         </main>
         {/* Steps 7 and 11: the review sheet, or the selected person's card */}

@@ -908,3 +908,25 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m12).
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 
+## Groups view
+
+**Tags collapse into one node; click to open** · Oct 18 · branch `groups-view` (on `m13-deploy`) · team request
+
+**What it does:** a third view, **Map | Groups | List**. Each tag (Work, School, …) becomes one node in its color, sized by how many people it holds, with the count inside and the tag's name as a label. Click it (or Enter) to open it: its people appear exactly where they sit on the normal map. A **Groups panel** (bottom-left, replacing the legend) opens and closes each group and has "Close all". Links between hidden people merge into one line per pair of endpoints; thicker means more connections, and dashed means some are AI suggestions.
+
+**How it was checked:** typecheck, lint, 172 tests (4 new: clusters at their members' centre and sized by count; the selected person's group opens by itself; links merge with a count, links inside a closed group drop out, and visible people keep their own links), build. In the browser on the seed data:
+- 5 groups, named and in their sectors;
+- each group's screen-reader label sums its people's signals ("Work group, 12 people, 2 with a follow-up due, 2 drifting");
+- opening Work showed its 12 people and their links, and the panel marked it open; Close all closed it;
+- choosing John in the List then switching to Groups opened School by itself, with his card and his "both School" link label.
+
+### Review
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Cost. | Groups reuse the normal force layout (no second simulation); clusters, merged links and per-group counts are memoized on their inputs. |
+| I1 | A selected person inside a closed group would be invisible. | Their group opens automatically while they're selected. AI-answer highlights don't open groups; the group gets a dashed highlight ring and "N in the answer" in its label instead. |
+| I2 | Labels. | Group names go through the same no-overlap screen-space layer (fix 1) and keep people's names off their circles. |
+| I3 | All 25 seed links are within one tag, so the demo shows no merged lines until people are linked across tags (e.g. accepting Abbey ↔ John). | By design; the merging is unit-tested. |
+| A1 | Accessibility. | Group nodes are buttons with `aria-expanded`; the Groups panel is the keyboard and list path; color isn't the only signal (names, counts, labels). |
+| O1 | A group opened only because its person is selected shows as open in the panel; "Close all" can't close it while they're selected. | Minor; closing the card closes it. |
+
