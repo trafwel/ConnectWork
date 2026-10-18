@@ -154,12 +154,15 @@ export function findHiddenLinks(): Promise<void> {
 
     const names = new Map(people.map((p) => [p.id, p.name]));
     const confidence = new Map(confident.map((l) => [[l.fromId, l.toId].sort().join('|'), l.confidence]));
+    const sureOf = (l: { fromId: string; toId: string }) => confidence.get([l.fromId, l.toId].sort().join('|')) ?? 0.5;
     useStore.getState().openReview({
       heading: `${written.length} possible ${written.length === 1 ? 'connection' : 'connections'}`,
-      items: written.map((l) => ({
+      // Strongest first: the model lists pairs in summary order, which buried a 90% match under
+      // a dozen 50% ones. sort() is stable, so equal scores keep the model's order.
+      items: [...written].sort((a, b) => sureOf(b) - sureOf(a)).map((l) => ({
         id: l.id,
         title: `${names.get(l.fromId)} ↔ ${names.get(l.toId)}`,
-        detail: `${l.label} · ${Math.round((confidence.get([l.fromId, l.toId].sort().join('|')) ?? 0.5) * 100)}% sure`,
+        detail: `${l.label} · ${Math.round(sureOf(l) * 100)}% sure`,
         personIds: [l.fromId, l.toId],
       })),
       onAccept: (ids) =>

@@ -1082,3 +1082,41 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 **Checked (live build, tab in front):** Map → Groups moves a person about 55 px toward the group centre while fading, done by ~370 ms and removed at ~520 ms. Opening Work flies its 12 people out from the group node (opacity 0.16 → 1 over ~280 ms). Back works. Import shows "30 found · 24 new · 6 already here"; All = 64.
 
 **Checks:** typecheck, lint, 198 tests (the CSV test now expects 30 rows), build.
+
+## Fewer people, more links inside groups (Oct 18)
+
+**Team request: "remove the overwhelming number of nodes and add a couple more internal connections for visualization purposes"** · branch `fewer-nodes` (on `motion`)
+
+**What changed and why**
+- **Seed: 40 → 30 people.**
+  - The outer ring keeps only its first few people per tag (8 instead of 18): the three "intro" contacts, the two Microsoft people (Nina Walsh, Owen Alvarez), Kai Larsen (on the club-meeting invite), one School and one Friends contact. Rings 1 and 2 are unchanged (8 + 14), so every drift, reminder and meeting in the demo story is untouched.
+  - The cut happens **after** the generator has drawn all its random numbers. Every name stays the same, and the calendar and roster PDF are byte-identical.
+- **Import: 30 → 16 rows** (6 already in the seed + 10 new). After import the map shows **40 people** (was 64, and 155 this morning).
+- **7 more links inside groups, all between close people.** With the declutter rule, those are exactly the lines the map draws by default, so each group reads as a cluster:
+  - Family: one more pair, closing the triangle;
+  - Friends: one;
+  - Work: two;
+  - School: two;
+  - Clubs: one, closing a triangle.
+  - Still never Abbey ↔ John.
+- **Bug found on the way:** the generator meant to link John to a study-group partner, but picked the first School person, which was John himself, so the link was silently dropped. It is now added explicitly (John – Owen Kowalski, "CSE 332 study group").
+- **Guards in the generator:** it stops with an error if a reminder or a CSV overlap row points at someone the cut dropped. Otherwise a future change could quietly break "6 already here" or the weekly review.
+
+| | Area | Finding | Status |
+| --- | --- | --- | --- |
+| E1 | Efficiency | Fewer people means a smaller summary in every AI request. | OK |
+| I1 | Integration | Tests pinned to 40 people: `backup.test.ts`, plus `weeklyCandidates.test.ts`, which indexed `people[i % 40]` and would have read past the end. Both now follow the seed size. | Fixed |
+| I2 | Integration | Every recorded demo answer depended on the old summary, so the demo cache was re-recorded and replayed. | See the checks below |
+| S1 | Security & privacy | Still fictional names, `@example.com` addresses and `-demo` LinkedIn URLs only. | OK |
+| O1 | Other | The hidden-links sheet listed suggestions in the model's order, so Abbey ↔ John (90% sure) came 10th of 13, behind a run of 50% guesses. The sheet now sorts strongest first (stable, so ties keep the model's order). No test: the sort is one line inside the async flow, and it was checked live. | Fixed (closes MO-O1) |
+
+**Checked:**
+- **Recording:** recorded the full flow once (6 AI routes), then replayed it from a fresh reset, all `cache=hit`.
+  - Import preview: "16 people found · 10 new · 6 already here".
+  - 40 people after import.
+  - "Who do I know at Microsoft?" names Abbey, Nina and Owen, and adds that John interned there.
+  - Hidden links: 13 suggestions, with **Abbey ↔ John first at 90%**.
+  - The weekly review includes John.
+- **Fresh map:** 30 people and 23 visible lines (close-people lines), so the groups read as clusters.
+
+**Checks:** typecheck, lint, 198 tests, build.

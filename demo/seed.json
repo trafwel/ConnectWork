@@ -389,22 +389,6 @@
       "lastContactDaysAgo": 196
     },
     {
-      "id": "p_26",
-      "name": "Hana Jensen",
-      "ring": 3,
-      "primaryTag": "Work",
-      "tags": [
-        "Work"
-      ],
-      "company": "Tableau",
-      "role": "Solutions Architect",
-      "school": "Seattle University",
-      "email": "hana.jensen@example.com",
-      "linkedinUrl": "https://www.linkedin.com/in/hana-jensen-demo",
-      "metDaysAgo": 558,
-      "lastContactDaysAgo": 308
-    },
-    {
       "id": "p_27",
       "name": "Ruby Quinn",
       "ring": 3,
@@ -416,59 +400,6 @@
       "school": "University of British Columbia",
       "metDaysAgo": 976,
       "lastContactDaysAgo": 319
-    },
-    {
-      "id": "p_28",
-      "name": "Nora Zhou",
-      "ring": 3,
-      "primaryTag": "School",
-      "tags": [
-        "School"
-      ],
-      "role": "Student",
-      "school": "University of Washington",
-      "metDaysAgo": 328,
-      "lastContactDaysAgo": 194
-    },
-    {
-      "id": "p_29",
-      "name": "Felix Okafor",
-      "ring": 3,
-      "primaryTag": "School",
-      "tags": [
-        "School"
-      ],
-      "role": "Student",
-      "school": "University of British Columbia",
-      "metDaysAgo": 360,
-      "lastContactDaysAgo": 170
-    },
-    {
-      "id": "p_30",
-      "name": "Mateo Jensen",
-      "ring": 3,
-      "primaryTag": "School",
-      "tags": [
-        "School"
-      ],
-      "role": "Student",
-      "school": "Seattle University",
-      "email": "mateo.jensen@example.com",
-      "metDaysAgo": 328,
-      "lastContactDaysAgo": 66
-    },
-    {
-      "id": "p_31",
-      "name": "Yuna Esposito",
-      "ring": 3,
-      "primaryTag": "School",
-      "tags": [
-        "School"
-      ],
-      "role": "Student",
-      "school": "Seattle University",
-      "metDaysAgo": 987,
-      "lastContactDaysAgo": 303
     },
     {
       "id": "p_32",
@@ -485,45 +416,6 @@
       "lastContactDaysAgo": 292
     },
     {
-      "id": "p_33",
-      "name": "Sofia Petrov",
-      "ring": 3,
-      "primaryTag": "Clubs",
-      "tags": [
-        "Clubs"
-      ],
-      "school": "University of British Columbia",
-      "metDaysAgo": 911,
-      "lastContactDaysAgo": 371
-    },
-    {
-      "id": "p_34",
-      "name": "Jonah Nguyen",
-      "ring": 3,
-      "primaryTag": "Clubs",
-      "tags": [
-        "Clubs"
-      ],
-      "school": "University of Washington",
-      "email": "jonah.nguyen@example.com",
-      "linkedinUrl": "https://www.linkedin.com/in/jonah-nguyen-demo",
-      "metDaysAgo": 607,
-      "lastContactDaysAgo": 180
-    },
-    {
-      "id": "p_35",
-      "name": "Marcus Zhou",
-      "ring": 3,
-      "primaryTag": "Clubs",
-      "tags": [
-        "Clubs"
-      ],
-      "school": "Seattle University",
-      "email": "marcus.zhou@example.com",
-      "metDaysAgo": 834,
-      "lastContactDaysAgo": 290
-    },
-    {
       "id": "p_36",
       "name": "Samuel Quinn",
       "ring": 3,
@@ -535,29 +427,6 @@
       "linkedinUrl": "https://www.linkedin.com/in/samuel-quinn-demo",
       "metDaysAgo": 978,
       "lastContactDaysAgo": 141
-    },
-    {
-      "id": "p_37",
-      "name": "Sofia Yamada",
-      "ring": 3,
-      "primaryTag": "Friends",
-      "tags": [
-        "Friends"
-      ],
-      "linkedinUrl": "https://www.linkedin.com/in/sofia-yamada-demo",
-      "metDaysAgo": 396,
-      "lastContactDaysAgo": 157
-    },
-    {
-      "id": "p_38",
-      "name": "Ivy Haddad",
-      "ring": 3,
-      "primaryTag": "Friends",
-      "tags": [
-        "Friends"
-      ],
-      "metDaysAgo": 236,
-      "lastContactDaysAgo": 193
     }
   ],
   "links": [
@@ -595,11 +464,6 @@
       "id": "l_07",
       "fromId": "p_20",
       "toId": "p_36"
-    },
-    {
-      "id": "l_08",
-      "fromId": "p_37",
-      "toId": "p_38"
     },
     {
       "id": "l_09",
@@ -644,12 +508,6 @@
       "label": "worked together"
     },
     {
-      "id": "l_16",
-      "fromId": "p_25",
-      "toId": "p_26",
-      "label": "worked together"
-    },
-    {
       "id": "l_17",
       "fromId": "p_13",
       "toId": "p_14"
@@ -665,26 +523,6 @@
       "toId": "p_27"
     },
     {
-      "id": "l_20",
-      "fromId": "p_27",
-      "toId": "p_28"
-    },
-    {
-      "id": "l_21",
-      "fromId": "p_29",
-      "toId": "p_30"
-    },
-    {
-      "id": "l_22",
-      "fromId": "p_30",
-      "toId": "p_31"
-    },
-    {
-      "id": "l_23",
-      "fromId": "p_31",
-      "toId": "p_john"
-    },
-    {
       "id": "l_24",
       "fromId": "p_17",
       "toId": "p_18"
@@ -692,6 +530,44 @@
     {
       "id": "l_25",
       "fromId": "p_18",
+      "toId": "p_32"
+    },
+    {
+      "id": "l_26",
+      "fromId": "p_01",
+      "toId": "p_02"
+    },
+    {
+      "id": "l_27",
+      "fromId": "p_04",
+      "toId": "p_07"
+    },
+    {
+      "id": "l_28",
+      "fromId": "p_09",
+      "toId": "p_10",
+      "label": "worked together"
+    },
+    {
+      "id": "l_29",
+      "fromId": "p_08",
+      "toId": "p_12",
+      "label": "worked together"
+    },
+    {
+      "id": "l_30",
+      "fromId": "p_13",
+      "toId": "p_john",
+      "label": "CSE 332 study group"
+    },
+    {
+      "id": "l_31",
+      "fromId": "p_15",
+      "toId": "p_16"
+    },
+    {
+      "id": "l_32",
+      "fromId": "p_17",
       "toId": "p_32"
     }
   ],

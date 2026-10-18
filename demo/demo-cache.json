@@ -1,5 +1,5 @@
 {
-  "0c3c1a5dd13ff02e896dc3efcf12f0f7fc0d72fdf60df15ffa0fbc7d0ae56d20": {
+  "719840522a98dd68053f8ee8a61e221acbce2645ae839786d9cbd77403187208": {
     "items": [
       {
         "id": "p_g8bsxc1fld",
@@ -90,174 +90,31 @@
           "Work"
         ],
         "reason": "Product Manager at Cascade Robotics"
-      },
-      {
-        "id": "p_uw4ootsdki",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Program Manager at Salesforce"
-      },
-      {
-        "id": "p_1g0d2861s0",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "UX Designer at Google"
-      },
-      {
-        "id": "p_1w96twc1kk",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Solutions Architect at Zillow"
-      },
-      {
-        "id": "p_5a8yc7xa95",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Solutions Architect at Amazon"
-      },
-      {
-        "id": "p_9lcp1vkwcw",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Data Scientist at Zillow"
-      },
-      {
-        "id": "p_qtgyo319j7",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Research Scientist at Zillow"
-      },
-      {
-        "id": "p_maf24u1bxm",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Program Manager at Northfin"
-      },
-      {
-        "id": "p_odw7q8q9sn",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Product Manager at Cascade Robotics"
-      },
-      {
-        "id": "p_4gaso89wh4",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Software Engineer Intern at T-Mobile"
-      },
-      {
-        "id": "p_16iud5a13e",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Data Scientist at Amazon"
-      },
-      {
-        "id": "p_1x6tycr13v",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Software Engineer at Salesforce"
-      },
-      {
-        "id": "p_1q4yr9218x",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Solutions Architect at Salesforce"
-      },
-      {
-        "id": "p_10e04ty1o3",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Engineering Manager at Northfin"
-      },
-      {
-        "id": "p_1lqq8cq1pc",
-        "ring": 3,
-        "primaryTag": "Work",
-        "tags": [
-          "Work"
-        ],
-        "reason": "Product Manager at Microsoft"
       }
     ]
   },
-  "8c46dcd63e14b8111a046d24ad99115e0fd830edea25247d3d8f9125d10d1b03": {
-    "answer": "You know two people at Microsoft: Lena Nguyen and Abbey Chen.",
+  "281f5239afe4a60e355db30426b0cb36c981d6415e5312e5cef05f428ef755aa": {
+    "answer": "You know Abbey Chen, Nina Walsh, and Owen Alvarez at Microsoft. John Park was also previously a Microsoft intern.",
     "personIds": [
-      "p_1lqq8cq1pc",
+      "p_24",
+      "p_25",
       "p_abbey",
-      "p_24"
+      "p_john"
     ],
     "filterHint": "none"
   },
-  "3ea9b3289d049b0d83afaeb5251d298dc330d103c1e408ad5d054c91ecce88bf": {
+  "e1929f904bce8c2b973530ff5e233f0a34e02a33fa44a5ba770cf1de8c2c890e": {
     "links": [
       {
         "fromId": "p_01",
-        "toId": "p_14",
+        "toId": "p_09",
         "label": "both Seattle University",
         "confidence": 0.5
       },
       {
         "fromId": "p_03",
         "toId": "p_12",
-        "label": "both UBC",
-        "confidence": 0.5
-      },
-      {
-        "fromId": "p_03",
-        "toId": "p_13",
-        "label": "both UBC",
-        "confidence": 0.5
-      },
-      {
-        "fromId": "p_09",
-        "toId": "p_10e04ty1o3",
-        "label": "both Northfin",
-        "confidence": 0.5
-      },
-      {
-        "fromId": "p_09",
-        "toId": "p_maf24u1bxm",
-        "label": "both Northfin",
+        "label": "both University of British Columbia",
         "confidence": 0.5
       },
       {
@@ -268,81 +125,111 @@
       },
       {
         "fromId": "p_11",
-        "toId": "p_1w96twc1kk",
+        "toId": "p_g8bsxc1fld",
         "label": "both Zillow",
         "confidence": 0.5
       },
       {
-        "fromId": "p_12",
+        "fromId": "p_13",
         "toId": "p_24",
-        "label": "both UBC",
+        "label": "both University of British Columbia",
+        "confidence": 0.5
+      },
+      {
+        "fromId": "p_14",
+        "toId": "p_01",
+        "label": "both Seattle University",
         "confidence": 0.5
       },
       {
         "fromId": "p_16",
-        "toId": "p_17",
-        "label": "both UW",
+        "toId": "p_abbey",
+        "label": "both University of Washington",
         "confidence": 0.5
       },
       {
-        "fromId": "p_abbey",
-        "toId": "p_22",
-        "label": "both UW",
+        "fromId": "p_18",
+        "toId": "p_01",
+        "label": "both Seattle University",
+        "confidence": 0.5
+      },
+      {
+        "fromId": "p_22",
+        "toId": "p_16",
+        "label": "both University of Washington",
         "confidence": 0.5
       },
       {
         "fromId": "p_john",
         "toId": "p_abbey",
-        "label": "both UW",
+        "label": "both UW, both Microsoft",
+        "confidence": 0.9
+      },
+      {
+        "fromId": "p_08",
+        "toId": "p_1k3xkzm1up",
+        "label": "both Google",
         "confidence": 0.5
+      },
+      {
+        "fromId": "p_12",
+        "toId": "p_f497ta2016",
+        "label": "both Evergreen Health",
+        "confidence": 0.7
+      },
+      {
+        "fromId": "p_09",
+        "toId": "p_35b14r1djt",
+        "label": "both Northfin",
+        "confidence": 0.7
       }
     ]
   },
   "ee6209c9e42baf9c55d05e0d1e02f830ea6ee25c31a0972cc55aa7e0f6ea3d0b": {
-    "summary": "You are meeting with John Park, a UW CS student and former Microsoft intern. Your main priority is to follow up with him after the career fair.",
+    "summary": "You are meeting with John Park, with an open reminder to follow up after the career fair. Keep in mind his past internship at Microsoft and your time as lab partners at the University of Washington.",
     "perPerson": [
       {
         "personId": "p_john",
-        "howYouKnow": "University of Washington CS student, met in 2024, last contact March 2026.",
+        "howYouKnow": "University of Washington, CS student, former Microsoft intern (summer 2025), last contacted 7 months ago.",
         "talkingPoints": [
-          "Follow up after the career fair (due Oct 19).",
-          "Lab partner in CSE 332.",
-          "Interned at Microsoft in summer 2025."
+          "Follow up after the career fair",
+          "Lab partner in CSE 332",
+          "Interned at Microsoft summer 2025"
         ]
       }
     ]
   },
-  "ede588f6852f7ca5d59d24c5f9ffdd8f226d55aad2a256e73efbbbc50a752e9d": {
-    "headline": "4 follow-ups due and 2 close family members to reconnect with.",
+  "a7f7976a1ec4ae425d7facfc2d0a0116e36c660c432a0575de90d14a43787e8c": {
+    "headline": "4 follow-ups due and 2 family members to reconnect with.",
     "actions": [
-      {
-        "kind": "follow_up",
-        "personIds": [
-          "p_11"
-        ],
-        "title": "Send article to Lena",
-        "why": "You had a reminder due on October 15 to send Lena the article you discussed.",
-        "draftMessage": "Hi Lena, I wanted to follow up and send over the article we spoke about. Let me know what you think when you get a chance to read it!",
-        "reminderDate": "2026-10-19"
-      },
       {
         "kind": "follow_up",
         "personIds": [
           "p_03"
         ],
-        "title": "Finalize birthday dinner plans with Maya",
-        "why": "You had a reminder due on October 17 regarding birthday dinner plans with Maya.",
-        "draftMessage": "Hi Maya, hope you are having a great week! I am following up on your birthday dinner plans. Let me know what dates or times work best for you.",
-        "reminderDate": "2026-10-19"
+        "title": "Follow up with Maya Varga",
+        "why": "Birthday dinner planning follow-up was due on October 17.",
+        "draftMessage": "Hey Maya, following up on our birthday dinner plans. Let me know what days work best for you this coming week so we can lock something down.",
+        "reminderDate": "2026-10-18"
+      },
+      {
+        "kind": "follow_up",
+        "personIds": [
+          "p_11"
+        ],
+        "title": "Send article to Lena Hughes",
+        "why": "Follow-up to send the article we talked about was due on October 15.",
+        "draftMessage": "Hi Lena, sharing that article we talked about. Hope you find it interesting, and let me know your thoughts when you have a moment.",
+        "reminderDate": "2026-10-18"
       },
       {
         "kind": "follow_up",
         "personIds": [
           "p_john"
         ],
-        "title": "Follow up with John after career fair",
-        "why": "You have a reminder due on October 19 to follow up with John following the career fair.",
-        "draftMessage": "Hi John, I am following up after the career fair! How are things going with your CS studies at UW?",
+        "title": "Follow up with John Park",
+        "why": "Scheduled follow-up after the career fair is due tomorrow.",
+        "draftMessage": "Hi John, following up after the career fair. Hope it went well for you, and let us connect soon.",
         "reminderDate": "2026-10-19"
       },
       {
@@ -350,9 +237,9 @@
         "personIds": [
           "p_08"
         ],
-        "title": "Ask Samuel about the referral",
-        "why": "You have a reminder due on October 23 to check in with Samuel about the referral.",
-        "draftMessage": "Hi Samuel, hope you are doing well! I wanted to check in regarding the referral when you have a moment. Let me know if you need any additional details from my end.",
+        "title": "Ask Samuel Alvarez about the referral",
+        "why": "Reminder to ask about the referral is scheduled for October 23.",
+        "draftMessage": "Hi Samuel, checking in as planned. Let me know if there are any updates regarding the referral.",
         "reminderDate": "2026-10-23"
       },
       {
@@ -360,20 +247,20 @@
         "personIds": [
           "p_01"
         ],
-        "title": "Reconnect with Aisha",
-        "why": "Aisha is a Ring 1 family member whom you last contacted in May 2026.",
-        "draftMessage": "Hi Aisha, thinking of you! It has been a while since we last touched base in May. Hope everything is going well with you. I would love to catch up soon when you are free.",
-        "reminderDate": "2026-10-21"
+        "title": "Reconnect with Aisha Larsen",
+        "why": "It has been 150 days since your last contact with your family member.",
+        "draftMessage": "Hi Aisha, it has been a while since we last spoke. Hope you are doing well and that life is treating you nicely.",
+        "reminderDate": "2026-10-20"
       },
       {
         "kind": "reconnect",
         "personIds": [
           "p_02"
         ],
-        "title": "Reconnect with Priya",
-        "why": "Priya is a Ring 1 family member whom you last contacted in June 2026.",
-        "draftMessage": "Hi Priya, hope you are having a wonderful week! It has been a few months since we last spoke in June. I would love to check in and catch up whenever you have some time.",
-        "reminderDate": "2026-10-22"
+        "title": "Reconnect with Priya Alvarez",
+        "why": "It has been 120 days since your last contact with your family member.",
+        "draftMessage": "Hi Priya, just wanted to check in and see how you are doing since it has been a few months.",
+        "reminderDate": "2026-10-21"
       }
     ]
   },

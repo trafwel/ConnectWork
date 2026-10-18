@@ -48,7 +48,7 @@ describe('parseCsv (LinkedIn)', () => {
     const parsed = parseCsv(demoCsv);
     expect(parsed.kind).toBe('linkedin');
     if (parsed.kind !== 'linkedin') return;
-    expect(parsed.drafts).toHaveLength(30); // cut from 120 for the demo (Oct 18)
+    expect(parsed.drafts).toHaveLength(16); // cut from 120 for the demo (Oct 18)
     expect(parsed.skippedRows).toBe(0);
     const abbey = parsed.drafts.find((d) => d.name === 'Abbey Chen')!;
     expect(abbey.company).toBe('Microsoft');
