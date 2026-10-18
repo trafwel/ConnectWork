@@ -113,6 +113,7 @@ docs/            Implementation guide
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — living architecture graph: what's built and what's planned
 - [`docs/GEMINI.md`](docs/GEMINI.md) — how Connectwork uses Gemini, and a recipe for adding AI features
+- [`docs/PITCH.md`](docs/PITCH.md) — the 3-minute pitch: timed script, demo cues, backup lines, likely questions
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — put it on our domain (VM, Caddy, HTTPS, security headers); `pnpm preview:prod` to try the production setup locally
 - [`docs/DEMO_DAY.md`](docs/DEMO_DAY.md) — judging morning: record the AI answers, check replay and the offline fallback
 - [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — manual test plan (52 tests, M1–M9); interactive checklist in [`docs/testing/`](docs/testing/connectwork-test-run.html)
