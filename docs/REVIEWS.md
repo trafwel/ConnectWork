@@ -930,3 +930,19 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 | A1 | Accessibility. | Group nodes are buttons with `aria-expanded`; the Groups panel is the keyboard and list path; color isn't the only signal (names, counts, labels). |
 | O1 | A group opened only because its person is selected shows as open in the panel; "Close all" can't close it while they're selected. | Minor; closing the card closes it. |
 
+## M14
+
+**Month view** · Oct 18 · branch `m14-month` (on `groups-view`)
+
+**What it does:** a fourth view, **Map | Groups | List | Month**: a 6-week, Monday-first grid. Each day lists open follow-ups (overdue ones in red, also labelled "overdue") and meetings with their time, up to 3 then "+N more". Previous / Today / Next buttons; today is outlined. Clicking a day highlights its people on the map and says why on the answer card.
+
+**How it was checked:** typecheck, lint, 175 tests (3 new: the grid is 42 days, Monday first, starting on the 1st when the month starts on a Monday; items land on their local day, overdue is marked, done reminders and deleted people are skipped), build. In the browser: October 2026 showed Lena (Oct 14) and Maya (Oct 16) as overdue, John's follow-up plus Coffee with John today (Oct 18), and the two sample meetings on Oct 19. Clicking Oct 19 switched to the map with Abbey, Leo, Ethan and Kai highlighted and "Monday, October 19: 4 people with something planned."
+
+### Review
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | **Bug found along the way (from M10):** the List view's `flex flex-col` edit had landed in a code COMMENT in App.tsx, not on `<main>`, so the table couldn't scroll in its own area. | **Fixed:** the real `<main>` is a column in List and Month (comment restored). Checked: the list scrolls (671 of 1465 px) and the page doesn't. |
+| I2 | Meetings only exist for today and tomorrow (Google or samples), so later days show reminders only. | By design (M11 fetches two days). |
+| A1 | Accessibility. | Every day is a button whose label reads the date and its items; empty days are disabled; today has `aria-current="date"`; overdue is in words, not only red. |
+| E1 | The grid is 42 small objects, computed per render; items-by-day is memoized on the data. | Fine. |
+
