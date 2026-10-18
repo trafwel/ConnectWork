@@ -263,7 +263,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     let dy = pg.pos.y - bAt.y;
     if (Math.hypot(dx, dy) < 1) [dx, dy] = [-(bAt.y - g.cy), bAt.x - g.cx]; // dropped dead center: go sideways
     const n = Math.hypot(dx, dy) || 1;
-    const gap = NODE_RADIUS[a.ring] + NODE_RADIUS[b.ring] + 6;
+    const gap = NODE_RADIUS[a.ring] + NODE_RADIUS[b.ring] + 20; // room for both selection rings and a link label
     const aAt = { x: bAt.x + (dx / n) * gap, y: bAt.y + (dy / n) * gap };
     const snapshot = [a, b].map((p) => ({ id: p.id, patch: { ring: p.ring, pin: p.pin, primaryTag: p.primaryTag, tags: p.tags } }));
     let group = b.primaryTag;
@@ -455,26 +455,31 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
   // Step 8c. Center the selected person once per selection and map size, but only on a layout
   // computed for THIS size (opening the card narrows the map and the layout recomputes).
   // Declutter: opening a group zooms the map to fit its people; closing it zooms back out.
+  // Oct 18 (team request): on the Map view, clicking a group in the filter list (Work, School…)
+  // zooms to it the same way, so its people and their labels are readable without scrolling;
+  // All, Due or Drifting zooms back out.
   const openTag = grouped ? ([...expandedGroups].at(-1) ?? null) : null;
+  const tagFilter = !grouped && filter !== 'all' && filter !== 'due' && filter !== 'drifting' ? filter : null;
+  const zoomTag = grouped ? openTag : tagFilter;
   const zoomedFor = useRef<string | null>(null);
   useEffect(() => {
     const svg = svgRef.current;
     const behavior = zoomRef.current;
     if (!svg || !behavior || layout.width !== width || layout.height !== height || !width) return;
-    if (openTag && zoomedFor.current !== openTag) {
-      const pts = people.filter((p) => p.primaryTag === openTag).flatMap((p) => positions.get(p.id) ?? []);
+    if (zoomTag && zoomedFor.current !== zoomTag) {
+      const pts = people.filter((p) => p.primaryTag === zoomTag).flatMap((p) => positions.get(p.id) ?? []);
       if (!pts.length) return;
       const xs = pts.map((p) => p.x);
       const ys = pts.map((p) => p.y);
       const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
       const k = Math.max(0.8, Math.min(2.5, (width - 140) / (x1 - x0 + 60), (height - 140) / (y1 - y0 + 60)));
       zoomTo(svg, behavior, { x: width / 2 - k * ((x0 + x1) / 2), y: height / 2 - k * ((y0 + y1) / 2), k });
-      zoomedFor.current = openTag;
-    } else if (!openTag && zoomedFor.current) {
+      zoomedFor.current = zoomTag;
+    } else if (!zoomTag && zoomedFor.current) {
       zoomTo(svg, behavior, { x: 0, y: 0, k: 1 });
       zoomedFor.current = null;
     }
-  }, [openTag, people, positions, layout.width, layout.height, width, height]);
+  }, [zoomTag, people, positions, layout.width, layout.height, width, height]);
 
   const centeredFor = useRef<string | null>(null);
   useEffect(() => {

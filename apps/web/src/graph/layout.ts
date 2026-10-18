@@ -70,7 +70,9 @@ import { PRIMARY_TAGS } from '@/lib/colors';
 export const RING_FRACTION: Record<Ring, number> = { 1: 0.18, 2: 0.32, 3: 0.46 };
 export const NODE_RADIUS: Record<Ring, number> = { 1: 22, 2: 14, 3: 6 };
 /** Collision padding per ring, and pull toward the tag's angle (use these in step 4). */
-export const COLLIDE_PAD: Record<Ring, number> = { 1: 20, 2: 7, 3: 1.5 };
+// Oct 18 (team screenshot: two ring-2 people nearly touching, their selection ring and link label
+// running into each other): ring 2 doubled from 7, ring 3 from 1.5.
+export const COLLIDE_PAD: Record<Ring, number> = { 1: 20, 2: 14, 3: 3 };
 export const SECTOR_PULL: Record<Ring, number> = { 1: 0.06, 2: 0.06, 3: 0.012 };
 /** Default angle for ring labels: between the LinkedIn and Work sectors (upper left). */
 export const LABEL_ANGLE = -(2 / 3) * Math.PI;
