@@ -154,3 +154,7 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 1. Where does a closed group's node sit, and why doesn't opening it move anybody?
 2. Why does the selected person's group open by itself, while people highlighted by an AI answer don't open their groups?
 
+## M14
+1. Why does the grid always have 42 days, and why does it start on a Monday?
+2. Clicking a day reuses the highlight + answer card from Ask Connectwork. What do we gain by reusing it instead of building a new "day" panel?
+

@@ -71,7 +71,7 @@ export type RightPanel = null | 'person' | 'weekly' | 'review' | 'meeting';
 
 export interface UIState {
   /** Groups view (Oct 18): the map with each tag collapsed into one node. */
-  view: 'map' | 'groups' | 'list';
+  view: 'map' | 'groups' | 'list' | 'month';
   filter: Filter;
   selectedPersonId: string | null;
   highlightIds: Set<string>;
@@ -95,7 +95,7 @@ export interface UIState {
   /** M11: Google Calendar connected (the token itself lives only in lib/googleCalendar.ts). */
   calendarConnected: boolean;
 
-  setView: (view: 'map' | 'groups' | 'list') => void;
+  setView: (view: 'map' | 'groups' | 'list' | 'month') => void;
   /** Groups view: tags the user opened. Kept while switching views. */
   expandedGroups: Set<string>;
   toggleGroup: (tag: string) => void;

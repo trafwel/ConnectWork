@@ -41,7 +41,7 @@
  *          useLiveQuery re-renders automatically whenever the table changes.
  *       5. filterContext = useMemo(() => ({ dueIds: new Set(dueReminders(reminders ?? []).map(r => r.personId)),
  *                                           driftingIds: new Set() }), [reminders])
- *       6. <main className={`relative min-w-0 flex-1 ${view === 'list' ? 'flex flex-col' : ''}`}> renders <RingMap people links tags filterContext />
+ *       6. <main className="relative min-w-0 flex-1"> renders <RingMap people links tags filterContext />
  *          when loaded, an empty state ("Import your LinkedIn connections or press N") when
  *          there are no people, and "Loading…" before that.
  *       7. Right panel: {selectedId && <PersonCard personId={selectedId} />} next to <main>.
@@ -66,6 +66,7 @@ import { AgentAnswer } from '@/components/AgentAnswer';
 import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
 import { FilterTabs } from '@/components/FilterTabs';
+import { CalendarMonth } from '@/components/CalendarMonth';
 import { ListView } from '@/components/ListView';
 import { MeetingPrepCard } from '@/components/MeetingPrepCard';
 import { MeetingStrip } from '@/components/MeetingStrip';
@@ -186,6 +187,7 @@ export default function App() {
             { value: 'map', label: 'Map' },
             { value: 'groups', label: 'Groups' },
             { value: 'list', label: 'List' },
+            { value: 'month', label: 'Month' },
           ]}
         />
         <div className="mx-auto w-full max-w-xl">
@@ -214,7 +216,8 @@ export default function App() {
         {/* M7 step 4 */}
         {loaded && people.length > 0 && <FilterTabs counts={counts} />}
         {/* Step 6 */}
-        <main className="relative min-w-0 flex-1">
+        {/* List and Month lay out as a column (answer card on top, then a scrolling body). */}
+        <main className={`relative min-w-0 flex-1 ${view === 'list' || view === 'month' ? 'flex flex-col' : ''}`}>
           {/* M10: same element in both views (screen readers keep announcing); the list puts it in the flow. */}
           <AgentAnswer inline={view === 'list'} />
           {seedError ? (
@@ -226,6 +229,8 @@ export default function App() {
               title="No one on your map yet"
               detail="Import your LinkedIn connections, press N to add someone, or use Settings → Reset demo data for the sample network."
             />
+          ) : view === 'month' ? (
+            <CalendarMonth people={people} />
           ) : view === 'list' ? (
             <ListView people={people} tags={tags} reminders={reminders ?? []} filterContext={filterContext} />
           ) : (
