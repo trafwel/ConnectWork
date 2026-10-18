@@ -1,5 +1,5 @@
 /**
- * M7 — Calendar export (.ics) · Owner: Person A · ~20 min
+ * M7 — Calendar export (.ics) · done
  *
  * WHAT THIS ACHIEVES
  *   "Add to calendar" that works for everyone, with no sign-in: a reminder
@@ -9,6 +9,8 @@
  *
  * HOW IT FITS
  *   PersonReminders and RemindersPanel call downloadIcs(…remindersToIcs(…)).
+ *   Callers load this file with `await import('@/lib/ics')` on click, so the `ics` package
+ *   (and its yup dependency, ~40 KB) stays out of the main bundle (M7 review, M2-E5).
  *   Settings gets "Export all reminders" (every undone reminder in one file).
  *
  * STEPS
@@ -27,14 +29,49 @@
  *
  * Guide: §13.4
  */
+import { createEvents, type EventAttributes } from 'ics';
 import type { Person, Reminder } from '@connectwork/shared';
 
-export function remindersToIcs(_items: Array<{ reminder: Reminder; person: Person }>): string {
-  // TODO(M7) step 2
-  throw new Error('TODO(M7): remindersToIcs is not implemented yet');
+/** Safe in a file name: letters, digits and dashes only. */
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'reminders';
+
+// Step 2. One all-day event per reminder. The `ics` library escapes text, so a note can't
+// smuggle extra lines (e.g. a fake "BEGIN:VEVENT") into the file.
+export function remindersToIcs(items: Array<{ reminder: Reminder; person: Person }>): string {
+  const events: EventAttributes[] = items.map(({ reminder, person }) => {
+    const [y, m, d] = reminder.dueDate.split('-').map(Number);
+    // All-day: DTEND is the NEXT day (the end is exclusive). An explicit end, not `duration`:
+    // the library writes `DURATION:P1DT`, which is invalid (RFC 5545 needs a time after "T").
+    const next = new Date(y!, m! - 1, d! + 1); // local date math also handles month/year ends
+    const description = [reminder.note, person.linkedinUrl].filter(Boolean).join('\n');
+    return {
+      title: `Follow up: ${person.name}`,
+      start: [y!, m!, d!],
+      end: [next.getFullYear(), next.getMonth() + 1, next.getDate()],
+      description,
+      uid: `${reminder.id}@connectwork`, // stable: importing again updates instead of duplicating
+      productId: 'connectwork',
+    };
+  });
+  const { error, value } = createEvents(events);
+  if (error || !value) throw new Error('Could not create the calendar file');
+  return value;
 }
 
-export function downloadIcs(_filename: string, _icsText: string): void {
-  // TODO(M7) step 3
-  throw new Error('TODO(M7): downloadIcs is not implemented yet');
+/** Suggested file name, e.g. connectwork-john-park.ics. */
+export const icsFileName = (name: string) => `connectwork-${slug(name)}.ics`;
+
+// Step 3
+export function downloadIcs(filename: string, icsText: string): void {
+  const url = URL.createObjectURL(new Blob([icsText], { type: 'text/calendar;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0); // revoking in the same tick can cancel the download
 }

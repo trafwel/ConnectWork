@@ -26,7 +26,7 @@
  *   4b. (Step S) Appearance: Style (Neutral / Atlas) and Mode (System / Light / Dark), saved
  *       per device by lib/appearance.ts.
  *   5. Later sections: M6 ✓ "About you" textarea saved to db.meta 'userContext' on blur;
- *      M7 "Export all reminders"; M10 drift thresholds; M16 <AgentConnection />.
+ *      M7 ✓ "Export all reminders"; M10 drift thresholds; M16 <AgentConnection />.
  *
  * DONE WHEN
  *   - Each button does what it says, and the delete needs two clicks.
@@ -43,6 +43,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { db } from '@/db/db';
 import type { Appearance } from '@/lib/appearance';
+import { addToCalendar } from '@/lib/addToCalendar';
 import { Segmented } from './Segmented';
 import { deleteEverything, exportAll, importBackup, resetDemoData } from '@/db/seed';
 import { today } from '@/lib/dates';
@@ -160,6 +161,23 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
                 if (file) setPendingImport(file); // step 2 of 2 is the confirm below
               }}
             />
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  // M7: every undone reminder in one calendar file.
+                  const open = await db.reminders.filter((r) => !r.done).toArray();
+                  const people = await db.people.bulkGet(open.map((r) => r.personId));
+                  const items = open.flatMap((reminder, i) => (people[i] ? [{ reminder, person: people[i] }] : []));
+                  if (!items.length) return 'No open reminders to export';
+                  await addToCalendar(items, `connectwork-reminders-${today()}.ics`);
+                  return `Exported ${items.length} ${items.length === 1 ? 'reminder' : 'reminders'}`;
+                })
+              }
+            >
+              Export all reminders
+            </Button>
             <Button
               variant="outline"
               disabled={busy}

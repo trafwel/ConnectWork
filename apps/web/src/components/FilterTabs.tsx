@@ -1,5 +1,5 @@
 /**
- * M7 — FilterTabs: one-click views of the network · Owner: Person A · ~25 min
+ * M7 — FilterTabs: one-click views of the network · done
  *
  * WHAT THIS ACHIEVES
  *   A left rail of views — All, Work, School, Friends, Family, Clubs, Due,
@@ -31,7 +31,60 @@
  * Guide: §13.2
  */
 
-export function FilterTabs(_props: { counts: Record<string, number> }) {
-  // TODO(M7) steps 2–3
-  return null;
+import { useLiveQuery } from 'dexie-react-hooks';
+import { CircleDot, Flag, Hourglass } from 'lucide-react';
+import { db } from '@/db/db';
+import { tagColor } from '@/lib/colors';
+import { cn } from '@/lib/utils';
+import { useStore, type Filter } from '@/store/useStore';
+
+const TAG_TABS = ['Work', 'School', 'Friends', 'Family', 'Clubs'];
+
+export function FilterTabs({ counts }: { counts: Record<string, number> }) {
+  const filter = useStore((s) => s.filter);
+  const setFilter = useStore((s) => s.setFilter);
+  const setHighlights = useStore((s) => s.setHighlights);
+  const tags = useLiveQuery(() => db.tags.toArray(), []);
+
+  // "LinkedIn" only while there are unsorted imports, so it doesn't clutter the rail otherwise.
+  const tagTabs = (counts.LinkedIn ?? 0) > 0 ? [...TAG_TABS, 'LinkedIn'] : TAG_TABS;
+  const tabs: Array<{ value: Filter; label: string; icon: React.ReactNode }> = [
+    { value: 'all', label: 'All', icon: <CircleDot className="size-3.5" aria-hidden="true" /> },
+    ...tagTabs.map((t) => ({
+      value: t as Filter,
+      label: t === 'LinkedIn' ? 'LinkedIn (unsorted)' : t,
+      icon: <span className="inline-block size-2.5 rounded-full" style={{ background: tagColor(tags, t) }} aria-hidden="true" />,
+    })),
+    { value: 'due', label: 'Due', icon: <Flag className="size-3.5" aria-hidden="true" /> },
+    { value: 'drifting', label: 'Drifting', icon: <Hourglass className="size-3.5" aria-hidden="true" /> },
+  ];
+
+  // Step 2
+  return (
+    <nav aria-label="Filters" className="w-44 shrink-0 space-y-0.5 overflow-y-auto border-r bg-background p-2">
+      {tabs.map((t) => {
+        const active = filter === t.value;
+        return (
+          <button
+            key={t.value}
+            type="button"
+            aria-pressed={active}
+            // Step 3. AI highlights win over filters in RingMap, so a filter click clears them.
+            onClick={() => {
+              setFilter(t.value);
+              setHighlights([]);
+            }}
+            className={cn(
+              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+              active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+            )}
+          >
+            {t.icon}
+            <span className="flex-1 truncate">{t.label}</span>
+            <span className="text-xs tabular-nums">{counts[t.value] ?? 0}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
 }

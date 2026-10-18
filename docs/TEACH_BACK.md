@@ -77,3 +77,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 
 1. After a sort, why didn't the re-tagged people move to the Work sector at first, and what makes them move now?
 2. Hovering a review row used to wipe your Ask Connectwork highlights. What does the row remember, and when does it give it back?
+
+## M7
+**Flags, filter tabs, calendar export**
+
+1. Why does the pulse animation live on an *inner* `<g>` instead of the node's own `<g>`?
+2. An all-day calendar event on Oct 18 has its end date set to Oct 19. Why?
+3. The `ics` library's tests passed, yet we found a bug in its output. What was it, and how did we find it?
+4. Why does clicking a filter tab clear the AI's highlights?

@@ -12,7 +12,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Fix now
 | ID | Issue | Plan |
 | --- | --- | --- |
-| — | Nothing open. The post-M6 step fixed all three (see Resolved). | — |
+| — | Nothing open. M7 left no "fix now" items (see the M7 review). | — |
 
 ## Waits for a milestone
 | ID | Issue | Milestone |
@@ -23,7 +23,7 @@ Resolved items move to the table at the bottom, with what changed.
 | M5-I5 | "Lost touch" thresholds live in the prompt and in `lib/drift.ts`. | M10: if Settings makes them editable, send the current values with each query. |
 | S-S1 | The no-flash appearance script in `index.html` is inline; a strict CSP would block it. | M13: allow it by hash in the CSP (or move it to a tiny external file). |
 | M5-S9 | The deployed server has no login: anyone who can reach it can spend our Gemini quota (30/min per IP). | M13/M14: serve web and API from one origin behind Caddy (`TRUST_PROXY=1`), and consider a shared demo passcode or lower per-IP limits. |
-| PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 (flags) and M10 (drift): add any new drawn field or prop to `sameNode`, or that node won't update. |
+| PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 added `flag` ✓. M10 (drift): add any new drawn field or prop to `sameNode`, or that node won't update. |
 | M4-O4 | Imported "connected on" dates become last contact, so most imports look "drifting". | M10: treat imported people with no logged contact gently. |
 
 ## Team decision
@@ -36,7 +36,10 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Issue | Why |
 | --- | --- | --- |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
+| M7-O2 | Reminder-flag pulse should stop for "reduce motion"; built but not checked live. | Team: turn on macOS Reduce Motion once and confirm the flags stop pulsing. |
 | S-O1 | Atlas polish not done: contour circles, crosshair, uppercase ring labels, bundled IBM Plex, darker tag palette. | Theme step T. |
+| M7-O3 | On ring-3 dots the reminder flag is bigger than the dot. | Theme step T. |
+| M7-O4 | "Done" on a reminder has no undo toast. | Untick it in the person card. |
 | M6-O2 | No undo after accepting a sort. | The review sheet is the confirmation; each person can be changed on their card. |
 | P5-O1 | Cancelling a question stops the *browser* waiting, but the server still finishes the Gemini call (quota is spent). | Passing the client's abort through to Gemini (`c.req.raw.signal` → SDK `abortSignal`) is possible; worth it only if quota gets tight. |
 | M5-E2 | Every question sends the whole network (about 10k tokens at 154 people). | Fine on the free tier; the model needs the data. Trim only if cost matters. |
