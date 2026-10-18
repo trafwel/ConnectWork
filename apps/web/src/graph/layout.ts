@@ -121,6 +121,17 @@ export function ringForDistance(g: Geometry, d: number): Ring {
   return 3;
 }
 
+/** Oct 18: a person's saved drop spot, in map units. */
+export function pinPoint(g: Geometry, pin: NonNullable<Person['pin']>): { x: number; y: number } {
+  return { x: g.cx + pin.dist * g.base * Math.cos(pin.angle), y: g.cy + pin.dist * g.base * Math.sin(pin.angle) };
+}
+
+/** The inverse: a drop point → the pin to save. */
+export function pinFor(g: Geometry, x: number, y: number): NonNullable<Person['pin']> {
+  const dist = Math.min(1, Math.hypot(x - g.cx, y - g.cy) / g.base);
+  return { angle: Math.atan2(y - g.cy, x - g.cx), dist };
+}
+
 /** Same primary tag → same direction, so groups read as clusters. Work starts at 12 o'clock. */
 export function sectorAngle(tag: string): number {
   const i = PRIMARY_TAGS.indexOf(tag);
@@ -149,7 +160,8 @@ export function useForceLayout(
   // hands us a new array on ANY change (e.g. editing notes), which must not re-run the layout.
   const layoutKey = useMemo(() => {
     if (!people || !links) return null;
-    const p = people.map((x) => `${x.id}:${x.ring}:${x.primaryTag}:${offsetFor(x)}`).join('|');
+    const pinKey = (x: Person) => (x.pin ? `@${x.pin.angle.toFixed(4)},${x.pin.dist.toFixed(4)}` : '');
+    const p = people.map((x) => `${x.id}:${x.ring}:${x.primaryTag}:${offsetFor(x)}${pinKey(x)}`).join('|');
     const l = links.map((x) => `${x.fromId}-${x.toId}`).join('|');
     return `${p}#${l}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- offsetFor identity changes every render; its values are in the key
@@ -175,6 +187,13 @@ export function useForceLayout(
     const nodes: Node[] = people.map((p) => {
       const offset = offsetRef.current(p);
       const old = previous.get(p.id);
+      // Oct 18: a pinned person is fixed where the user dropped them (d3's fx/fy); everyone else
+      // still flows around them, because fixed nodes keep colliding. Unpinning frees them.
+      if (p.pin) {
+        const at = pinPoint(g, p.pin);
+        return Object.assign(old ?? { id: p.id }, { ring: p.ring, tag: p.primaryTag, offset, x: at.x, y: at.y, fx: at.x, fy: at.y });
+      }
+      if (old && (old.fx != null || old.fy != null)) Object.assign(old, { fx: null, fy: null });
       if (old && old.ring === p.ring && old.tag === p.primaryTag) return Object.assign(old, { offset });
       if (old) moved++;
       const r = ringRadius(g, p.ring) + offset;

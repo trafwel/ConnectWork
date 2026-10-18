@@ -47,6 +47,12 @@ export interface Person {
   source: 'manual' | 'linkedin' | 'snap' | 'seed';
   /** ISO datetime */
   createdAt: string;
+  /**
+   * Oct 18: where the user dropped this person in "Move people", so the layout leaves them
+   * there. Polar and relative (angle in radians from the center, distance as a fraction of the
+   * map's smaller side), so it survives resizing. Absent = placed automatically.
+   */
+  pin?: { angle: number; dist: number };
 }
 
 /** Undirected: stored with fromId < toId. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { geometry, ringForDistance, ringRadius, sectorAngle } from './layout';
+import { geometry, pinFor, pinPoint, ringForDistance, ringRadius, sectorAngle } from './layout';
 
 describe('ring geometry', () => {
   it('scales rings with the smaller side', () => {
@@ -25,5 +25,19 @@ describe('ringForDistance', () => {
     expect(ringForDistance(g, 311)).toBe(2); // 2|3 midpoint is 312
     expect(ringForDistance(g, 312)).toBe(3);
     expect(ringForDistance(g, 5000)).toBe(3); // far outside: widest ring
+  });
+});
+
+describe('pins (Oct 18: people stay where they are dropped)', () => {
+  it('round-trips a drop point, relative to the map size', () => {
+    const g = geometry(800, 600);
+    const pin = pinFor(g, 500, 200);
+    const back = pinPoint(g, pin);
+    expect(back.x).toBeCloseTo(500);
+    expect(back.y).toBeCloseTo(200);
+    // On a bigger map the same pin lands at the same relative spot.
+    const big = pinPoint(geometry(1600, 1200), pin);
+    expect(big.x).toBeCloseTo(800 + (500 - 400) * 2);
+    expect(big.y).toBeCloseTo(600 + (200 - 300) * 2);
   });
 });

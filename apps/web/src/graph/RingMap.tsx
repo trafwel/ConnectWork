@@ -75,18 +75,18 @@ import type { Link, Person, Ring, Tag } from '@connectwork/shared';
 import { Button } from '@/components/ui/button';
 import { Segmented } from '@/components/Segmented';
 import { Input } from '@/components/ui/input';
-import { connectPeople, removeLink, updatePerson } from '@/db/actions';
-import { safeColor, tagColor } from '@/lib/colors';
+import { connectPeople, deleteGroupIfUnused, ensureGroup, removeLink, updatePerson } from '@/db/actions';
+import { nextGroupColor, safeColor, tagColor } from '@/lib/colors';
 import { DRIFT_OFFSET, driftStep } from '@/lib/drift';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
 import { ClusterNode } from './ClusterNode';
 import { aggregateLinks, buildClusters, groupConnections, linkIsShown } from './groups';
-import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
+import { geometry, LABEL_ANGLE, NODE_RADIUS, pinFor, ringForDistance, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
 import { PersonNode } from './PersonNode';
 import { ScreenLabels, useScreenLabels } from './ScreenLabels';
-import { useRingDrag } from './useRingDrag';
+import { useRingDrag, type Drop } from './useRingDrag';
 import { mapTheme as T } from './theme';
 
 const RINGS: Ring[] = [1, 2, 3];
@@ -176,7 +176,45 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     },
     [byId],
   );
-  const { drag, begin: beginDrag, consumeClick } = useRingDrag(svgRef, g, moveToRing);
+  // Oct 18 (team request): a drop keeps the person exactly there (a saved pin; the ring follows
+  // from the distance), and a drop ONTO someone opens the grouping form instead of moving.
+  const [pendingGroup, setPendingGroup] = useState<{ id: string; target: string; pos: { x: number; y: number } } | null>(null);
+  const onDrop = useCallback(
+    (id: string, drop: Drop) => {
+      const p = byId.get(id);
+      if (!p) return;
+      if (drop.over) return setPendingGroup({ id, target: drop.over, pos: drop.pos });
+      const before = { ring: p.ring, pin: p.pin };
+      void updatePerson(id, { ring: drop.ring, pin: pinFor(g, drop.pos.x, drop.pos.y) });
+      toast(drop.ring !== p.ring ? `Moved ${p.name} to ${RING_NAMES[drop.ring]}` : `Placed ${p.name}`, {
+        action: { label: 'Undo', onClick: () => void updatePerson(id, before) },
+      });
+    },
+    [byId, g],
+  );
+  // Who is under the pointer: read from a ref (updated after render), so the drag hook gets one
+  // stable function and a drag isn't reset by every re-render.
+  const hitRef = useRef<{ positions: Map<string, { x: number; y: number }>; visible: Set<string> | null; byId: Map<string, Person> }>({
+    positions: new Map(),
+    visible: null,
+    byId: new Map(),
+  });
+  const hitTest = useCallback((pos: { x: number; y: number }, id: string) => {
+    const { positions: at, visible, byId: people } = hitRef.current;
+    let best: string | null = null;
+    let bestD = Infinity;
+    for (const [pid, q] of at) {
+      const p = people.get(pid);
+      if (pid === id || !p || (visible && !visible.has(pid))) continue;
+      const d = Math.hypot(q.x - pos.x, q.y - pos.y);
+      if (d <= NODE_RADIUS[p.ring] + 6 && d < bestD) {
+        best = pid;
+        bestD = d;
+      }
+    }
+    return best;
+  }, []);
+  const { drag, begin: beginDrag, consumeClick } = useRingDrag(svgRef, g, onDrop, hitTest);
   // Polish (Oct 18): edit mode has two tools. Move (drag or 1/2/3, fix step 2) and Connect: click
   // (or Enter on) one person, then another, optionally name it → connectPeople, with Undo. The team
   // found no way to link people by hand on the map (the card's "Add connection" was too hidden).
@@ -197,6 +235,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     setTool('move');
     setConnectFrom(null);
     setPendingPair(null);
+    setPendingGroup(null);
     setEditing(!editing);
   };
   const finishConnect = async (label: string) => {
@@ -209,6 +248,37 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     if (!res) return;
     if (!res.created) toast(`${a} and ${b} were already connected${label.trim() ? ': name updated' : ''}`);
     else toast.success(`Connected ${a} and ${b}`, { action: { label: 'Undo', onClick: () => void removeLink(res.id) } });
+  };
+  // Oct 18: drop A onto B → A joins B's group, or both go into a new group. A lands right beside
+  // B (on the side it came from) and stays there; in a new group B is pinned too, because a
+  // custom group has no sector of its own and B would otherwise jump. Undo restores both.
+  const finishGroup = async (choice: { join: true } | { name: string }) => {
+    const pg = pendingGroup;
+    setPendingGroup(null);
+    const a = pg && byId.get(pg.id);
+    const b = pg && byId.get(pg.target);
+    const bAt = b && layoutPositions.get(b.id);
+    if (!pg || !a || !b || !bAt) return;
+    let dx = pg.pos.x - bAt.x;
+    let dy = pg.pos.y - bAt.y;
+    if (Math.hypot(dx, dy) < 1) [dx, dy] = [-(bAt.y - g.cy), bAt.x - g.cx]; // dropped dead center: go sideways
+    const n = Math.hypot(dx, dy) || 1;
+    const gap = NODE_RADIUS[a.ring] + NODE_RADIUS[b.ring] + 6;
+    const aAt = { x: bAt.x + (dx / n) * gap, y: bAt.y + (dy / n) * gap };
+    const snapshot = [a, b].map((p) => ({ id: p.id, patch: { ring: p.ring, pin: p.pin, primaryTag: p.primaryTag, tags: p.tags } }));
+    let group = b.primaryTag;
+    let created = false;
+    if ('name' in choice) ({ name: group, created } = await ensureGroup(choice.name, nextGroupColor(tags)));
+    const retag = (p: Person) => ({ primaryTag: group, tags: [group, ...p.tags.filter((t) => t !== p.primaryTag && t !== group)] });
+    await updatePerson(a.id, { ...retag(a), ring: ringForDistance(g, Math.hypot(aAt.x - g.cx, aAt.y - g.cy)), pin: pinFor(g, aAt.x, aAt.y) });
+    if (b.primaryTag !== group) await updatePerson(b.id, { ...retag(b), pin: b.pin ?? pinFor(g, bAt.x, bAt.y) });
+    const undo = async () => {
+      for (const s of snapshot) await updatePerson(s.id, s.patch);
+      if (created) await deleteGroupIfUnused(group);
+    };
+    toast.success(b.primaryTag !== group ? `${a.name} and ${b.name} are now in ${group}` : `${a.name} joined ${group}`, {
+      action: { label: 'Undo', onClick: () => void undo() },
+    });
   };
   // The dragged person (and their lines and name) follow the pointer.
   const dragId = drag?.id;
@@ -311,6 +381,10 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     () => (grouped ? buildClusters(people, positions, expandedGroups, new Set(selectedId ? [selectedId] : []), { x: g.cx, y: g.cy }) : null),
     [grouped, people, positions, expandedGroups, selectedId, g.cx, g.cy],
   );
+  // Oct 18: the drag's hit test only counts people actually drawn (closed groups hide theirs).
+  useLayoutEffect(() => {
+    hitRef.current = { positions: layoutPositions, visible: grouping ? new Set(grouping.visible.map((p) => p.id)) : null, byId };
+  });
   const visiblePeople = grouping?.visible ?? people;
   const shownLinks = useMemo(() => (grouping ? aggregateLinks(links, grouping.groupOf) : { personLinks: links, edges: [] }), [grouping, links]);
   const clusterStats = useMemo(() => {
@@ -533,7 +607,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
                 y={pos.y}
                 color={tagColor(tags, p.primaryTag)}
                 selected={selectedId === p.id || (connecting && connectFrom === p.id)}
-                highlighted={highlightIds.has(p.id)}
+                highlighted={highlightIds.has(p.id) || drag?.over === p.id}
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
                 drift={driftStep(filterContext.drift?.get(p.id) ?? 0)}
@@ -582,15 +656,27 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
           />
           {pendingPair ? (
             <ConnectForm a={byId.get(pendingPair[0])?.name ?? ''} b={byId.get(pendingPair[1])?.name ?? ''} onDone={finishConnect} onCancel={() => setPendingPair(null)} />
+          ) : pendingGroup ? (
+            <GroupForm
+              a={byId.get(pendingGroup.id)?.name ?? ''}
+              b={byId.get(pendingGroup.target)?.name ?? ''}
+              group={byId.get(pendingGroup.target)?.primaryTag ?? ''}
+              sameGroup={byId.get(pendingGroup.id)?.primaryTag === byId.get(pendingGroup.target)?.primaryTag}
+              onJoin={() => void finishGroup({ join: true })}
+              onCreate={(name) => void finishGroup({ name })}
+              onCancel={() => setPendingGroup(null)}
+            />
           ) : (
             <p role="status" className="rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
               {connecting
                 ? connectFrom
                   ? `Now click who ${byId.get(connectFrom)?.name ?? 'they'} knows · click them again to cancel`
                   : 'Click a person, then the person they know (or focus and press Enter) · Esc to finish'
-                : drag?.pos && drag.ring
-                  ? `Drop to move ${byId.get(drag.id)?.name ?? 'them'} to ${RING_NAMES[drag.ring]}`
-                  : 'Drag a person to another ring · or focus them and press 1, 2 or 3 · Esc to finish'}
+                : drag?.pos && drag.over
+                  ? `Drop on ${byId.get(drag.over)?.name ?? 'them'} to group them together`
+                  : drag?.pos && drag.ring
+                    ? `Drop to place ${byId.get(drag.id)?.name ?? 'them'} here, in ${RING_NAMES[drag.ring]}`
+                    : 'Drag a person anywhere · drop them on someone to group them · or focus and press 1, 2 or 3 · Esc to finish'}
             </p>
           )}
         </div>
@@ -610,6 +696,66 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
 }
 
 /** Polish (Oct 18): name the new connection (optional), right where the two people were picked. */
+/** Oct 18: what to do with a person dropped onto another one. */
+function GroupForm({
+  a,
+  b,
+  group,
+  sameGroup,
+  onJoin,
+  onCreate,
+  onCancel,
+}: {
+  a: string;
+  b: string;
+  group: string;
+  sameGroup: boolean;
+  onJoin: () => void;
+  onCreate: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  return (
+    <form
+      className="flex flex-wrap items-center justify-center gap-1.5 rounded-md border bg-background/95 px-2 py-1.5 text-xs shadow-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (name.trim()) onCreate(name);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation(); // cancel the grouping, stay in edit mode
+          onCancel();
+        }
+      }}
+    >
+      <span className="whitespace-nowrap">
+        Group <b>{a}</b> with <b>{b}</b>:
+      </span>
+      {!sameGroup && (
+        <Button type="button" size="xs" onClick={onJoin}>
+          Add to {group}
+        </Button>
+      )}
+      <Input
+        autoFocus
+        value={name}
+        maxLength={40}
+        onChange={(e) => setName(e.target.value)}
+        placeholder={sameGroup ? 'Name a new group for both' : 'or name a new group'}
+        aria-label={`New group for ${a} and ${b}`}
+        className="h-7 w-44 text-xs"
+      />
+      <Button type="submit" size="xs" variant="outline" disabled={!name.trim()}>
+        Create group
+      </Button>
+      <Button type="button" size="xs" variant="ghost" onClick={onCancel}>
+        Cancel
+      </Button>
+    </form>
+  );
+}
+
 function ConnectForm({ a, b, onDone, onCancel }: { a: string; b: string; onDone: (label: string) => void; onCancel: () => void }) {
   const [label, setLabel] = useState('');
   return (

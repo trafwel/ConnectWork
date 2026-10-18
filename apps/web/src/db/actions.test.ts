@@ -9,7 +9,9 @@ import {
   connectPeople,
   addPerson,
   addReminder,
+  deleteGroupIfUnused,
   deletePerson,
+  ensureGroup,
   deleteReminder,
   LINK_LABEL_MAX,
   logContact,
@@ -384,5 +386,27 @@ describe('M6 actions', async () => {
     const again = await addSuggestedLinks([{ fromId: a.id, toId: c.id, label: 'both UW' }]);
     await resolveLinks(again.map((l) => l.id), []); // accept
     expect((await db.links.get(again[0]!.id))?.status).toBe('accepted');
+  });
+});
+
+describe('Move people: pins and groups (Oct 18)', () => {
+  it('keeps a pin given with a ring change, and clears it when the ring changes any other way', async () => {
+    const p = await addPerson({ name: 'Pin Test', ring: 3, primaryTag: 'Work' });
+    await updatePerson(p.id, { ring: 2, pin: { angle: 1, dist: 0.3 } });
+    expect((await db.people.get(p.id))!.pin).toEqual({ angle: 1, dist: 0.3 });
+    await updatePerson(p.id, { notes: 'unrelated edit' });
+    expect((await db.people.get(p.id))!.pin).toEqual({ angle: 1, dist: 0.3 });
+    await updatePerson(p.id, { ring: 1 });
+    expect((await db.people.get(p.id))!.pin).toBeUndefined();
+  });
+  it('creates a group once (any capitalization), and Undo removes it only when unused', async () => {
+    expect(await ensureGroup('Hackathon', '#882255')).toEqual({ name: 'Hackathon', created: true });
+    expect(await ensureGroup('hackathon ', '#44AA99')).toEqual({ name: 'Hackathon', created: false });
+    const p = await addPerson({ name: 'Group Test', ring: 2, primaryTag: 'Hackathon' });
+    await deleteGroupIfUnused('Hackathon');
+    expect(await db.tags.get('Hackathon')).toBeDefined();
+    await deletePerson(p.id);
+    await deleteGroupIfUnused('Hackathon');
+    expect(await db.tags.get('Hackathon')).toBeUndefined();
   });
 });

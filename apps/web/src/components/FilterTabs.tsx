@@ -49,7 +49,9 @@ export function FilterTabs({ counts }: { counts: Record<string, number> }) {
   const tags = useLiveQuery(() => db.tags.toArray(), []);
 
   // "LinkedIn" only while there are unsorted imports, so it doesn't clutter the rail otherwise.
-  const tagTabs = (counts.LinkedIn ?? 0) > 0 ? [...TAG_TABS, 'LinkedIn'] : TAG_TABS;
+  // Oct 18: groups made in "Move people" get a tab while anyone is in them.
+  const madeGroups = Object.keys(counts).filter((k) => (counts[k] ?? 0) > 0 && !['all', 'due', 'drifting', 'LinkedIn', ...TAG_TABS].includes(k));
+  const tagTabs = [...TAG_TABS, ...madeGroups.sort(), ...((counts.LinkedIn ?? 0) > 0 ? ['LinkedIn'] : [])];
   const tabs: Array<{ value: Filter; label: string; icon: React.ReactNode }> = [
     { value: 'all', label: 'All', icon: <CircleDot className="size-3.5" aria-hidden="true" /> },
     ...tagTabs.map((t) => ({

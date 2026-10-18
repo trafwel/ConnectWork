@@ -46,6 +46,7 @@ export const PersonRow = z.object({
   notes: optionalText(5000),
   source: z.enum(['manual', 'linkedin', 'snap', 'seed']),
   createdAt: text(40),
+  pin: z.object({ angle: z.number().min(-7).max(7), dist: z.number().min(0).max(1) }).optional(),
 }) satisfies z.ZodType<Person, unknown>;
 
 export const LinkRow = z.object({
