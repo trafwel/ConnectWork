@@ -49,12 +49,12 @@ cd connectwork
 pnpm install
 cp .env.example .env     # add your GEMINI_API_KEY from Google AI Studio
 pnpm seed                # generate fictional demo data
-git switch m8-weekly      # the newest milestone (see below)
+git switch m9-snap        # the newest milestone (see below)
 pnpm install
 pnpm dev                 # app on http://localhost:5173, API on http://localhost:8787/api/…
 ```
 
-**Which branch?** `main` is still the starting point: it only shows a title and "Server ok". The built milestones are on stacked branches (`m1-data` → … → `m8-weekly`, pull requests #2–#10), so use the newest one until they're merged. Opening `localhost:8787` itself shows "404 Not Found"; that's normal, because the server only answers under `/api/` (e.g. `/api/health`).
+**Which branch?** `main` is still the starting point: it only shows a title and "Server ok". The built milestones are on stacked branches (`m1-data` → … → `m9-snap`, pull requests #2–#11), so use the newest one until they're merged. Opening `localhost:8787` itself shows "404 Not Found"; that's normal, because the server only answers under `/api/` (e.g. `/api/health`).
 
 On the newest branch the app loads a sample network of 40 fictional people on first run. Then try:
 
@@ -112,7 +112,7 @@ docs/            Implementation guide
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — living architecture graph: what's built and what's planned
 - [`docs/GEMINI.md`](docs/GEMINI.md) — how Connectwork uses Gemini, and a recipe for adding AI features
-- [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — manual test plan (38 tests, M1–M7); interactive checklist in [`docs/testing/`](docs/testing/connectwork-test-run.html)
+- [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — manual test plan (52 tests, M1–M9); interactive checklist in [`docs/testing/`](docs/testing/connectwork-test-run.html)
 - [`docs/REVIEWS.md`](docs/REVIEWS.md), [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md), [`docs/TEACH_BACK.md`](docs/TEACH_BACK.md) — milestone self-reviews, open items, and questions
 - [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md) — step-by-step build guide, M0 to submission
 - [`SPEC.md`](SPEC.md) — exact types, schemas, endpoints and milestones
