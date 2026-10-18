@@ -1,3 +1,13 @@
+
 packages:
   - packages/*
   - apps/*
+
+allowBuilds:
+  '@google/genai': false
+  esbuild: false
+  protobufjs: false
+
+minimumReleaseAgeExclude:
+  - electron-to-chromium@1.5.459
+  - lucide-react@1.59.0

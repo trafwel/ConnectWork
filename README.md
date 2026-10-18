@@ -126,4 +126,4 @@ Cook Smarter (title track) · Best Use of VEYZL · Photon 2.0 Messaging Agent ·
 ## Team
 
 - Luke Prasarttongosoth
-- *[teammate name]*
+- Raio Chea
