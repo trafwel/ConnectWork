@@ -5,7 +5,8 @@
  * anything it must know WHICH person is meant, and it must answer in a few lines. These
  * functions decide that from the local data; lib/relayClient.ts does the I/O.
  */
-import type { Candidate, Person } from '@connectwork/shared';
+import type { Candidate, Person, Reminder } from '@connectwork/shared';
+import { daysSince } from './dates';
 
 /** iMessage reads well up to a few lines; the server also signs every reply. */
 export const MAX_REPLY = 320;
@@ -55,6 +56,30 @@ export function digestText(candidates: Candidate[], people: Person[]): string {
     intros && `${intros} possible intro${intros === 1 ? '' : 's'}`,
   ].filter(Boolean);
   return clip(`This week: ${parts.join('; ')}. Open Connectwork to approve.`);
+}
+
+/**
+ * Oct 18: the text Photon sends on its own when something is due (today or overdue). Names and
+ * how late only, never the reminder notes, like the digest. null when nothing is due.
+ */
+export function dueText(reminders: Reminder[], people: Person[], now = new Date()): string | null {
+  const name = new Map(people.map((p) => [p.id, p.name]));
+  const open = reminders
+    .filter((r) => !r.done && name.has(r.personId) && daysSince(r.dueDate, now) >= 0)
+    .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || a.personId.localeCompare(b.personId));
+  if (!open.length) return null;
+  const today = [...new Set(open.filter((r) => daysSince(r.dueDate, now) === 0).map((r) => name.get(r.personId)))];
+  const late = open
+    .filter((r) => daysSince(r.dueDate, now) > 0)
+    .map((r) => {
+      const d = daysSince(r.dueDate, now);
+      return `${name.get(r.personId)} (${d} day${d === 1 ? '' : 's'} late)`;
+    });
+  const parts = [
+    today.length && `Due today: ${today.join(', ')}`,
+    late.length && `Overdue: ${late.slice(0, 5).join(', ')}${late.length > 5 ? ` and ${late.length - 5} more` : ''}`,
+  ].filter(Boolean);
+  return clip(`${parts.join('. ')}. Open Connectwork to follow up.`);
 }
 
 export const HELP_TEXT =

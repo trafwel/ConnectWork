@@ -151,6 +151,10 @@ export default function App() {
   // Step 4. Each re-runs automatically when its table changes.
   const people = useLiveQuery(() => db.people.toArray(), []);
   const links = useLiveQuery(() => db.links.toArray(), []);
+  // Oct 18 (team request): AI-suggested links are drawn only while the Find hidden links review
+  // is open. Left on the map, every dashed guess cluttered it and read like a real connection.
+  const showSuggested = useStore((s) => s.reviewPayload?.kind === 'links');
+  const mapLinks = useMemo(() => (showSuggested || !links ? links : links.filter((l) => l.status !== 'suggested')), [links, showSuggested]);
   const tags = useLiveQuery(() => db.tags.toArray(), []);
   const reminders = useLiveQuery(() => db.reminders.toArray(), []);
 
@@ -238,7 +242,7 @@ export default function App() {
           ) : view === 'list' ? (
             <ListView people={people} tags={tags} reminders={reminders ?? []} filterContext={filterContext} />
           ) : (
-            <RingMap people={people} links={links} tags={tags} filterContext={filterContext} grouped={view === 'groups'} />
+            <RingMap people={people} links={mapLinks ?? []} tags={tags} filterContext={filterContext} grouped={view === 'groups'} />
           )}
         </main>
         {/* Steps 7 and 11: the review sheet, or the selected person's card */}

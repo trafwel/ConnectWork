@@ -332,6 +332,11 @@ export async function setRelayToken(token: string | null): Promise<void> {
 }
 
 /** Longest relationship name we keep: short enough to fit on a line on the map. */
+/** Oct 18: the day Photon last texted the owner what's due (device-local, not in backups). */
+export async function markDueTexted(day: string): Promise<void> {
+  await db.meta.put({ key: 'dueTextedOn', value: day });
+}
+
 export const LINK_LABEL_MAX = 60;
 
 /**

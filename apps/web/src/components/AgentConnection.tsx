@@ -25,12 +25,13 @@
  */
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { setRelayToken } from '@/db/actions';
 import { db } from '@/db/db';
-import { startRelay, stopRelay } from '@/lib/relayClient';
+import { startRelay, stopRelay, textDue } from '@/lib/relayClient';
 import { useStore } from '@/store/useStore';
 
 const STATUS: Record<string, string> = {
@@ -52,6 +53,21 @@ export function AgentConnection() {
     await setRelayToken(token);
     setDraft('');
     startRelay(token);
+  };
+  // Oct 18: Photon also texts you on its own once a day when something is due; this sends it now.
+  const [sending, setSending] = useState(false);
+  const sendDue = async () => {
+    setSending(true);
+    try {
+      const result = await textDue(true);
+      if (result === 'sent') toast.success('Texted you what’s due');
+      else if (result === 'nothing_due') toast('Nothing is due today or overdue');
+      else toast.error('Save the relay token first');
+    } catch {
+      toast.error('The texting agent isn’t running on the server');
+    } finally {
+      setSending(false);
+    }
   };
   const disconnect = async () => {
     stopRelay();
@@ -90,10 +106,15 @@ export function AgentConnection() {
       <p role="status" className={`text-xs ${status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
         {STATUS[status]}
       </p>
+      {saved && (
+        <Button size="sm" variant="outline" disabled={sending || status !== 'connected'} onClick={() => void sendDue()}>
+          {sending ? 'Sending…' : 'Text me what’s due'}
+        </Button>
+      )}
       {/* Step 4. */}
       <p className="text-xs text-muted-foreground">
         Text your Connectwork line: &ldquo;who do I know at…&rdquo;, &ldquo;met…&rdquo;, &ldquo;remind me…&rdquo;, &ldquo;had coffee with…&rdquo;. Only allow-listed numbers get replies,
-        and the answers come from this browser&apos;s data.
+        and the answers come from this browser&apos;s data. When something is due, it texts you once a day while this tab is open.
       </p>
     </section>
   );

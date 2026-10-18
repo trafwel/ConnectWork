@@ -30,7 +30,7 @@ describe('offline fallback in the API client', () => {
   it('answers from the recording when the network is down', async () => {
     await record();
     vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
-    expect(await askQuery('Who do I know at Microsoft?', summary)).toEqual({ ok: true, data: answer });
+    expect(await askQuery('Who do I know at Microsoft?', summary)).toEqual({ ok: true, data: { ...answer, edits: [] } }); // Oct 18: recordings made before search-bar edits still parse
   });
 
   it('answers from the recording when Gemini is unavailable, or the proxy returns an error page', async () => {

@@ -238,7 +238,7 @@ export function SplashScreen({ ready }: { ready: boolean }) {
               stroke="none"
               style={{ font: `600 ${WORD_SIZE}px var(--font-sans)`, letterSpacing: '-0.025em' }}
             >
-              Connectwork
+              ConnectWork
             </text>
             {OUTER.map((o, i) => (
               <line key={i} data-spoke x1={HUB.x + Math.cos(o.a) * CENTER_R} y1={HUB.y + Math.sin(o.a) * CENTER_R} x2={HUB.x} y2={HUB.y} style={{ opacity: 0 }} />

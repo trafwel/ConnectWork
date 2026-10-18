@@ -37,7 +37,7 @@
  * Guide: §9.5
  */
 import { Hono } from 'hono';
-import { QueryRequest, QueryResponse } from '@connectwork/shared';
+import { cleanEdits, QueryRequest, QueryResponse } from '@connectwork/shared';
 import type { AppDeps } from '../app';
 import { QUERY_SYSTEM } from '../prompts';
 import { registerClassify } from './classify';
@@ -71,7 +71,8 @@ export function aiRoutes(deps: AppDeps) {
     // Step 7. Guardrail in code: the model can never point at someone who isn't in the data.
     post: (res, b) => {
       const known = summaryIds(b.summary);
-      return { ...res, personIds: [...new Set(res.personIds)].filter((id) => known.has(id)) };
+      // Oct 18: proposed edits get the same rule (cleanEdits also drops malformed ones).
+      return { ...res, personIds: [...new Set(res.personIds)].filter((id) => known.has(id)), edits: cleanEdits(res.edits, known) };
     },
   });
 
