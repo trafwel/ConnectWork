@@ -61,6 +61,19 @@ Right now the app is at **M0**: it shows "Server ok". Every later file is a scaf
 
 Without a Gemini key, everything works except the AI features, which say how to set them up.
 
+## Troubleshooting
+
+`pnpm dev` checks two things first and tells you what to do (`scripts/check-dev.mjs`):
+
+| You see | Cause | Fix |
+| --- | --- | --- |
+| `✖ Port 8787 is already in use by PID …` | An earlier `pnpm dev` is still running (another terminal or tab). | Press Ctrl+C there, or `kill <pid>`, then run `pnpm dev` again. |
+| `✖ Connectwork needs Node 22.13 or newer 22.x, Node 24, or Node 26+` | Your Node is too old (or an odd-numbered 23/25). | `nvm install && nvm use` (the repo's `.nvmrc` says 26), or `brew upgrade node`; then `pnpm install`. |
+| `ERR_PNPM_UNSUPPORTED_ENGINE` during `pnpm install` | Same as above: `.npmrc` sets `engine-strict`. | Upgrade Node as above. |
+| `ℹ Port 5173 is taken…` | Something else uses the web port. | Nothing to do: the app opens on the next port; Vite prints the address. |
+
+If `pnpm dev` still fails, the real error is printed **above** pnpm's last line (`ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL`). After pulling or switching branches, run `pnpm install` first.
+
 ## Configuration
 
 | Variable | Default | Purpose |

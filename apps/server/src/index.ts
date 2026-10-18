@@ -21,6 +21,23 @@ import { env } from './env';
 
 const deps = defaultDeps();
 
-serve({ fetch: createApp(deps).fetch, port: env.port }, (info) => {
+const server = serve({ fetch: createApp(deps).fetch, port: env.port }, (info) => {
   console.log(`Connectwork server on http://localhost:${info.port}`);
+});
+
+// A taken port used to end in a stack trace and pnpm's one-line "recursive run failed".
+// Say what happened and how to fix it instead (scripts/check-dev.mjs checks this up front too).
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      [
+        `\n✖ Port ${env.port} is already in use.`,
+        '  That is usually an earlier `pnpm dev` that is still running (another terminal or tab).',
+        `  Stop it with Ctrl+C there, or find it with: lsof -nP -iTCP:${env.port} -sTCP:LISTEN   and stop it with: kill <pid>`,
+        '  Then run `pnpm dev` again.\n',
+      ].join('\n'),
+    );
+    process.exit(1);
+  }
+  throw err;
 });

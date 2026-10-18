@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --parallel --filter @connectwork/server --filter @connectwork/web dev",
+    "dev": "node scripts/check-dev.mjs && pnpm --parallel --filter @connectwork/server --filter @connectwork/web dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run --passWithNoTests",
@@ -27,5 +27,8 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
   }
 }
