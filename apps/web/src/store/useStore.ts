@@ -87,6 +87,8 @@ export interface UIState {
   reviewPayload: ReviewPayload | null;
   weeklyOpen: boolean;
   weekly: WeeklyState;
+  /** Fix step 2: "Move people" edit mode on the map (drag or 1/2/3 to change ring). */
+  editRings: boolean;
 
   setView: (view: 'map' | 'list') => void;
   setFilter: (filter: Filter) => void;
@@ -99,6 +101,7 @@ export interface UIState {
   closeReview: () => void;
   setWeeklyOpen: (open: boolean) => void;
   setWeekly: (patch: Partial<WeeklyState>) => void;
+  setEditRings: (on: boolean) => void;
 }
 
 // What clearFocus() resets. Kept in one place so the initial state and "clear" can't drift apart.
@@ -125,6 +128,7 @@ export const useStore = create<UIState>((set, get) => ({
   reviewPayload: null,
   weeklyOpen: false,
   weekly: { status: 'idle', done: [] },
+  editRings: false,
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
@@ -135,6 +139,7 @@ export const useStore = create<UIState>((set, get) => ({
   clearFocus: () => set({ ...noFocus, highlightIds: new Set<string>(), rightPanel: get().reviewPayload ? 'review' : null }),
   setAgent: (patch) => set(patch),
   setDialog: (dialog, open) => set({ [DIALOG_FLAG[dialog]]: open }),
+  setEditRings: (on) => set({ editRings: on }),
   openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
   closeReview: () => set({ reviewPayload: null, rightPanel: get().selectedPersonId ? 'person' : null, highlightIds: new Set<string>() }),
   // M8. The panel shows whenever it's open and no review or person card is in front of it.

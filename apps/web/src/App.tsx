@@ -91,6 +91,13 @@ import { useStore } from '@/store/useStore';
 const SnapDialog = lazy(() => import('@/components/SnapDialog').then((m) => ({ default: m.SnapDialog })));
 const ImportDialog = lazy(() => import('@/components/ImportDialog').then((m) => ({ default: m.ImportDialog })));
 
+/** Fix step 2: Escape leaves "Move people" first; the next Escape clears the selection. Module-level, so it's stable. */
+function onEscape() {
+  const s = useStore.getState();
+  if (s.editRings) s.setEditRings(false);
+  else s.clearFocus();
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [seedError, setSeedError] = useState(false);
@@ -102,7 +109,6 @@ export default function App() {
   // Step S: style + mode, applied to <html>; Settings changes it, toasts follow it.
   const [appearance, setAppearance] = useAppearance();
   const setDialog = useStore((s) => s.setDialog);
-  const clearFocus = useStore((s) => s.clearFocus);
   const importOpen = useStore((s) => s.importOpen);
   // Once loaded, the dialog stays mounted so its close animation can play.
   const [importLoaded, setImportLoaded] = useState(false);
@@ -114,7 +120,7 @@ export default function App() {
   // Step 8. Stable handlers, so useHotkey doesn't re-add its listener every render.
   const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
   useHotkey('n', openQuickAdd);
-  useHotkey('Escape', clearFocus); // ignored while typing or with a dialog open
+  useHotkey('Escape', onEscape); // ignored while typing or with a dialog open
 
   useEffect(() => {
     ensureSeeded()

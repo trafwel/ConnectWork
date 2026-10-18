@@ -39,9 +39,11 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Issue | Why |
 | --- | --- | --- |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
-| M7-O2 | Reminder-flag pulse should stop for "reduce motion"; built but not checked live. | Team: turn on macOS Reduce Motion once and confirm the flags stop pulsing. |
+| M7-O2 | Reminder-flag pulse should stop for "reduce motion"; built but not checked live. | Team: turn on macOS Reduce Motion once and confirm the flags stop pulsing **and** the Ripple style shows one still ring (fix step 2, F2-O1). |
 | S-O1 | Atlas polish not done: contour circles, crosshair, uppercase ring labels, bundled IBM Plex, darker tag palette. | Theme step T. |
-| M7-O3 | On ring-3 dots the reminder flag is bigger than the dot. | Theme step T. |
+| M7-O3 | On ring-3 dots the reminder flag is bigger than the dot. | Theme step T. The Ripple style (fix step 2) avoids it. |
+| F2-O2 | Dragging people on a touch screen is untested. | Desktop-first demo; pointer events cover touch. |
+| F2-O3 | Escape during a drag (cancel) not checked live. | Check once by hand: drag, press Escape before letting go; the person should stay put. |
 | M7-O4 | "Done" on a reminder has no undo toast. | Untick it in the person card. |
 | M6-O2 | No undo after accepting a sort. | The review sheet is the confirmation; each person can be changed on their card. |
 | P5-O1 | Cancelling a question stops the *browser* waiting, but the server still finishes the Gemini call (quota is spent). | Passing the client's abort through to Gemini (`c.req.raw.signal` → SDK `abortSignal`) is possible; worth it only if quota gets tight. |

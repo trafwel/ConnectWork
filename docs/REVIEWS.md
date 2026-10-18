@@ -627,3 +627,63 @@ I removed my test link and cleared the test name afterwards, so the browser's da
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#fix-step-1-map-labels).
+
+## Fix step 2: map features
+
+**Ripple reminders, "Move people" edit mode** · Oct 17 · branch `fix-map-features` (on `fix-map-labels`)
+
+The team's bug list, part 2: an option to show reminders as a ripple-style pulse around the node instead of flags, and an editing mode in which you drag a person to a different ring.
+
+**What changed, and why this way**
+- **Settings → Appearance → Reminders: Flag / Ripple.** It is saved with Style and Mode (`cw-appearance`, per device) and applied as `<html data-reminders="…">`. The node always draws both a flag and a ripple; CSS shows one. So switching costs **no React re-render**, works before React loads (the boot script in `index.html` sets it too), and needs no new prop on every node. The task plan suggested a prop; the attribute is the same pattern Style already uses, and cheaper.
+- **Ripple:** two rings grow out of the node and fade, half a cycle apart. Overdue is red **and thicker**, so color isn't the only difference. With reduced motion, one still ring stays.
+- **Move people** (bottom right): in edit mode you drag a person across the ring lines. The ring they'd land in lights up, and the top hint says "Drop to move Tara Yamada to Wider (ring 3)". Dropping writes through `updatePerson` with an Undo toast, and the layout re-places them in the new ring.
+  - **Keyboard equivalent:** focus a person and press 1, 2 or 3.
+  - **List-view path:** the card's ring picker, as before.
+  - **Escape** cancels a drag, then leaves edit mode, then clears the selection.
+- **`ringForDistance`** (`graph/layout.ts`): each ring owns the band halfway to its neighbours, so a drop near a dashed line always counts and one between rings goes to the nearer ring. It is a pure function, with tests.
+
+**How it was checked:** typecheck, lint, 134 tests (new: ring bands; appearance parsing incl. old saves without the new field), production build, no console errors. In the browser on seed data:
+- dragging Tara Yamada from ring 1 to the outer ring → "Moved Tara Yamada to Wider (ring 3)" with Undo; the map did **not** pan and no card opened;
+- the keys 1 and 3 moved her, and Undo put her back;
+- the first Escape left edit mode with the card still open; the second closed the card;
+- Ripple showed 4 ripples and 0 flags (2 due in gray, 2 overdue in thicker red), and was saved; switching back to Flag restored the flags.
+
+I put Tara back in ring 1 and Reminders back on Flag afterwards, so the data matches the seed.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Switching Flag ↔ Ripple. | CSS only (an attribute on `<html>`): nothing re-renders. Ripple circles exist only on flagged people (4 of 40 in the seed). |
+| E2 | A drag sets state on every pointer move. | Only the dragged node re-renders: the moved-positions map reuses every other point object, so memoized nodes and lines skip. Labels re-place in about 0.5 ms (fix step 1 measurement). |
+| E3 | Toggling edit mode re-renders every node once (new `editing` prop). | Fine: one render per toggle. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | **Found in testing:** dragging a person also panned the whole map, so the drop landed one ring short. Cause: on the press, the dragged node was moved to the end of the draw list (to draw on top). React moved its DOM element, so Chrome sent the follow-up `mousedown` to the parent `<g>`, which d3-zoom's filter didn't see as a person. | **Fixed:** the node is re-ordered only once it has moved. Re-tested with real input: no pan, the correct ring. |
+| I2 | d3-zoom listens on the `<svg>` itself, so React's `stopPropagation` on a node comes too late to stop a pan. | `zoom.filter` skips presses on people in edit mode; it reads edit mode from a ref, because d3 calls it outside React. Wheel zoom still works while editing. |
+| I3 | The browser fires a click after a drag that ends on the node, which would open the card. | `consumeClick()` swallows exactly that click; a timer clears the flag in case no click comes. Tested: no card opened after a drop. |
+| I4 | Escape now has three jobs. | Order: cancel a drag (a capture-phase listener that stops the event) → leave edit mode → clear the selection. The last two were tested live. |
+| I5 | Appearance saves from before this step have no `reminders` field. | They parse as Flag and keep their style and mode (tested). The boot script mirrors the parser. |
+| I6 | A ring change goes through `updatePerson`, like the card's ring picker. | The layout's existing "changed ring → place fresh" rule moved Tara into her new ring's Friends sector. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | Nothing new leaves the browser. Reminders style is a display preference in `localStorage` (not user data, not in backups). | — |
+| S2 | Moving people is a user action, not AI output: no review step needed. | — |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Reduced motion (static ripple ring) not checked live: the browser pane can't emulate it. | Joins M7-O2's manual check: turn on macOS Reduce Motion once. |
+| O2 | Dragging on a touch screen is untested. Pointer events cover touch and pen, and `touch-action: none` is set on people only in edit mode. | Desktop-first demo. |
+| O3 | Escape *during* a drag (cancel) is untested live: the test tool can't press a key mid-drag. | Code path: a window capture listener. |
+| O4 | The Undo toast lasts 4 s, like every toast here. | The ring picker on the card (or the keys 1/2/3) is the way back. |
+| O5 | Dropping on "You" means ring 1. | By design: the closest ring. |
+| O6 | Ripple also sidesteps **M7-O3** (on ring-3 dots the flag is bigger than the dot); the Flag style still has it. | M7-O3 stays open for theme step T. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#fix-step-2-map-features).
+

@@ -107,6 +107,20 @@ export function ringRadius(g: Geometry, ring: Ring): number {
   return RING_FRACTION[ring] * g.base;
 }
 
+/**
+ * Fix step 2 (drag a person to another ring): which ring a drop point belongs to. Each ring
+ * owns the band halfway to its neighbours, so a drop near the dashed line always counts and
+ * a drop between two rings goes to the nearer one. `d` = distance from the center, map units.
+ */
+export function ringForDistance(g: Geometry, d: number): Ring {
+  const r1 = ringRadius(g, 1);
+  const r2 = ringRadius(g, 2);
+  const r3 = ringRadius(g, 3);
+  if (d < (r1 + r2) / 2) return 1;
+  if (d < (r2 + r3) / 2) return 2;
+  return 3;
+}
+
 /** Same primary tag → same direction, so groups read as clusters. Work starts at 12 o'clock. */
 export function sectorAngle(tag: string): number {
   const i = PRIMARY_TAGS.indexOf(tag);

@@ -255,3 +255,26 @@
 @media (prefers-reduced-motion: reduce) {
   .cw-pulse { animation: none; }
 }
+
+/* Fix step 2: Reminders = Ripple (Settings → Appearance). Instead of a pennant + pulse, two
+   rings grow out of the node and fade, half a cycle apart, like a stone dropped in water.
+   Both versions are always drawn; <html data-reminders> picks one, so switching costs no
+   re-render. Reduced motion: one still ring stays visible, so the reminder is still shown. */
+.cw-ripple { display: none; }
+:root[data-reminders='ripple'] .cw-ripple { display: inline; }
+:root[data-reminders='ripple'] .cw-flag { display: none; }
+:root[data-reminders='ripple'] .cw-pulse { animation: none; }
+@keyframes cw-ripple {
+  0% { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+.cw-ripple circle {
+  animation: cw-ripple 2s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.cw-ripple circle + circle { animation-delay: 1s; }
+@media (prefers-reduced-motion: reduce) {
+  .cw-ripple circle { animation: none; transform: scale(1.35); opacity: 0.8; }
+  .cw-ripple circle + circle { display: none; }
+}

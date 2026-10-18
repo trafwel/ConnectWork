@@ -11,6 +11,9 @@
  *   loads, so a reload never flashes the wrong theme. Saved per device in localStorage:
  *   it's a display preference, not the user's data (so it isn't in backups).
  *
+ * FIX STEP 2 (Oct 17): a third choice, REMINDERS (Flag or Ripple). Like the style, it's a
+ *   <html data-reminders="…"> attribute and CSS does the rest, so switching re-renders nothing.
+ *
  * KEEP IN SYNC
  *   The inline script in index.html repeats parseAppearance + applyAppearance in plain JS
  *   (it must run before any module loads). Same key, same defaults.
@@ -19,13 +22,16 @@ import { useEffect, useState } from 'react';
 
 export type Style = 'neutral' | 'atlas';
 export type Mode = 'system' | 'light' | 'dark';
+/** How a due/overdue follow-up shows on the map: a pennant + pulse, or rings rippling out. */
+export type ReminderStyle = 'flag' | 'ripple';
 export interface Appearance {
   style: Style;
   mode: Mode;
+  reminders: ReminderStyle;
 }
 
 export const APPEARANCE_KEY = 'cw-appearance';
-export const DEFAULT_APPEARANCE: Appearance = { style: 'neutral', mode: 'system' };
+export const DEFAULT_APPEARANCE: Appearance = { style: 'neutral', mode: 'system', reminders: 'flag' };
 
 /** Anything unexpected (missing, corrupted, an old format) falls back to the defaults. */
 export function parseAppearance(raw: string | null): Appearance {
@@ -34,6 +40,7 @@ export function parseAppearance(raw: string | null): Appearance {
     return {
       style: v.style === 'atlas' ? 'atlas' : 'neutral',
       mode: v.mode === 'light' || v.mode === 'dark' ? v.mode : 'system',
+      reminders: v.reminders === 'ripple' ? 'ripple' : 'flag', // older saves have no field: Flag
     };
   } catch {
     return DEFAULT_APPEARANCE;
@@ -46,6 +53,7 @@ const systemDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').mat
 
 export function applyAppearance(a: Appearance, root: HTMLElement = document.documentElement): void {
   root.dataset.style = a.style;
+  root.dataset.reminders = a.reminders;
   root.classList.toggle('dark', resolveDark(a.mode, systemDark()));
   root.style.colorScheme = resolveDark(a.mode, systemDark()) ? 'dark' : 'light'; // native scrollbars, form controls
 }
