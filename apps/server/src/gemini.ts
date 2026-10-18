@@ -1,5 +1,5 @@
 /**
- * M5 — Calling Gemini safely · Owner: Person B · ~1.5 h
+ * M5 — Calling Gemini safely · done
  *
  * WHAT THIS ACHIEVES
  *   Every AI call gets structured JSON back, validated, with one retry on a bad
@@ -36,6 +36,7 @@
  *      Fallback models default to gemini-3.6-flash then gemini-3.5-flash-lite (env.geminiFallbackModels).
  *      Why 20 s / 40 s: an overloaded main model should fail over fast; planning calls
  *      (/links) need ~25 s on 3.6-flash.
+ *   M5 review: the whole chain has a 60 s budget, so the worst case isn't 20 + 40 + 40 s.
  *   6. callStructured(generate, { system, parts, schema, thinking }):
  *      a. text = await generate({ system, parts, jsonSchema: toGeminiSchema(schema), thinking });
  *      b. JSON.parse + schema.safeParse; success → return data.
@@ -48,7 +49,8 @@
  *
  * Guide: docs/IMPLEMENTATION_GUIDE.md §9.3, §10
  */
-import type { z } from 'zod';
+import { ApiError, GoogleGenAI, ThinkingLevel } from '@google/genai';
+import { z } from 'zod';
 
 export type Part = { text: string } | { inlineData: { mimeType: string; data: string } };
 
@@ -69,31 +71,120 @@ export class AiError extends Error {
   }
 }
 
+const THINKING_LEVELS: Record<Thinking, ThinkingLevel> = {
+  minimal: ThinkingLevel.MINIMAL,
+  low: ThinkingLevel.LOW,
+  medium: ThinkingLevel.MEDIUM,
+  high: ThinkingLevel.HIGH,
+};
+
+/** An overloaded main model should fail over fast; planning calls (/links) need ~25 s on 3.6-flash. */
+const PRIMARY_TIMEOUT_MS = 20_000;
+const FALLBACK_TIMEOUT_MS = 40_000;
+/** Total time a user can be kept waiting before we stop trying more models. */
+const CHAIN_BUDGET_MS = 60_000;
+
 type Attempt = () => Promise<string>;
 
-export function isRetryable(_err: unknown): boolean {
-  // TODO(M5) step 3
-  return false;
+// Step 3. Overload (5xx), rate limits (429) and timeouts are worth trying elsewhere; a bad request isn't.
+export function isRetryable(err: unknown): boolean {
+  if (err instanceof ApiError) return err.status === 429 || err.status >= 500;
+  const msg = String((err as Error)?.message ?? err).toLowerCase();
+  return ['timeout', 'timed out', 'aborted', 'fetch failed'].some((m) => msg.includes(m));
 }
 
-export async function withFallback(_primary: Attempt, _fallbacks?: Attempt | Attempt[], _log: (msg: string) => void = console.warn): Promise<string> {
-  // TODO(M5) step 4
-  throw new AiError('ai_unavailable', 'TODO(M5): withFallback is not implemented yet');
+function describe(err: unknown): string {
+  return err instanceof ApiError ? `HTTP ${err.status}` : String((err as Error)?.message ?? err).slice(0, 120);
 }
 
-export function geminiGenerate(_apiKey: string, _model: string, _fallbackModels: string[] = []): Generate {
-  // TODO(M5) steps 1, 5
-  return async () => {
-    throw new AiError('ai_unavailable', 'TODO(M5): geminiGenerate is not implemented yet');
+function toAiError(err: unknown): AiError {
+  if (err instanceof AiError) return err;
+  if (err instanceof ApiError && err.status === 429) return new AiError('rate_limited', 'Gemini rate limit reached');
+  return new AiError('ai_unavailable', `Gemini request failed: ${describe(err)}`);
+}
+
+// Step 4. Primary, then each fallback in order, only after a retryable error and while budget remains.
+export async function withFallback(
+  primary: Attempt,
+  fallbacks: Attempt | Attempt[] = [],
+  log: (msg: string) => void = console.warn,
+  budgetMs = CHAIN_BUDGET_MS,
+): Promise<string> {
+  const chain = [primary, ...(Array.isArray(fallbacks) ? fallbacks : [fallbacks])];
+  const started = Date.now();
+  let lastErr: unknown;
+  for (const [i, attempt] of chain.entries()) {
+    if (i > 0) {
+      if (!isRetryable(lastErr) || Date.now() - started > budgetMs) break;
+      log(`${i === 1 ? 'Primary model' : `Fallback model ${i - 1}`} failed (${describe(lastErr)}); trying fallback model ${i}`);
+    }
+    try {
+      return await attempt();
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw toAiError(lastErr);
+}
+
+// Steps 1, 5.
+export function geminiGenerate(apiKey: string, model: string, fallbackModels: string[] = []): Generate {
+  const primaryClient = new GoogleGenAI({ apiKey, httpOptions: { timeout: PRIMARY_TIMEOUT_MS } });
+  const fallbackClient = new GoogleGenAI({ apiKey, httpOptions: { timeout: FALLBACK_TIMEOUT_MS } });
+  const fallbacks = fallbackModels.filter((m) => m !== model);
+
+  const call = async (client: GoogleGenAI, name: string, opts: Parameters<Generate>[0]) => {
+    const res = await client.models.generateContent({
+      model: name,
+      contents: [{ role: 'user', parts: opts.parts }],
+      config: {
+        systemInstruction: opts.system,
+        responseMimeType: 'application/json',
+        responseJsonSchema: opts.jsonSchema,
+        temperature: 0.3,
+        ...(opts.thinking ? { thinkingConfig: { thinkingLevel: THINKING_LEVELS[opts.thinking] } } : {}),
+      },
+    });
+    return res.text ?? '';
   };
+
+  return (opts) =>
+    withFallback(
+      () => call(primaryClient, model, opts),
+      fallbacks.map((m) => () => call(fallbackClient, m, opts)),
+    );
 }
 
-export function toGeminiSchema(_schema: z.ZodType): unknown {
-  // TODO(M5) step 2
-  return {};
+// Step 2. Gemini's responseJsonSchema rejects the "$schema" meta key that zod adds.
+export function toGeminiSchema(schema: z.ZodType): unknown {
+  const json = z.toJSONSchema(schema) as Record<string, unknown>;
+  delete json.$schema;
+  return json;
 }
 
-export async function callStructured<T>(_generate: Generate, _opts: { system: string; parts: Part[]; schema: z.ZodType<T>; thinking?: Thinking }): Promise<T> {
-  // TODO(M5) step 6
-  throw new AiError('ai_unavailable', 'TODO(M5): callStructured is not implemented yet');
+function parseReply<T>(schema: z.ZodType<T>, text: string): { ok: true; data: T } | { ok: false; error: string } {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return { ok: false, error: 'Reply was not valid JSON.' };
+  }
+  const result = schema.safeParse(json);
+  return result.success ? { ok: true, data: result.data } : { ok: false, error: z.prettifyError(result.error) };
+}
+
+// Step 6. Ask for JSON matching `schema`; one retry that tells the model what was wrong.
+export async function callStructured<T>(
+  generate: Generate,
+  opts: { system: string; parts: Part[]; schema: z.ZodType<T>; thinking?: Thinking },
+): Promise<T> {
+  const { system, thinking } = opts;
+  const jsonSchema = toGeminiSchema(opts.schema);
+  const first = parseReply(opts.schema, await generate({ system, parts: opts.parts, jsonSchema, thinking }));
+  if (first.ok) return first.data;
+
+  const retryParts: Part[] = [...opts.parts, { text: `Your previous reply did not match the schema: ${first.error}\nReply again with valid JSON only.` }];
+  const second = parseReply(opts.schema, await generate({ system, parts: retryParts, jsonSchema, thinking }));
+  if (second.ok) return second.data;
+  throw new AiError('bad_ai_response', 'The model returned an invalid response twice');
 }

@@ -236,3 +236,87 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m4).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m4).
+
+## M5
+
+**Ask Connectwork: question → server → Gemini → highlights** · Oct 17 · branch `m5-ask`
+
+**How it was checked:** typecheck, lint (0 warnings), **94 tests**. Server: 16 acceptance tests unskipped, plus 7 new ones (fallback chain, time budget, date header, rate limit, faked `X-Forwarded-For`). Browser: summary, exact match, grounding, drift. Production build.
+
+**Live, against the real Gemini API** (free tier, fictional demo data only):
+
+| Question | Time | Result |
+| --- | --- | --- |
+| Who do I know at Microsoft? | 7.3 s | Abbey, Nina, Owen + John ("former Microsoft intern"): all 4, correct |
+| Who should I follow up with this week? | 6.8 s | The 4 people with reminders due; filter switched to "due" |
+| Who have I lost touch with? | 5.1 s → 7.8 s | **First run wrong** (1 of 5 right, plus 1 wrong person). After the fix, highlights come from the drift rule: exactly 5 |
+| Who went to University of Washington? | 2.8 s → 3.8 s | **First run** said "7" and highlighted someone from Seattle University. After the fix: exactly the 9 |
+| Who do I know at Apple? | 2.8 s | "You don't have anyone…", nothing highlighted |
+| Where does Abbey Chen work? | — | One person → her card opens |
+
+Also: an unreachable server shows a red message; Escape clears everything; the server log has route, status and latency only (0 names or questions); no console errors.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Worst case with 20 s + 40 s + 40 s timeouts was 100 s of "Thinking…". | **Fixed:** the fallback chain stops after a 60 s budget (tested). |
+| E2 | Every question sends the whole network (about 2.5k tokens for 40 people, about 10k for 154). | Open, won't fix for now: fine on the free tier, and the model needs the data. Trim to relevant people only if cost matters. |
+| E3 | The demo cache rewrites its whole file on each recorded reply. | Fine at demo size; written via temp file + rename so a crash can't corrupt it. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | The answer card sat at the top centre, **over the Work sector** (12 o'clock), hiding 2 of the 4 Microsoft people it was answering about. | **Fixed:** top-left corner, outside the rings. Verified: nobody underneath at 1280 px. |
+| I2 | `filterHint: "drifting"` would switch to a filter whose set is empty until M10, dimming everyone. | **Fixed:** only `due` switches the filter in M5; drifting people are shown as highlights. |
+| I3 | "Today" was the server's **UTC** date, a day ahead every evening in Seattle (and on a UTC cloud VM). | **Fixed:** the browser sends its local date in `x-client-date`. It's a header, not the body, so demo-cache keys stay stable across days. Accepted only within ±1 day. Tested. |
+| I4 | `env.ts` had one fallback model; the scaffold and guide expect a chain. | **Fixed:** `GEMINI_FALLBACK_MODELS` list; the old single variable still works. |
+| I5 | The "lost touch" thresholds now live in two places: the prompt and `lib/drift.ts`. | Open (waits for M10): if Settings makes them editable, send them with the query. Comments in both files. |
+| I6 | `driftLevel()` (M10 step 1) was implemented early because M5 needed it. | Done with tests; M10 keeps steps 3–7. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | The API key stays on the server. | ✅ Health reports only `aiConfigured: true/false`. |
+| S2 | What leaves the browser. | The summary: names, rings, tags, company, role, school, dates, accepted links, open reminders. **Never notes.** Every field is capped (closes the rest of M3-S2). |
+| S3 | Logging. | Route, status, latency and cache only; AI errors log a code plus a truncated SDK message. Verified: 0 names or questions in the dev log. |
+| S4 | The rate limiter trusted `X-Forwarded-For`, so a client could fake a new IP per request and dodge the limit. | **Fixed:** trusted only with `TRUST_PROXY=1` (behind Caddy); otherwise the real socket address. Expired entries are swept. Tested. |
+| S5 | Prompt injection via a contact's name or company. | Mitigated: the prompt says data is not instructions, ids are filtered in code, and the answer is shown as plain text. Residual: a crafted name could make the *sentence* misleading. Accepted. |
+| S6 | Free tier: Google may use requests to improve its products. | The banner says "use sample data only"; demo data is fictional. **Don't import real contacts until `GEMINI_TIER=paid`.** |
+| S7 | `.env` (holds the key) is readable by every user account on the Mac (`-rw-r--r--`). | **Resolved:** the team ran `chmod 600 .env` (now `-rw-------`). |
+| S8 | `demo/demo-cache.json` stores model answers, which name people. | Record only with fictional demo data (comment in `cache.ts`). |
+| S9 | The deployed server has no login, so anyone who can reach it can spend our Gemini quota (30/min per IP). | Waits for M13/M14 deploy (see OPEN_ISSUES). |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | **The model's lists were wrong in both directions** in live testing (missed people; added someone from Seattle University for "UW"; named a non-drifting person). | **Fixed in code:** model ids are kept only if grounded in the named company/school; plus exact matches; "lost touch" is the drift rule. Tested. |
+| O2 | The answer *sentence* can still miscount ("7 people") while 9 are highlighted. | Open, **fix now:** say when the list was checked against your data. |
+| O3 | A slow question (up to 60 s) can't be cancelled; you must wait. | Open, **fix now:** Escape or ✕ cancels the request. |
+| O4 | No memory between questions ("and who else?"). | By design for now: M17 (Backboard) adds conversation memory. |
+| O5 | On a narrow window the corner card can overlap the outer ring. | Won't fix: desktop-first demo. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m5).
+
+## Open-issues step (after M5)
+
+**Fixing M5-O2 and M5-O3** · Oct 17 · branch `m5-ask`
+
+**What changed:**
+- **Questions can be cancelled.** An AbortController per question: the card's Cancel, Escape, or a new question cancels it, and a late reply is ignored.
+- **The card says when code corrected the model's list:** "· list checked against your data".
+
+**How it was checked:** typecheck, lint, tests. In the browser:
+- Cancel while thinking: the card cleared, and nothing appeared 12 s later.
+- Two questions in a row: only the second answer showed.
+- A stubbed reply naming 2 of 3 Microsoft people: 3 highlighted, and the note appeared.
+- No console errors.
+
+| | Finding | Status |
+| --- | --- | --- |
+| Efficiency | Cancelling stops the browser waiting, but the server still completes the Gemini call. | Logged (P5-O1, won't fix for now). |
+| Integration | "Busy" now has two ways to end (answer or cancel). The abort fires only on a cancel, because the request is cleared *before* the answer is stored. | Verified both paths. |
+| Integration | The global Escape (outside the box) still clears the answer but doesn't cancel a request in flight. | Acceptable: the card's Cancel button and Escape *in* the box both cancel. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m5).

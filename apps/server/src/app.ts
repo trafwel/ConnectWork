@@ -1,10 +1,10 @@
 /**
- * API app · M0 state (AI routes are added in M5)
+ * API app · M5 state (more AI routes from M6)
  *
- * WHAT THIS DOES NOW (M0)
+ * WHAT THIS DOES NOW (M5)
  *   The HTTP surface of the server: CORS locked to our web origin, a 10 MB body
- *   limit, privacy-safe request logging, GET /api/health, and an error handler
- *   that never leaks internals.
+ *   limit, privacy-safe request logging, GET /api/health, rate-limited
+ *   POST /api/ai/query, and an error handler that never leaks internals.
  *
  * WHY createApp(deps) INSTEAD OF A PLAIN `app`
  *   A factory lets tests pass a fake Gemini and a temporary cache
@@ -30,9 +30,11 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { bodyLimit } from 'hono/body-limit';
-import type { DemoCache } from './cache';
+import { DemoCache } from './cache';
 import { env } from './env';
-import type { Generate } from './gemini';
+import { geminiGenerate, type Generate } from './gemini';
+import { rateLimit } from './rateLimit';
+import { aiRoutes } from './routes/ai';
 
 export interface AppDeps {
   /** Gemini caller (M5); null when no GEMINI_API_KEY is set. */
@@ -41,12 +43,15 @@ export interface AppDeps {
   cache: DemoCache | null;
 }
 
+// Step 1
 export function defaultDeps(): AppDeps {
-  // TODO(M5) step 1: real Gemini + DemoCache
-  return { generate: null, cache: null };
+  return {
+    generate: env.geminiApiKey ? geminiGenerate(env.geminiApiKey, env.geminiModel, env.geminiFallbackModels) : null,
+    cache: new DemoCache(env.demoCache),
+  };
 }
 
-export function createApp(_deps: AppDeps) {
+export function createApp(deps: AppDeps) {
   const app = new Hono();
 
   app.use('/api/*', cors({ origin: env.allowedOrigin }));
@@ -60,8 +65,21 @@ export function createApp(_deps: AppDeps) {
     console.log(`${c.req.method} ${c.req.path} ${c.res.status} ${Date.now() - started}ms cache=${cache}`);
   });
 
-  app.get('/api/health', (c) => c.json({ ok: true, model: env.geminiModel, tier: env.geminiTier, cache: env.demoCache }));
-  // TODO(M5) steps 2–3: extend health; rate-limit and mount the AI routes here.
+  // Step 2. Says whether AI is configured, never the key itself.
+  app.get('/api/health', (c) =>
+    c.json({
+      ok: true,
+      model: env.geminiModel,
+      fallbackModels: env.geminiFallbackModels,
+      tier: env.geminiTier,
+      cache: env.demoCache,
+      aiConfigured: Boolean(deps.generate),
+    }),
+  );
+
+  // Step 3. Only the AI routes are limited; health stays free.
+  app.use('/api/ai/*', rateLimit(30, 60_000, { trustProxy: env.trustProxy }));
+  app.route('/api/ai', aiRoutes(deps));
 
   app.onError((err, c) => {
     console.error(`${c.req.method} ${c.req.path} error: ${err.message}`);

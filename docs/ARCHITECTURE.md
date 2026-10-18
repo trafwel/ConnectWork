@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M4 built** — the demo network is seeded into IndexedDB and drawn as the ring map; clicking a person opens an editable card; N opens Quick add; Import reads a LinkedIn export or any CSV in the browser, previews it, dedupes and writes it in one transaction; every write goes through `db/actions.ts`. Ask Connectwork (M5) and everything after it are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md). Self-reviews: [REVIEWS.md](REVIEWS.md).
+**Current state: M5 built** — everything through CSV import, plus *Ask Connectwork*: the browser sends a compact summary (no notes) to the server, which asks Gemini for structured JSON (fallback chain, one retry), drops invented ids, and replies; the browser re-validates, grounds the ids in code and highlights them. Review sheet (M6) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -19,8 +19,8 @@ flowchart LR
   VEYZL["VEYZL<br/><small>audits each PR</small>"]:::external
 
   Browser -->|"/api/health · M0"| Server
-  Browser -.->|"AI requests · M5+"| Server
-  Server -.->|"M5+"| Gemini
+  Browser -->|"POST /api/ai/query · M5 (summary, no notes)"| Server
+  Server -->|"structured JSON · M5"| Gemini
   Browser -.->|"direct, token stays in browser · M11"| GCal
   Phone -.-> Photon -.->|"M16"| Server
   Server -.->|"relay texts to the open tab · M16"| Browser
@@ -53,7 +53,7 @@ flowchart LR
     Map["Ring map<br/><small>graph/RingMap, PersonNode, LinkLine · M2</small>"]:::built
     Card["Person card · quick add<br/><small>PersonCard, QuickAdd, RingPicker, TagSelect, PersonReminders, PersonLinks · M3</small>"]:::built
     Import["CSV import<br/><small>ImportDialog · lazy-loaded · preview, undo · M4</small>"]:::built
-    Ask["Ask Connectwork · M5"]:::planned
+    Ask["Ask Connectwork<br/><small>AgentBar, AgentAnswer, DemoBanner · M5</small>"]:::built
     Review["Review sheet · M6"]:::planned
     Weekly["Weekly review · M8"]:::planned
     Snap["Snap to add · M9"]:::planned
@@ -61,7 +61,8 @@ flowchart LR
 
   Layout["Ring layout<br/><small>graph/layout.ts · d3-force, settled before paint · M2</small>"]:::built
   Helpers["Pure helpers<br/><small>lib/filters.ts, people.ts, colors.ts · M1–M2</small>"]:::built
-  Api["lib/api.ts → server · M5"]:::planned
+  Summary["Summary + guardrails<br/><small>lib/graphSummary.ts, exactMatch.ts, drift.ts (step 1) · M5</small>"]:::built
+  Api["API client<br/><small>lib/api.ts · typed results, re-validates · M5</small>"]:::built
   Relay["Texting relay client · M16"]:::planned
 
   App -->|"ensureSeeded() on mount"| Seed
@@ -85,7 +86,9 @@ flowchart LR
   CsvFile -->|"file.text()"| Import
   Import -->|"parseCsv, planImport"| Csv
   Import -->|"applyImport (one transaction)"| Actions
-  Ask -.-> Api
+  Ask -->|"buildSummary, ground ids"| Summary
+  Ask -->|"askQuery"| Api
+  Ask -->|"highlights, answer"| Store
   Review -.-> Api
   Weekly -.-> Api
   Snap -.-> Api
@@ -100,22 +103,27 @@ flowchart LR
 ```mermaid
 flowchart LR
   Health["GET /api/health<br/><small>app.ts · M0</small>"]:::built
-  Limit["Rate limit<br/><small>rateLimit.ts · M5</small>"]:::planned
-  Routes["POST /api/ai/*<br/><small>routes/* · M5–M11</small>"]:::planned
+  Limit["Rate limit<br/><small>rateLimit.ts · 30/min per IP · M5</small>"]:::built
+  Query["POST /api/ai/query<br/><small>routes/ai.ts · drops invented ids · M5</small>"]:::built
+  Routes["POST /api/ai/* (more)<br/><small>routes/* · M6–M11</small>"]:::planned
   Helper["Route helper<br/><small>routes/structured.ts · R</small>"]:::planned
-  Cache["Demo cache<br/><small>cache.ts · M5/M12</small>"]:::planned
-  GeminiH["Gemini helper<br/><small>schema · retry · fallback · gemini.ts · M5</small>"]:::planned
-  Prompts["Prompts<br/><small>prompts.ts</small>"]:::planned
+  Cache["Demo cache<br/><small>cache.ts · record / replay · M5</small>"]:::built
+  GeminiH["Gemini helper<br/><small>schema · retry · fallback chain · 60 s budget · gemini.ts · M5</small>"]:::built
+  Prompts["Prompts<br/><small>prompts.ts · DATA_FORMAT, QUERY done</small>"]:::built
   Agent["Texting agent<br/><small>photon/agent.ts · M16</small>"]:::planned
   Hub["Relay hub (SSE)<br/><small>photon/relay.ts · M16</small>"]:::planned
   Gemini["Gemini API"]:::external
 
+  Limit --> Query
+  Query --> Cache
+  Query --> GeminiH
+  Query --> Prompts
   Limit -.-> Routes
   Routes -.-> Helper
   Helper -.-> Cache
   Helper -.-> GeminiH
   Helper -.-> Prompts
-  GeminiH -.->|"3.8-flash → 3.6-flash → 3.5-flash-lite"| Gemini
+  GeminiH -->|"3.8-flash → 3.6-flash → 3.5-flash-lite"| Gemini
   Agent -.->|"intent"| GeminiH
   Agent -.-> Hub
 
@@ -143,8 +151,8 @@ flowchart LR
 | M2 | Ring map | ✅ built ([review](REVIEWS.md#m2)) |
 | M3 | Every write (`actions.ts`), person card, quick add | ✅ built ([review](REVIEWS.md#m3)) |
 | M4 | CSV import | ✅ built ([review](REVIEWS.md#m4)) |
-| M5 | Ask Connectwork → `/api/ai/query` → Gemini | ⬜ next |
-| R, M6 | Route helper; review sheet; classify + links | ⬜ |
+| M5 | Ask Connectwork → `/api/ai/query` → Gemini | ✅ built ([review](REVIEWS.md#m5)) |
+| R, M6 | Route helper; review sheet; classify + links | ⬜ next |
 | M7–M14 | Flags/filters, weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
@@ -158,3 +166,4 @@ flowchart LR
 | Oct 17 | M3 | Browser diagram: `actions.ts` and the person card / quick add are built; App opens the card for the selected person; the card reads live and writes only through `actions.ts`, which writes to IndexedDB in transactions. Planned: CSV import will write through `applyImport`. Status: M3 ✅, M4 next. |
 | Oct 17 | M4 | Browser diagram: CSV file, CSV logic (`lib/csv.ts`) and the import dialog are built; the file is read in the browser, planned (dedupe, fill-only) and written through `applyImport` in one transaction. Status: M4 ✅, M5 next. |
 | Oct 17 | post-M4 | Open-issues step: added the stored-row schemas that every backup row is checked against; backups carry no secrets and ask before replacing; the import dialog is lazy-loaded and has Undo. |
+| Oct 17 | M5 | Big picture: browser → server → Gemini is built. Browser: Ask Connectwork, summary + guardrails, API client. Server: rate limit, `/api/ai/query`, demo cache, Gemini helper (fallback chain, 60 s budget) and prompts are built. Status: M5 ✅, R/M6 next. |

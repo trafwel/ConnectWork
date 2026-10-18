@@ -1,5 +1,5 @@
 /**
- * M5 — Demo-mode banner · Owner: Person A · ~10 min
+ * M5 — Demo-mode banner · done
  *
  * WHAT THIS ACHIEVES
  *   Honest about the free tier: Google may use free-tier requests to improve its
@@ -16,7 +16,27 @@
  * Guide: §9.6
  */
 
+import { useEffect, useState } from 'react';
+import { getHealth, type Health } from '@/lib/api';
+
 export function DemoBanner() {
-  // TODO(M5) steps 1–3
-  return null;
+  const [health, setHealth] = useState<Health | null>(null);
+  // Step 1
+  useEffect(() => {
+    let alive = true;
+    void getHealth().then((h) => alive && setHealth(h));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Step 2
+  if (health?.tier !== 'free') return null;
+  // Step 3
+  return (
+    <div role="note" className="border-b bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900">
+      Demo mode: the AI runs on Gemini&apos;s free tier, so use sample data only.
+      {!health.aiConfigured && ' AI is not configured yet (no GEMINI_API_KEY).'}
+    </div>
+  );
 }
