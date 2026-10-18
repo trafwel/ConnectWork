@@ -42,7 +42,7 @@ flowchart LR
   Rows["Stored-row schemas (zod)<br/><small>packages/shared/src/storedRows.ts · post-M4</small>"]:::built
   App["App shell<br/><small>App.tsx · M0–M3 · hotkeys N, Escape</small>"]:::built
   Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1, Appearance S</small>"]:::built
-  Look["Appearance<br/><small>lib/appearance.ts + index.css palettes · Neutral/Atlas × System/Light/Dark · S</small>"]:::built
+  Look["Appearance<br/><small>lib/appearance.ts + index.css palettes · Neutral/Atlas × System/Light/Dark · S<br/>Reminders: Flag or Ripple · fix 2</small>"]:::built
   LocalPref[/"localStorage<br/><small>cw-appearance (display preference only)</small>"/]:::built
   Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
   Seed["Seed · reset · delete · export · import<br/><small>db/seed.ts, materialize.ts · M1</small>"]:::built
@@ -52,7 +52,7 @@ flowchart LR
 
   subgraph UI["Screens and panels"]
     direction TB
-    Map["Ring map<br/><small>graph/RingMap, PersonNode, LinkLine · M2<br/>ScreenLabels + labels.ts: no-overlap names, focus, relationship pills · fix 1</small>"]:::built
+    Map["Ring map<br/><small>graph/RingMap, PersonNode, LinkLine · M2<br/>ScreenLabels + labels.ts: no-overlap names, focus, relationship pills · fix 1<br/>Move people: drag or 1/2/3 to change ring, useRingDrag.ts · fix 2</small>"]:::built
     Card["Person card · quick add<br/><small>PersonCard, QuickAdd, RingPicker, TagSelect, PersonReminders, PersonLinks · M3<br/>Add connection, rename a relationship · fix 1</small>"]:::built
     Import["CSV import<br/><small>ImportDialog · lazy-loaded · preview, undo · M4</small>"]:::built
     Ask["Ask Connectwork<br/><small>AgentBar, AgentAnswer, DemoBanner · M5</small>"]:::built
@@ -190,6 +190,7 @@ flowchart LR
 | M8 | Weekly review, Draft a message | ✅ built ([review](REVIEWS.md#m8)) |
 | M9 | Snap to add (photo / PDF → people) | ✅ built ([review](REVIEWS.md#m9)) |
 | Fix 1 | Map labels (no overlap, zoom-proof), click focus, named connections, Add connection | ✅ built ([review](REVIEWS.md#fix-step-1-map-labels)) |
+| Fix 2 | Ripple reminder style, "Move people" edit mode (drag or keys to change ring) | ✅ built ([review](REVIEWS.md#fix-step-2-map-features)) |
 | M10 | Drift on the map, settings | ⬜ next |
 | M11–M14 | Google Calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
@@ -211,3 +212,4 @@ flowchart LR
 | Oct 17 | M8 | Browser: weekly review panel + candidates (code) built; approving writes through `actions.ts`. Server: `/weekly-review` and `/draft` on the route helper. Status: M8 ✅, M9 next. |
 | Oct 17 | M9 | Browser: Snap dialog (lazy, shares the CSV chunk) + image prep built. Server: `/extract` on the route helper, roster-only caching. Status: M9 ✅, M10 next. |
 | Oct 17 | Fix 1 | Browser: the ring map gains a screen-space label layer (`ScreenLabels.tsx` + pure `labels.ts`); the person card can add and rename connections through `actions.ts` (`upsertLink`, new `renameLink`). No new arrows: same store, same database. Status: fix 1 ✅, fix 2 (ripple pulse, drag-to-ring) next. |
+| Oct 17 | Fix 2 | Browser: Appearance gains Reminders (Flag/Ripple, an `<html>` attribute + CSS); the ring map gains "Move people" (`useRingDrag.ts`, an `editRings` flag in the UI state), which writes ring changes through `actions.ts` (`updatePerson`). No new arrows. Status: fix 2 ✅, M10 next. |

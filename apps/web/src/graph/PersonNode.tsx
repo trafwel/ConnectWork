@@ -27,10 +27,18 @@
  *      aria-pressed={selected}; Enter/Space selects; onClick stops propagation; <title> for
  *      a native tooltip.
  *
+ * FIX STEP 2 (Oct 17)
+ *   - Reminder style: the node draws BOTH the flag (.cw-flag) and a ripple (.cw-ripple);
+ *     <html data-reminders> (Settings → Appearance) decides in CSS which one shows.
+ *   - Edit mode ("Move people"): pointerdown starts a drag in RingMap (onDragStart); keys
+ *     1/2/3 move the focused person to that ring (onSetRing). `dragging` turns the position
+ *     transition off, or the node would trail 450 ms behind the pointer.
+ *
  * Guide: §6.2
  */
 import { memo } from 'react';
-import type { Person } from '@connectwork/shared';
+import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { Person, Ring } from '@connectwork/shared';
 import { readableOn } from '@/lib/colors';
 import { initials } from '@/lib/people';
 import { NODE_RADIUS } from './layout';
@@ -49,9 +57,15 @@ interface Props {
   onSelect: (id: string) => void;
   /** Hover or keyboard focus, so RingMap shows this name even where it's crowded. */
   onHover: (id: string | null) => void;
+  /** Fix step 2: "Move people" edit mode is on. */
+  editing?: boolean;
+  /** This node is being dragged: follow the pointer with no transition. */
+  dragging?: boolean;
+  onDragStart?: (id: string, e: ReactPointerEvent<SVGGElement>) => void;
+  onSetRing?: (id: string, ring: Ring) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, onSelect, onHover }: Props) {
+function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
   const r = NODE_RADIUS[person.ring];
   // Color is never the only signal: the flag's state is also in the label screen readers read.
   const flagText = flag === 'overdue' ? 'follow-up overdue' : flag === 'due' ? 'follow-up due' : undefined;
@@ -63,17 +77,26 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       tabIndex={0}
       aria-label={description}
       aria-pressed={selected}
-      className="cursor-pointer outline-none [&:focus-visible>circle.focus]:opacity-100"
+      aria-keyshortcuts={editing ? '1 2 3' : undefined}
+      className={`${editing ? (dragging ? 'cursor-grabbing' : 'cursor-grab') + ' touch-none' : 'cursor-pointer'} outline-none [&:focus-visible>circle.focus]:opacity-100`}
       // Step 1: a CSS transform (not the x/y attributes) so layout changes animate.
-      style={{ opacity: dimmed ? 0.15 : 1, transform: `translate(${x}px, ${y}px)`, transition: 'opacity 200ms, transform 450ms ease-out' }}
+      style={{
+        opacity: dimmed ? 0.15 : 1,
+        transform: `translate(${x}px, ${y}px)`,
+        transition: dragging ? 'opacity 200ms' : 'opacity 200ms, transform 450ms ease-out',
+      }}
       onClick={(e) => {
         e.stopPropagation(); // the map's own click clears the selection
         onSelect(person.id);
       }}
+      onPointerDown={editing && onDragStart ? (e) => e.button === 0 && onDragStart(person.id, e) : undefined}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onSelect(person.id);
+        } else if (editing && onSetRing && (e.key === '1' || e.key === '2' || e.key === '3')) {
+          e.preventDefault();
+          onSetRing(person.id, Number(e.key) as Ring);
         }
       }}
       onMouseEnter={() => onHover(person.id)}
@@ -89,12 +112,28 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       <g className={flag ? 'cw-pulse' : undefined}>
         <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
       </g>
+      {flag && <Ripple r={r} overdue={flag === 'overdue'} />}
       {flag && <Flag r={r} overdue={flag === 'overdue'} />}
       {person.ring === 1 && (
         <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}
         </text>
       )}
+    </g>
+  );
+}
+
+/**
+ * Fix step 2: two rings that grow out of the node and fade (CSS in index.css). Overdue is
+ * thicker as well as red, so color isn't the only difference. Hidden unless Reminders = Ripple.
+ */
+function Ripple({ r, overdue }: { r: number; overdue: boolean }) {
+  const stroke = overdue ? 'var(--destructive)' : 'var(--map-ink)';
+  const width = overdue ? 2.5 : 1.5;
+  return (
+    <g className="cw-ripple" pointerEvents="none" aria-hidden="true">
+      <circle r={r + 1} fill="none" stroke={stroke} strokeWidth={width} />
+      <circle r={r + 1} fill="none" stroke={stroke} strokeWidth={width} />
     </g>
   );
 }
@@ -106,7 +145,7 @@ function Flag({ r, overdue }: { r: number; overdue: boolean }) {
   const y = -r * 0.95;
   const fill = overdue ? 'var(--destructive)' : 'var(--map-ink)';
   return (
-    <g transform={`translate(${x} ${y})`} pointerEvents="none" aria-hidden="true">
+    <g className="cw-flag" transform={`translate(${x} ${y})`} pointerEvents="none" aria-hidden="true">
       <line x1={0} y1={0} x2={0} y2={s * 1.6} stroke="var(--map-ink)" strokeWidth={1.2} />
       <path d={`M0 0 L${s} ${s * 0.4} L0 ${s * 0.8} Z`} fill={fill} stroke="var(--map-paper)" strokeWidth={0.75} />
     </g>
@@ -136,7 +175,11 @@ function sameNode(a: Props, b: Props): boolean {
     a.dimmed === b.dimmed &&
     a.flag === b.flag && // M7 (PX-I1: every new prop must be compared here)
     a.onSelect === b.onSelect &&
-    a.onHover === b.onHover
+    a.onHover === b.onHover &&
+    a.editing === b.editing && // fix step 2
+    a.dragging === b.dragging &&
+    a.onDragStart === b.onDragStart &&
+    a.onSetRing === b.onSetRing
   );
 }
 

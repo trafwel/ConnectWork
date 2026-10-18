@@ -109,3 +109,12 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. `placeLabels` is greedy: most important label first, first free spot wins. Who goes first, and why is it fine that some names get skipped?
 3. Why do labels glide when the layout changes but snap instantly while you zoom or pan?
 4. A link with no name still shows something on the map. Where does "both at Microsoft" come from, and why compute it instead of storing it?
+
+## Fix step 2: map features
+**Ripple reminders, "Move people" edit mode**
+
+1. Why is Flag vs Ripple an attribute on `<html>` plus CSS, instead of a prop passed to every node?
+2. At first, dragging a person also panned the map. Why did re-ordering the node on the press cause that, and why was React's `stopPropagation` no help?
+3. `ringForDistance` puts the boundary halfway between two rings. What would feel wrong if the boundary were the ring line itself?
+4. Escape can mean three things now. In what order, and how does a drag get to handle it before App does?
+

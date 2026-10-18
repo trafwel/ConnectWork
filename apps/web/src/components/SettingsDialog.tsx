@@ -24,7 +24,7 @@
  *      reminder?" with "Yes, delete" (destructive) and Cancel. Yes → deleteEverything(),
  *      clearFocus(), close, toast.
  *   4b. (Step S) Appearance: Style (Neutral / Atlas) and Mode (System / Light / Dark), saved
- *       per device by lib/appearance.ts.
+ *       per device by lib/appearance.ts. Fix step 2 adds Reminders (Flag / Ripple).
  *   5. Later sections: M6 ✓ "About you" textarea saved to db.meta 'userContext' on blur;
  *      M7 ✓ "Export all reminders"; M10 drift thresholds; M16 <AgentConnection />.
  *
@@ -105,7 +105,7 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
           <h3 id="appearance-heading" className="text-sm font-medium">
             Appearance
           </h3>
-          <div className="grid grid-cols-[4rem_1fr] items-center gap-x-3 gap-y-2 text-sm">
+          <div className="grid grid-cols-[5rem_1fr] items-center gap-x-3 gap-y-2 text-sm">
             <span>Style</span>
             <Segmented
               label="Style"
@@ -125,6 +125,16 @@ export function SettingsDialog({ appearance, onAppearance }: Props) {
                 { value: 'system', label: 'System' },
                 { value: 'light', label: 'Light' },
                 { value: 'dark', label: 'Dark' },
+              ]}
+            />
+            <span>Reminders</span>
+            <Segmented
+              label="Reminder style on the map"
+              value={appearance.reminders}
+              onChange={(reminders) => onAppearance({ reminders })}
+              options={[
+                { value: 'flag', label: 'Flag' },
+                { value: 'ripple', label: 'Ripple' },
               ]}
             />
           </div>

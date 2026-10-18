@@ -54,18 +54,26 @@
  *   - Clicking a person grays out everyone except them and the people they're linked to.
  *   - Their lines get a relationship label (the link's name, or what the two have in common).
  *
+ * FIX STEP 2 (Oct 17) — "Move people" edit mode
+ *   A toggle (bottom right) turns on edit mode: drag a person across the ring lines to move
+ *   them (useRingDrag.ts), or focus them and press 1, 2 or 3. The target ring lights up while
+ *   dragging; a drop writes through updatePerson with an Undo toast. d3-zoom ignores pointer
+ *   presses on people in edit mode (zoom.filter), so dragging a person doesn't pan the map.
+ *
  * DONE WHEN
  *   - Zoom, pan, reset view, click-to-open and keyboard selection work; clicking a person
  *     centers them (also after the card opens) and only their links stay strong.
  *
  * Guide: §6.2
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity, zoomTransform, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
-import { Maximize } from 'lucide-react';
+import { Maximize, Move } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Link, Person, Ring, Tag } from '@connectwork/shared';
 import { Button } from '@/components/ui/button';
+import { updatePerson } from '@/db/actions';
 import { safeColor, tagColor } from '@/lib/colors';
 import { matchesFilter, type FilterContext } from '@/lib/filters';
 import { useStore } from '@/store/useStore';
@@ -73,9 +81,11 @@ import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
 import { PersonNode } from './PersonNode';
 import { ScreenLabels, useScreenLabels } from './ScreenLabels';
+import { useRingDrag } from './useRingDrag';
 import { mapTheme as T } from './theme';
 
 const RINGS: Ring[] = [1, 2, 3];
+const RING_NAMES: Record<Ring, string> = { 1: 'Close (ring 1)', 2: 'Regular (ring 2)', 3: 'Wider (ring 3)' };
 
 interface Props {
   people: Person[];
@@ -117,12 +127,41 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
   const filter = useStore((s) => s.filter);
   const selectPerson = useStore((s) => s.selectPerson);
   const clearFocus = useStore((s) => s.clearFocus);
+  const editing = useStore((s) => s.editRings);
+  const setEditing = useStore((s) => s.setEditRings);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
   // Step 2.
   const layout = useForceLayout(people, links, width, height, offsetFor);
-  const positions = layout.positions;
-  const g = geometry(width, height);
+  const layoutPositions = layout.positions;
+  // Memoized: the drag hook's effect depends on it (a new object per render would reset a drag).
+  const g = useMemo(() => geometry(width, height), [width, height]);
+
+  // Fix step 2. The zoom filter reads edit mode from a ref: d3 calls it outside React.
+  const editingRef = useRef(editing);
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
+  const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
+  const moveToRing = useCallback(
+    (id: string, ring: Ring) => {
+      const p = byId.get(id);
+      if (!p || p.ring === ring) return;
+      const from = p.ring;
+      void updatePerson(id, { ring });
+      toast(`Moved ${p.name} to ${RING_NAMES[ring]}`, { action: { label: 'Undo', onClick: () => void updatePerson(id, { ring: from }) } });
+    },
+    [byId],
+  );
+  const { drag, begin: beginDrag, consumeClick } = useRingDrag(svgRef, g, moveToRing);
+  const onSelectNode = useCallback((id: string) => !consumeClick() && selectPerson(id), [consumeClick, selectPerson]);
+  // The dragged person (and their lines and name) follow the pointer.
+  const dragId = drag?.id;
+  const dragPos = drag?.pos;
+  const positions = useMemo(
+    () => (dragId && dragPos ? new Map(layoutPositions).set(dragId, dragPos) : layoutPositions),
+    [layoutPositions, dragId, dragPos],
+  );
 
   // Step 3. d3 only computes the transform; React draws everything.
   useEffect(() => {
@@ -133,6 +172,11 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
     let settle: ReturnType<typeof setTimeout> | undefined;
     const behavior = d3zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.5, 3])
+      // d3's default filter, plus: in edit mode a press on a person is a drag, not a pan.
+      .filter((e: MouseEvent) => {
+        if ((e.ctrlKey && e.type !== 'wheel') || e.button) return false;
+        return !(editingRef.current && e.type !== 'wheel' && (e.target as Element | null)?.closest?.('[role="button"]'));
+      })
       .on('zoom', (e: { transform: ZoomTransform }) => {
         setTransform(e.transform);
         setZooming(true);
@@ -220,7 +264,6 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
     panTo(svgRef.current, zoomRef.current, pos, width, height);
   }, [selectedId, positions, layout.width, layout.height, width, height]);
 
-  const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
   const ringAnchors = useMemo(
     () => RINGS.map((ring) => ({ ring, a: labelAngles[ring], r: ringRadius(geometry(width, height), ring) })),
     [labelAngles, width, height],
@@ -267,9 +310,10 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                 cy={g.cy}
                 r={ringRadius(g, ring)}
                 fill="none"
-                stroke={T.ringStroke}
-                strokeWidth={T.ringWidth}
-                strokeDasharray={T.ringDash}
+                // Fix step 2: the ring a dragged person would land in is drawn solid and thick.
+                stroke={drag?.ring === ring ? T.highlight : T.ringStroke}
+                strokeWidth={drag?.ring === ring ? 3 : T.ringWidth}
+                strokeDasharray={drag?.ring === ring ? undefined : T.ringDash}
               />
             ))}
           </g>
@@ -300,7 +344,10 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
             </text>
           </g>
 
-          {drawOrder.map((p) => {
+          {/* The dragged person draws last (on top), but only once they MOVE: re-ordering on the press itself
+              moves their DOM element, and Chrome then sends the follow-up mousedown to the parent <g>,
+              which d3-zoom's filter doesn't see as a person and pans the map (found in testing). */}
+          {(dragPos ? [...drawOrder.filter((p) => p.id !== dragId), ...drawOrder.filter((p) => p.id === dragId)] : drawOrder).map((p) => {
             const pos = positions.get(p.id);
             if (!pos) return null;
             return (
@@ -314,8 +361,12 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                 highlighted={highlightIds.has(p.id)}
                 dimmed={dimmedIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
-                onSelect={selectPerson}
+                onSelect={onSelectNode}
                 onHover={setHoverId}
+                editing={editing}
+                dragging={drag?.id === p.id && !!drag.pos}
+                onDragStart={beginDrag}
+                onSetRing={moveToRing}
               />
             );
           })}
@@ -326,11 +377,23 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
       </svg>
 
       <Legend tags={tags} />
-      {zoomed && (
-        <Button variant="outline" size="sm" className="absolute right-3 bottom-3" onClick={resetView}>
-          <Maximize /> Reset view
-        </Button>
+      {editing && (
+        <p role="status" className="absolute top-3 left-1/2 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-md border bg-background/95 px-3 py-1.5 text-center text-xs shadow-sm">
+          {drag?.pos && drag.ring
+            ? `Drop to move ${byId.get(drag.id)?.name ?? 'them'} to ${RING_NAMES[drag.ring]}`
+            : 'Drag a person to another ring · or focus them and press 1, 2 or 3 · Esc to finish'}
+        </p>
       )}
+      <div className="absolute right-3 bottom-3 flex flex-col items-end gap-2">
+        {zoomed && (
+          <Button variant="outline" size="sm" onClick={resetView}>
+            <Maximize /> Reset view
+          </Button>
+        )}
+        <Button variant={editing ? 'default' : 'outline'} size="sm" aria-pressed={editing} onClick={() => setEditing(!editing)}>
+          <Move /> {editing ? 'Done moving' : 'Move people'}
+        </Button>
+      </div>
     </div>
   );
 }
