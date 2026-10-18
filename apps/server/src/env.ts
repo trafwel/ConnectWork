@@ -40,12 +40,20 @@ export const env = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
-  geminiTier: (process.env.GEMINI_TIER ?? 'free') as 'free' | 'paid',
+  // M13: fail safe. Anything but exactly "paid" counts as free, so the fake-data-only guards stay on
+  // (e.g. a systemd EnvironmentFile keeps an inline "# comment" as part of the value).
+  geminiTier: (process.env.GEMINI_TIER?.trim() === 'paid' ? 'paid' : 'free') as 'free' | 'paid',
   allowedOrigin: process.env.ALLOWED_ORIGIN ?? 'http://localhost:5173',
   port: Number(process.env.PORT ?? 8787),
+  /**
+   * M13: which network address to listen on. Unset = all of them (fine for local dev). On the VM it is
+   * 127.0.0.1, so the API is reachable ONLY through Caddy: with TRUST_PROXY=1, a directly reachable
+   * port would let anyone fake X-Forwarded-For and dodge the rate limit.
+   */
+  host: process.env.HOST || undefined,
   /** Trust X-Forwarded-For only behind our own proxy (Caddy, M13); otherwise anyone could fake their IP. */
   trustProxy: process.env.TRUST_PROXY === '1',
-  demoCache: (process.env.DEMO_CACHE ?? 'off') as 'off' | 'record' | 'replay',
+  demoCache: (['record', 'replay'].includes(process.env.DEMO_CACHE?.trim() ?? '') ? process.env.DEMO_CACHE!.trim() : 'off') as 'off' | 'record' | 'replay',
   // Side tracks — each feature stays off until its variables are set.
   photonProjectId: process.env.SPECTRUM_PROJECT_ID ?? '',
   photonProjectSecret: process.env.SPECTRUM_PROJECT_SECRET ?? '',

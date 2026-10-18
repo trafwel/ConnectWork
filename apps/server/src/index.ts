@@ -21,6 +21,6 @@ import { env } from './env';
 
 const deps = defaultDeps();
 
-serve({ fetch: createApp(deps).fetch, port: env.port }, (info) => {
-  console.log(`Connectwork server on http://localhost:${info.port}`);
+serve({ fetch: createApp(deps).fetch, port: env.port, hostname: env.host }, (info) => {
+  console.log(`Connectwork server on http://${env.host ?? 'localhost'}:${info.port}`);
 });

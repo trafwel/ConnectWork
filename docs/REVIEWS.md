@@ -856,3 +856,55 @@ The test recording was deleted afterwards: its keys contain today's dates, so th
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m12).
 
+## M13
+
+**Deploy config** · Oct 17 · branch `m13-deploy` (on `m12-demo-cache`)
+
+**What it does**
+- **`deploy/Caddyfile`:** HTTPS (automatic) and one origin for the web app and `/api`. A strict **Content-Security-Policy**: only our own scripts, plus the inline theme script by its exact SHA-256 hash, and Google sign-in / the Calendar API as the only outside hosts. Also HSTS, nosniff, a strict referrer policy, no camera/mic/location, no framing, and COOP that still lets Google's sign-in popup report back. Hashed assets are cached for a year; `index.html` is always revalidated.
+- **`deploy/connectwork.service`:** systemd reads `.env` as root (so it stays `chmod 600`). The API runs as `www-data`, listens on **127.0.0.1 only** with `TRUST_PROXY=1`, and is hardened (no new privileges, read-only system, private /tmp).
+- **`deploy/update.sh`** (pull, frozen install, build, restart, health check) and **[DEPLOY.md](DEPLOY.md)**, the runbook with the human-only steps marked.
+- **`pnpm preview:prod`:** serves the real build with the **Caddyfile's own headers** (read from the file), the same caching and SPA fallback, and `/api` forwarded, so a CSP mistake shows up on a laptop instead of as a blank page on the domain.
+
+**How it was checked:** typecheck, lint, 168 tests (7 new: the CSP hash matches the inline script; Google hosts are allowed and nothing else; Caddy, the unit and the server agree on 127.0.0.1:8787; `.env.example` has no inline comments; the env fails safe), production build. **In the browser via `preview:prod`**, with no CSP violations or console errors:
+- the theme script ran, and the map (40 people), meeting strip, a live AI brief through the proxy, the list view, Settings and the lazy Snap dialog all worked;
+- Google's sign-in script loaded under the policy;
+- an injected inline script **was blocked**, so the policy is enforced.
+
+`curl` checks: the headers are present, `/api/health` is proxied, SPA routes give 200, a missing asset gives 404, and `../` paths can't leave `dist`.
+
+**Not done (human steps):** the VM, the domain and DNS, the OAuth origin, and the live check at `https://<domain>`. Caddy itself wasn't run (it isn't installed here), so the syntax gets its first real check on the VM (DEPLOY.md step 4).
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Repeat visits re-downloaded 700 KB of JS. | Hashed `/assets/*` are cached as immutable for a year; `index.html` is `no-cache`, so a deploy shows up at once. zstd/gzip compression. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | **Scaffold bug:** `chmod 600 .env` + `User=www-data` meant the API couldn't read its own key. | `EnvironmentFile=` (read by systemd as root). |
+| I2 | **systemd keeps inline `# comments` in values.** `GEMINI_TIER=free   # free \| paid` would have become "free   # free \| paid", so the tier would no longer equal "free". | `.env.example` comments moved to their own lines (tested), and the server now **fails safe**: anything but exactly `paid` counts as free, and an unknown `DEMO_CACHE` counts as off (tested). |
+| I3 | Values from systemd's EnvironmentFile override `Environment=` lines. | The security-critical `HOST=127.0.0.1` and `TRUST_PROXY=1` are set on the command line (`/usr/bin/env …`), where `.env` can't change them. `DEMO_CACHE=replay` is set in the VM's `.env` (runbook). |
+| I4 | `pnpm start` may write to a home folder that the hardening makes read-only. | The unit runs `tsx` directly (what `pnpm start` runs). |
+| I5 | Local dev is unchanged. | `HOST` unset = all interfaces as before. Checked: the team's `pnpm dev` still answers. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | **S-S1** (the inline theme script vs a strict CSP). | **Resolved:** allowed by hash; no `'unsafe-inline'` for scripts. A test fails if the script changes without the hash. |
+| S2 | **M11-S6** (CSP for Google sign-in and the Calendar API). | **Resolved:** `accounts.google.com` (script, style, frame, connect) and `www.googleapis.com` (connect) only. Checked: the GSI script loads under the policy. |
+| S3 | **M5-S9** (rate-limit spoofing and quota). | One origin; the API is on 127.0.0.1 behind a firewall (only 22/80/443 open), so trusting X-Forwarded-For is safe. Still open: no login, so anyone with the URL can use our quota at 30 requests/min per IP. `DEMO_CACHE=replay` keeps the scripted demo off Gemini. Team decision. |
+| S4 | `.env` on the VM. | `chmod 600`, owned by the deploy user and read by systemd; the API process never needs file access to it. |
+| S5 | Styles still allow `'unsafe-inline'`. | Needed for React style attributes and the toast library's injected styles; style injection is much lower risk than script injection. Listed. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Not live yet. | Human steps in DEPLOY.md: VM, domain, DNS, OAuth origin, `.env` with the key. |
+| O2 | Caddyfile syntax not machine-checked here. | First check on the VM (`systemctl reload caddy` fails loudly; `caddy validate --config /etc/caddy/Caddyfile` first is recommended). |
+| O3 | `preview:prod` approximates Caddy (headers, caching, fallback, proxy); it isn't Caddy. | Good enough to catch CSP errors, which is its purpose. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
+

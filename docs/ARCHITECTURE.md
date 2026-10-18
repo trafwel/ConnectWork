@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M12 built**: everything through M11, plus a *demo that survives bad Wi-Fi*. On judging morning the scripted demo's AI answers are recorded ([DEMO_DAY.md](DEMO_DAY.md)); the server replays them, and if the server can't be reached, the browser answers from the same recording. Deploy (M13–M14) and later are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
+**Current state: M13 built (deploy config; going live is a human step)**: everything through M12, plus the production setup. Caddy serves the built app over HTTPS with a strict Content-Security-Policy and forwards `/api` to the API, which listens on 127.0.0.1 only. There's a runbook ([DEPLOY.md](DEPLOY.md)), an update script, and `pnpm preview:prod` to try the same headers locally. The VM, domain and DNS are human steps. Month view (M14) and the side tracks are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ### 1. The big picture
 
@@ -11,6 +11,7 @@ flowchart LR
   Phone(["User's phone"]):::external
   Browser["Browser app<br/><small>all user data lives here</small>"]:::built
   Server["Server<br/><small>Node + Hono · holds the API key, stores nothing</small>"]:::built
+  Caddy["Caddy on the VM<br/><small>HTTPS, CSP + security headers, static files · config M13, live: human step</small>"]:::planned
   Gemini["Gemini API"]:::external
   GCal["Google Calendar"]:::external
   Photon["Photon 2.0<br/><small>iMessage line</small>"]:::external
@@ -18,6 +19,8 @@ flowchart LR
   GitHub["GitHub repo"]:::external
   VEYZL["VEYZL<br/><small>audits each PR</small>"]:::external
 
+  Browser -.->|"production: https://domain · M13"| Caddy
+  Caddy -.->|"/api/* → 127.0.0.1:8787"| Server
   Browser -->|"/api/health · M0"| Server
   Browser -->|"POST /api/ai/query · M5 (summary, no notes)"| Server
   Server -->|"structured JSON · M5"| Gemini
@@ -204,7 +207,8 @@ flowchart LR
 | M10 | Drift on the map, drift limits in Settings, list view, keyboard path | ✅ built ([review](REVIEWS.md#m10)) |
 | M11 | Google Calendar (browser only), sample meetings, meeting strip, prep card, Log this meeting | ✅ built ([review](REVIEWS.md#m11)) |
 | M12 | Demo hardening: record / replay checked, browser offline fallback, DEMO_DAY runbook | ✅ built ([review](REVIEWS.md#m12)) |
-| M13–M14 | Deploy | ⬜ |
+| M13 | Deploy config: Caddyfile (HTTPS, CSP, caching), hardened systemd unit, update script, DEPLOY.md, `preview:prod` | ✅ built ([review](REVIEWS.md#m13)) · going live is a human step |
+| M14 | Month view (only if time remains) | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
 
 ## Changelog
@@ -228,3 +232,4 @@ flowchart LR
 | Oct 17 | M10 | Browser: new List view box (App → List → UI state); App computes each person's drift once and feeds the map (offset, fading) and list; Settings writes the drift limits through `actions.ts`; Summary + guardrails now names the single drift rule (`drift.ts`, `useDriftThresholds`). Server: `/query` takes optional limits. Status: M10 ✅, M11 next. |
 | Oct 17 | M11 | Big picture: browser ↔ Google Calendar is built (direct, token in memory). Browser: new Meetings box (strip + prep card) that opens meetings through the UI state, writes through `actions.ts` and calls `/meeting-brief`; calendar export sends one reminder to Google when connected. Server: `/meeting-brief` replaces the planned "more routes" box. Status: M11 ✅, M12 next. |
 | Oct 17 | M12 | Browser: the API client gains an offline fallback to the recorded demo answers (`demo/demo-cache.json`, a lazy chunk), keyed exactly like the server's cache (`cacheKeyAsync` in shared). Server: demo cache unchanged, checked end to end. Status: M12 ✅, M13 next. |
+| Oct 17 | M13 | Big picture: Caddy on the VM sits between the browser and the server in production (dotted until the VM and domain exist; config is in `deploy/`). Server: listens on 127.0.0.1 there (HOST), trusts Caddy's X-Forwarded-For. Status: M13 ✅ (config), live deploy = human step, M14 next. |

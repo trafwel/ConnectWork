@@ -1,30 +1,48 @@
-# M13 — systemd unit for the Connectwork API · Owner: Person A
+# M13 — systemd unit for the Connectwork API · done (installing it is a human step: docs/DEPLOY.md)
 #
 # WHAT THIS ACHIEVES
 #   Keeps the API running on the VM: starts at boot and restarts on crash.
 #
-# STEPS
-#   1. On the VM, clone to /srv/connectwork/app, then: pnpm install && pnpm build
-#   2. Create /srv/connectwork/app/.env from .env.example:
-#        GEMINI_API_KEY=…   ALLOWED_ORIGIN=https://<domain>   DEMO_CACHE=replay
-#      (TODO(M13): never commit this file; chmod 600 it.)
-#   3. sudo cp deploy/connectwork.service /etc/systemd/system/
-#      sudo systemctl daemon-reload && sudo systemctl enable --now connectwork
-#   4. Logs: journalctl -u connectwork -f   (route, status, latency only — never bodies)
+# WHY THESE SETTINGS
+#   - EnvironmentFile: systemd reads .env as ROOT before starting the service as www-data, so
+#     .env can stay chmod 600 (the scaffold's chmod 600 + User=www-data meant the server could
+#     not read its own key). Careful: values from that file OVERRIDE Environment= lines, and
+#     systemd keeps an inline "# comment" as part of a value (.env.example has none since M13).
+#   - HOST=127.0.0.1 and TRUST_PROXY=1 are set on the command line (via env), where .env can't
+#     override them: the API is reachable only through Caddy on this machine, so trusting
+#     X-Forwarded-For is safe (nobody can reach the port directly and fake it).
+#   - DEMO_CACHE=replay goes in the VM's .env (docs/DEPLOY.md): the demo answers from the
+#     recording (M12), so judges don't spend quota.
+#   - Hardening: no new privileges, a read-only system and app folder, no home directories,
+#     a private /tmp. The server writes nothing in replay mode.
+#   - Logs: route, status and latency only — never request bodies (journalctl -u connectwork).
 #
-# Guide: docs/IMPLEMENTATION_GUIDE.md §20
+# STEPS (human, on the VM): docs/DEPLOY.md
+#
+# Guide: docs/IMPLEMENTATION_GUIDE.md §20, docs/DEPLOY.md
 
 [Unit]
 Description=Connectwork API
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 WorkingDirectory=/srv/connectwork/app/apps/server
-ExecStart=/usr/bin/pnpm start
+EnvironmentFile=/srv/connectwork/app/.env
+# tsx directly (what `pnpm start` runs): pnpm itself may try to write to a home folder, which the
+# hardening below makes read-only. PORT must match the Caddyfile's reverse_proxy.
+ExecStart=/usr/bin/env NODE_ENV=production HOST=127.0.0.1 PORT=8787 TRUST_PROXY=1 /srv/connectwork/app/apps/server/node_modules/.bin/tsx src/index.ts
 Restart=always
 RestartSec=3
 User=www-data
-Environment=NODE_ENV=production
+Group=www-data
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
 
 [Install]
 WantedBy=multi-user.target

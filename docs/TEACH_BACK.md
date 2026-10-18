@@ -142,3 +142,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 3. When the server is stopped, the browser doesn't get a network error. What does it get, and how does the app still find the saved answer?
 4. Why is the recording loaded as a separate chunk instead of being imported directly?
 
+## M13
+**Deploy config**
+
+1. Our Content-Security-Policy allows one inline script by its hash. What happens on the live site if someone edits that script in `index.html` and forgets the hash, and what catches it before then?
+2. Why does the API listen on 127.0.0.1 only, and how does that make `TRUST_PROXY=1` safe?
+3. The service reads `.env` through systemd's `EnvironmentFile`. Which two problems did that cause or solve (think: file permissions, and inline comments)?
+4. What does `pnpm preview:prod` check that `pnpm dev` can't?
+

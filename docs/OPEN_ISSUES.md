@@ -20,9 +20,6 @@ Resolved items move to the table at the bottom, with what changed.
 | M1-S4 | `javascript:` URLs in `linkedinUrl` or `email` would run if ever rendered as links. | Both import paths are now closed (CSV: M4-S1; backup: the M1-S2 row schemas drop unsafe links). Still: any milestone that renders them as `<a href>` must allow only `https:`/`mailto:`, because users can *type* anything into the card. |
 | M2-E5 | Main bundle is over Vite's 500 KB warning: 700 KB at M10 (648 KB at M2), because d3 is on the first screen and zod (about 77 KB) arrived with backup validation. | M14 deploy: measure. zod stays in the main bundle (M5 must validate AI replies in the browser); keep snap/calendar behind `import()` like the import dialog. |
 | M2-O5 | Filter tabs have no UI yet (highlights now come from Ask Connectwork, M5). | M7 (filter tabs). |
-| M11-S6 | A strict CSP must allow Google sign-in (`accounts.google.com` script) and the Calendar API (`www.googleapis.com` connect). | M13 (CSP with the deploy). |
-| S-S1 | The no-flash appearance script in `index.html` is inline; a strict CSP would block it. | M13: allow it by hash in the CSP (or move it to a tiny external file). |
-| M5-S9 | The deployed server has no login: anyone who can reach it can spend our Gemini quota (30/min per IP). | M13/M14: serve web and API from one origin behind Caddy (`TRUST_PROXY=1`), and consider a shared demo passcode or lower per-IP limits. |
 | PX-I1 | `PersonNode`'s custom memo comparison lists the fields a node draws. | M7 `flag` ✓, fix 2 ✓, M10 `drift` ✓. Any later milestone that draws a new field or prop must add it to `sameNode`, or that node won't update. |
 
 ## Team decision
@@ -32,6 +29,8 @@ Resolved items move to the table at the bottom, with what changed.
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
 | F1-I5 | `pnpm lint` fails locally because of the untracked nested `conNetWork/` folder (a second copy of the repo). CI is unaffected. | It looks like a stray clone. If nobody needs it, delete it yourselves (Claude never touches it); otherwise add `conNetWork/**` to the ESLint ignores. |
 | F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |
+| M13-O1 | Not live yet: VM, domain + DNS, OAuth origin and the VM's `.env` are human steps. | Follow [DEPLOY.md](DEPLOY.md) (about 30 minutes). Run `caddy validate --config /etc/caddy/Caddyfile` before the first reload. |
+| M5-S9 | The live site has no login: anyone with the URL can spend our Gemini quota (30 requests/min per IP). One origin + localhost-only API now make the per-IP limit trustworthy (M13). | Suggested default: keep `DEMO_CACHE=replay` and the per-IP limit for the judging window; add a shared passcode only if we see abuse. |
 | M12-O1 | The full scripted demo (import → sort → question → links → meeting → weekly → snap) has to be recorded on judging morning (keys include today's dates). | One person, about 10 minutes, following [DEMO_DAY.md](DEMO_DAY.md); commit `demo/demo-cache.json` afterwards. |
 | M11-O1 | Real Google sign-in not tested: it needs a Google Cloud OAuth client and test users (human step). | Follow guide §2, put the client id in `.env` as `VITE_GOOGLE_CLIENT_ID`, restart `pnpm dev`, then click "Connect Google Calendar" once. Until then the demo uses sample meetings. |
 | M11-S5 | Scope `calendar.events` can read and write every event (needed for "Add to calendar"). | Keep it for the demo; a read-only scope would drop Google follow-ups. |
@@ -62,6 +61,8 @@ Resolved items move to the table at the bottom, with what changed.
 | F1-O5 | Escape inside the Add connection form not checked live. | Check once by hand: it should close the form, not the card. |
 | M11-O2 | "Not in your network → Add" not checked live (every sample attendee matches). | The name is guessed from the email; editable on the card. |
 | M11-O4 | Completing a reminder doesn't delete its Google event. | As specified (stretch: PATCH it). |
+| M13-S5 | The CSP still allows inline *styles* (`'unsafe-inline'` in style-src). | Needed for React style attributes and toast styles; style injection is far less dangerous than script injection. |
+| M13-O3 | `pnpm preview:prod` approximates Caddy; Caddy itself wasn't run locally. | Its purpose is catching CSP errors in a real browser; the VM is the first real Caddy run. |
 | M10-O2 | The 8 filter tabs are 8 Tab stops before the table. | An arrow-key group would be faster; acceptable for the demo. |
 | M10-O5 | For imported people the AI summary still includes the LinkedIn connect date as last contact, so the model's sentence about "lost touch" could count them. | The highlighted list is computed in code with the gentle rule; the card flags when code changed the model's list. |
 | M10-O6 | Map / List choice isn't remembered after a reload. | UI state by design; easy to persist later. |
@@ -76,6 +77,8 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| S-S1 | The inline no-flash theme script would be blocked by a strict CSP. | M13: allowed by its SHA-256 hash in the Caddyfile CSP (no `'unsafe-inline'` scripts); `scripts/deploy.test.ts` fails if the script changes without the hash. Checked in the browser via `pnpm preview:prod`. |
+| M11-S6 | A strict CSP must allow Google sign-in and the Calendar API. | M13: `accounts.google.com` and `www.googleapis.com` only; Google's sign-in script loads under the policy (checked). |
 | M5-I5 | "Lost touch" thresholds lived in the prompt and in `lib/drift.ts`. | M10: limits are editable in Settings and sent with each question when they differ from the defaults; the prompt uses the given limits. Server-tested. |
 | M4-O4 | Imported "connected on" dates became last contact, so most imports looked "drifting". | M10: a LinkedIn person whose last contact is still their connect date doesn't drift, and the card/list say "No contact logged · connected …". Unit-tested. |
 | M2-O2 | Keyboard Tab order on the map goes ring 3 → 1. | M10: the list view is the keyboard-first path (Enter opens the card and moves focus into it; Escape returns). Checked live. |

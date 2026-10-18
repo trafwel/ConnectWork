@@ -1,29 +1,63 @@
-# M13 — Caddy config for the live demo · Owner: Person A
+# M13 — Caddy config for the live demo · done (the domain is a human step: docs/DEPLOY.md)
 #
 # WHAT THIS ACHIEVES
 #   One small VM serves the whole app over HTTPS at our domain: the built web
 #   app as static files, and /api/* proxied to the Node server. Caddy gets and
 #   renews the HTTPS certificate automatically.
 #
-# STEPS
-#   1. TODO(M13): replace connectwork.example with our GoDaddy Registry domain.
-#   2. Point the domain's A record at the VM's IP (GoDaddy DNS) and wait a few minutes.
-#   3. sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
-#   4. Check: curl https://<domain>/api/health → {"ok":true,...}
+# WHY ONE ORIGIN
+#   Web and API share https://<domain>, so the browser needs no CORS, cookies never matter,
+#   and the API can listen on 127.0.0.1 only (HOST in connectwork.service): the rate limit can
+#   trust X-Forwarded-For because Caddy is the only way in.
 #
-# Guide: docs/IMPLEMENTATION_GUIDE.md §20
+# SECURITY HEADERS (checked locally by `pnpm preview:prod`, which reads the CSP from this file)
+#   - Content-Security-Policy: only our own files run. The one inline script (the no-flash
+#     theme script in apps/web/index.html) is allowed by its SHA-256 hash, not 'unsafe-inline'
+#     (deploy.test.ts fails if the script changes and this hash doesn't). Google sign-in and the
+#     Calendar API are the only outside hosts (M11). Styles keep 'unsafe-inline' because React
+#     style attributes and the toast library's injected styles need it.
+#   - Cross-Origin-Opener-Policy same-origin-allow-popups: Google's sign-in popup must be able to
+#     report back to this page.
+#   - HSTS, nosniff, a strict referrer policy, no camera/mic/location, and no framing.
+#
+# STEPS (human, on the VM): docs/DEPLOY.md
+#   1. sudo sed -i 's/connectwork.example/<our domain>/' /etc/caddy/Caddyfile (after copying it)
+#   2. DNS A record → the VM's IP; wait a few minutes.
+#   3. sudo systemctl reload caddy; curl https://<domain>/api/health → {"ok":true,...}
+#
+# Guide: docs/IMPLEMENTATION_GUIDE.md §20, docs/DEPLOY.md
 
 connectwork.example {
-	encode gzip
+	encode zstd gzip
 
-	# API → the Node server (deploy/connectwork.service, port 8787)
-	handle /api/* {
-		reverse_proxy localhost:8787
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-jP8KvGzvu6hwg7Cs3MiAS/DgRGLZQcOXtykCl5XcJs4=' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://www.googleapis.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Cross-Origin-Opener-Policy "same-origin-allow-popups"
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
 	}
 
-	# Everything else → the built single-page app; unknown paths fall back to index.html
+	# API → the Node server (deploy/connectwork.service, 127.0.0.1:8787). Caddy sets X-Forwarded-For.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
+	# Hashed build files never change: cache them for a year. (Separate handle blocks are mutually
+	# exclusive, so each response gets exactly one Cache-Control.)
+	handle /assets/* {
+		root * /srv/connectwork/app/apps/web/dist
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Everything else → the built single-page app; unknown paths fall back to index.html, which must
+	# always be revalidated (it names the current hashed files).
 	handle {
 		root * /srv/connectwork/app/apps/web/dist
+		header Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
 	}
