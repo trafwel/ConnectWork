@@ -1040,3 +1040,16 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 | O3 | M17 (Backboard memory) is skipped, so "her/him" in a follow-up text isn't resolved across texts. | Team decision (skip). |
 | O4 | "Text me this" from the weekly review isn't wired to the UI yet (`notifyOwner` exists, and the server's notify route is tested). | Small follow-up. |
 
+## Declutter (Oct 18)
+
+**From two team screenshots: "too much visual clutter even in a group view, and it's nonintuitive"** · branch `declutter` (on `m16-texting`)
+
+| | Problem in the screenshot | Change | Checked (155 people) |
+| --- | --- | --- | --- |
+| D1 | Lines everywhere, including long ones from the 114 outer-ring imports across the whole map. | Lines show only **between close people (rings 1–2)**, plus anything touching someone in focus (hovered, or in an AI answer). With someone selected, only their lines. Rule `linkIsShown`, tested. | Map: 24 lines instead of dozens. |
+| D2 | Ring 3 is a solid wall of outlined dots. | Outer-ring people **recede**: 80% size, 55% fill, no outline, until they're hovered, selected, highlighted or a neighbor. | 124 receded; a highlight or selection brings one back. |
+| D3 | Groups view: thick group-to-group lines, one even running through "You". | **No lines between groups.** Their connections are now words in each group's label ("Work group, 126 people…; connected to School (5)"). | Groups view: 0 lines until a group is opened. |
+| D4 | Opening a group sprinkled its people across the rings; several could be open at once. | **One group at a time.** Opening **zooms to fit that group** and fades the others to 35%; **Back** (or Escape) zooms out again. | Work → zoom 1.9×, 14 named people, the other 4 groups faded; Back → identity view, all groups full. |
+
+**Checks:** typecheck, lint, 198 tests (3 new for the declutter rules and group labels), build.
+
