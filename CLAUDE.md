@@ -21,8 +21,8 @@ Connectwork is a local-first web app that maps a user's personal network as ring
    - **Integration** — does it work with every piece it touches (store, database, server, other milestones' files, the architecture graph)? Run the app and check, don't assume.
    - **Security & privacy** — data leaving the browser, secrets, injection (prompt, HTML, CSV), unsafe input, logging of personal data.
    - **Other flaws** — edge cases, accessibility, error handling, things the tests don't cover.
-   Fix what can be fixed in the same milestone; list the rest as known issues with a reason.
-4. **Teach-back check before moving on.** At the end of the milestone, summarize the key concepts and ask the team 2–4 short questions to confirm they understand them. Do NOT start the next milestone until the team says they understand and asks to continue. If an answer shows a gap, explain that concept again (differently) first.
+   Fix what can be fixed in the same milestone; list the rest as known issues with a reason, and copy every unresolved item into `docs/OPEN_ISSUES.md` (grouped: fix now / waits for a milestone / team decision / won't fix). After the milestone, fix the "fix now" group in a separate step and move those items to Resolved.
+4. **Teach-back check before moving on.** At the end of the milestone, summarize the key concepts and write 2–4 short questions into `docs/TEACH_BACK.md` (the team answers them there or in chat). Do NOT start the next milestone until the team says they understand and asks to continue. If an answer shows a gap, explain that concept again (differently) first.
 5. **Update the architecture graph** (`docs/ARCHITECTURE.md`) at the end of every milestone: mark what is now built, add new parts and connections, and add a changelog line. The graph must always match the code on the branch.
 6. Each milestone lands as its own branch + pull request (so VEYZL audits it); merging and pushing only when the team says so.
 

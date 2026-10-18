@@ -1,10 +1,10 @@
 /**
- * App shell · M3 state (grows in every milestone)
+ * App shell · M4 state (grows in every milestone)
  *
  * WHAT THIS DOES NOW (M3)
  *   Seeds the demo into IndexedDB on first load, then shows the ring map: top bar
  *   (+ Add), the map (pan, zoom, click to select and center), the person card on
- *   the right, Quick add (N), Settings and toasts. Escape closes the card.
+ *   the right, Quick add (N), CSV import, Settings and toasts. Escape closes the card.
  *   (The M0 health line is gone from the screen; /api/health still exists.)
  *
  * WHAT IT BECOMES
@@ -17,6 +17,11 @@
  *       1. On mount, call ensureSeeded() (db/seed.ts) and keep a `ready` flag.
  *       2. Replace this page with the layout: <TopBar> on top, <main> below,
  *          <QuickAdd />
+      {importLoaded && (
+        <Suspense fallback={null}>
+          <ImportDialog />
+        </Suspense>
+      )}
       <SettingsDialog /> and <Toaster position="bottom-center" /> at the end.
  *       3. Root: <div className="flex h-screen flex-col bg-background text-foreground">.
  *   M2  ✓ done.
@@ -32,7 +37,8 @@
  *   M3  ✓ done.
  *       8. const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
  *          useHotkey('n', openQuickAdd); a "+ Add N" button in the top bar; render <QuickAdd />.
- *   M4  9. An "Import" button (setDialog('import', true)) and <ImportDialog />.
+ *   M4  ✓ done.
+ *       9. An "Import" button (setDialog('import', true)) and <ImportDialog />.
  *   M5 10. <AgentBar /> centered in the top bar, <DemoBanner /> under it,
  *          <AgentAnswer /> as the first child of <main>.
  *   M6 11. "Find hidden links" button; the right panel shows <ReviewSheet /> when
@@ -40,9 +46,9 @@
  *
  * Shared file: tell your teammate before editing it. Guide: docs/IMPLEMENTATION_GUIDE.md §1.4, §4.4
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { PersonCard } from '@/components/PersonCard';
 import { QuickAdd } from '@/components/QuickAdd';
 import { SettingsDialog } from '@/components/SettingsDialog';
@@ -57,12 +63,19 @@ import { dueReminders } from '@/lib/people';
 import { useHotkey } from '@/lib/useHotkey';
 import { useStore } from '@/store/useStore';
 
+// Loaded the first time Import is opened: keeps Papa Parse and the dialog out of the main bundle (M4-E5).
+const ImportDialog = lazy(() => import('@/components/ImportDialog').then((m) => ({ default: m.ImportDialog })));
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [seedError, setSeedError] = useState(false);
   const selectedId = useStore((s) => s.selectedPersonId);
   const setDialog = useStore((s) => s.setDialog);
   const clearFocus = useStore((s) => s.clearFocus);
+  const importOpen = useStore((s) => s.importOpen);
+  // Once loaded, the dialog stays mounted so its close animation can play.
+  const [importLoaded, setImportLoaded] = useState(false);
+  if (importOpen && !importLoaded) setImportLoaded(true);
 
   // Step 8. Stable handlers, so useHotkey doesn't re-add its listener every render.
   const openQuickAdd = useCallback(() => setDialog('quickAdd', true), [setDialog]);
@@ -93,6 +106,9 @@ export default function App() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <TopBar>
         <span className="flex-1" />
+        <Button size="sm" variant="outline" onClick={() => setDialog('import', true)}>
+          <Upload /> Import
+        </Button>
         <Button size="sm" onClick={openQuickAdd} aria-keyshortcuts="N">
           <Plus /> Add <kbd className="ml-1 text-xs opacity-70">N</kbd>
         </Button>
@@ -105,8 +121,10 @@ export default function App() {
           ) : !loaded ? (
             <Centered title="Loading…" />
           ) : people.length === 0 ? (
-            // M4: mention "Import" here once it exists.
-            <Centered title="No one on your map yet" detail="Press N to add someone, or Settings → Reset demo data for the sample network." />
+            <Centered
+              title="No one on your map yet"
+              detail="Import your LinkedIn connections, press N to add someone, or use Settings → Reset demo data for the sample network."
+            />
           ) : (
             <RingMap people={people} links={links} tags={tags} filterContext={filterContext} />
           )}
@@ -115,6 +133,11 @@ export default function App() {
         {selectedId && <PersonCard personId={selectedId} />}
       </div>
       <QuickAdd />
+      {importLoaded && (
+        <Suspense fallback={null}>
+          <ImportDialog />
+        </Suspense>
+      )}
       <SettingsDialog />
       <Toaster position="bottom-center" />
     </div>

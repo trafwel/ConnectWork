@@ -16,7 +16,7 @@
  *   3. "Your data" section:
  *        Export backup → download(await exportAll(), 'connectwork-backup.json') using a
  *          temporary <a download> and URL.createObjectURL (revoke it after).
- *        Import backup → a hidden <input type="file" accept="application/json"> clicked via
+ *        Import backup (open-issues step: confirm before replacing, M1-O5) → a hidden <input type="file" accept="application/json"> clicked via
  *          a ref; on change: importBackup(file), clearFocus(), toast.success; catch → toast.error.
  *          Reset the input value so the same file can be chosen twice.
  *        Reset demo data → resetDemoData(), clearFocus(), toast.
@@ -55,11 +55,14 @@ export function SettingsDialog() {
   const setDialog = useStore((s) => s.setDialog);
   const clearFocus = useStore((s) => s.clearFocus);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** A chosen backup waits here until the user confirms it may replace everything (M1-O5). */
+  const [pendingImport, setPendingImport] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const close = () => {
     setConfirmDelete(false);
+    setPendingImport(null);
     setDialog('settings', false);
   };
 
@@ -109,12 +112,7 @@ export function SettingsDialog() {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 e.target.value = ''; // so choosing the same file again still fires onChange
-                if (!file) return;
-                void run(async () => {
-                  await importBackup(file);
-                  clearFocus();
-                  return 'Backup restored';
-                });
+                if (file) setPendingImport(file); // step 2 of 2 is the confirm below
               }}
             />
             <Button
@@ -131,6 +129,35 @@ export function SettingsDialog() {
               Reset demo data
             </Button>
           </div>
+          {pendingImport && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm" role="group" aria-label="Confirm import">
+              <span className="min-w-0 flex-1">
+                Replace all your data with{' '}
+                <span className="inline-block max-w-full truncate align-bottom font-medium" title={pendingImport.name}>
+                  {pendingImport.name}
+                </span>
+                ?
+              </span>
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await importBackup(pendingImport);
+                    setPendingImport(null);
+                    clearFocus();
+                    return 'Backup restored';
+                  })
+                }
+              >
+                Replace
+              </Button>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setPendingImport(null)}>
+                Cancel
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">The backup file is not encrypted. Keep it somewhere private.</p>
         </section>
 
         <section className="space-y-2">

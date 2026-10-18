@@ -1,5 +1,5 @@
 /**
- * M3 — Every write to the database · done for M3 (applyImport in M4)
+ * M3/M4 — Every write to the database · done
  *
  * WHAT THIS ACHIEVES
  *   One place that enforces the app's data rules, so no component can break them:
@@ -45,7 +45,7 @@
  * Tests: db/actions.test.ts runs every rule above against an in-memory IndexedDB (fake-indexeddb).
  * Guide: §7.1
  */
-import type { Link, Person, Reminder, Ring } from '@connectwork/shared';
+import type { ContactLog, Link, Person, Reminder, Ring } from '@connectwork/shared';
 import { FALLBACK_COLOR } from '@/lib/colors';
 import { addDays, isoDate, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
@@ -102,13 +102,47 @@ export async function updatePerson(id: string, patch: Partial<Omit<Person, 'id'>
   });
 }
 
-// Step 3. Nothing may point at a deleted person.
-export async function deletePerson(id: string): Promise<void> {
+/** Everything deletePerson removes, so Undo can put it back exactly (open-issues step, M3-O5). */
+export interface DeletedPerson {
+  person: Person;
+  links: Link[];
+  reminders: Reminder[];
+  contactLogs: ContactLog[];
+}
+
+/** Removes people and everything pointing at them. Must run inside a transaction over these tables. */
+async function removePeople(ids: string[]): Promise<void> {
+  await db.people.bulkDelete(ids);
+  await db.links.where('fromId').anyOf(ids).or('toId').anyOf(ids).delete();
+  await db.reminders.where('personId').anyOf(ids).delete();
+  await db.contactLogs.where('personId').anyOf(ids).delete();
+}
+
+// Step 3. Nothing may point at a deleted person. Returns a snapshot for Undo.
+export async function deletePerson(id: string): Promise<DeletedPerson | undefined> {
+  return db.transaction('rw', [db.people, db.links, db.reminders, db.contactLogs], async () => {
+    const person = await db.people.get(id);
+    if (!person) return undefined;
+    const snapshot: DeletedPerson = {
+      person,
+      links: await db.links.where('fromId').equals(id).or('toId').equals(id).toArray(),
+      reminders: await db.reminders.where('personId').equals(id).toArray(),
+      contactLogs: await db.contactLogs.where('personId').equals(id).toArray(),
+    };
+    await removePeople([id]);
+    return snapshot;
+  });
+}
+
+/** Undo for deletePerson: puts the person and everything attached back, in one transaction. */
+export async function restorePerson(snapshot: DeletedPerson): Promise<void> {
   await db.transaction('rw', [db.people, db.links, db.reminders, db.contactLogs], async () => {
-    await db.people.delete(id);
-    await db.links.where('fromId').equals(id).or('toId').equals(id).delete();
-    await db.reminders.where('personId').equals(id).delete();
-    await db.contactLogs.where('personId').equals(id).delete();
+    await db.people.put(snapshot.person);
+    // Only links whose other person still exists (they may have been deleted meanwhile).
+    const others = await db.people.bulkGet(snapshot.links.map((l) => (l.fromId === snapshot.person.id ? l.toId : l.fromId)));
+    await db.links.bulkPut(snapshot.links.filter((_, i) => others[i]));
+    await db.reminders.bulkPut(snapshot.reminders);
+    await db.contactLogs.bulkPut(snapshot.contactLogs);
   });
 }
 
@@ -170,11 +204,44 @@ export async function removeLink(id: string): Promise<void> {
   await db.links.delete(id);
 }
 
+// Step 7. One transaction: a 114-person import lands completely or not at all.
 export async function applyImport(
-  _plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
-  _source: Person['source'],
-  _defaultTag: string,
+  plan: { toAdd: Array<Partial<Person> & { name: string }>; toUpdate: Array<{ id: string; patch: Partial<Person> }> },
+  source: Person['source'],
+  defaultTag: string,
 ): Promise<string[]> {
-  // TODO(M4) step 7
-  return [];
+  const createdAt = new Date().toISOString();
+  const people: Person[] = plan.toAdd.map((d) => {
+    const tags = d.tags?.length ? d.tags : [defaultTag];
+    return {
+      ...d,
+      id: newId('p'),
+      name: d.name.trim(),
+      ring: d.ring ?? 3, // unsorted imports start on the outer ring; M6 sorts them
+      primaryTag: tags[0]!,
+      tags,
+      lastContact: d.lastContact ?? d.metAt, // "connected on" is the best guess we have
+      source,
+      createdAt,
+    };
+  });
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    await db.people.bulkAdd(people);
+    await db.people.bulkUpdate(plan.toUpdate.map(({ id, patch }) => ({ key: id, changes: patch })));
+    await ensureTags(people.flatMap((p) => p.tags));
+  });
+  return people.map((p) => p.id);
+}
+
+/**
+ * Undo for applyImport (open-issues step, M4-O3): removes the people it added (and anything
+ * attached to them since), and clears ONLY the fields it filled, which were empty before.
+ */
+export async function undoImport(addedIds: string[], filled: Array<{ id: string; patch: Partial<Person> }>): Promise<void> {
+  await db.transaction('rw', [db.people, db.links, db.reminders, db.contactLogs], async () => {
+    await removePeople(addedIds);
+    await db.people.bulkUpdate(
+      filled.map(({ id, patch }) => ({ key: id, changes: Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) })),
+    );
+  });
 }

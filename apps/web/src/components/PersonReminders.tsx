@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { addReminder, deleteReminder, setReminderDone } from '@/db/actions';
 import { db } from '@/db/db';
-import { addDays, isoDate } from '@/lib/dates';
+import { addDays, formatDate, isoDate } from '@/lib/dates';
 import { isOverdue } from '@/lib/people';
 import { cn, sectionHeading } from '@/lib/utils';
 
@@ -51,10 +51,10 @@ export function PersonReminders({ personId }: { personId: string }) {
                   aria-label={`Mark "${r.note}" done`}
                 />
                 {/* Overdue: color AND a word, never color alone */}
-                <span className={cn('tabular-nums', overdue && 'font-medium text-destructive')}>
-                  {r.dueDate}
+                <time dateTime={r.dueDate} className={cn('shrink-0 tabular-nums', overdue && 'font-medium text-destructive')}>
+                  {formatDate(r.dueDate)}
                   {overdue && ' · overdue'}
-                </span>
+                </time>
                 <span className={cn('flex-1 truncate', r.done && 'text-muted-foreground line-through')}>{r.note}</span>
                 <Button variant="ghost" size="icon-xs" aria-label={`Delete reminder "${r.note}"`} onClick={() => deleteReminder(r.id)}>
                   <Trash2 />

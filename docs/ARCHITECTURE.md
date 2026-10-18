@@ -2,7 +2,7 @@
 
 **Updated after every milestone.** Green boxes and solid arrows are **built**; dashed gray ones are **planned**; blue boxes are outside services. Each box names its file(s) and the milestone that builds it. GitHub renders these diagrams; in VS Code use a Mermaid preview extension.
 
-**Current state: M3 built** — the demo network is seeded into IndexedDB and drawn as the ring map; clicking a person opens an editable card (fields, tags, last contact, notes, reminders, connections); N opens Quick add; every write goes through `db/actions.ts`. CSV import (M4) and everything after it are scaffolds. Self-reviews: [REVIEWS.md](REVIEWS.md).
+**Current state: M4 built** — the demo network is seeded into IndexedDB and drawn as the ring map; clicking a person opens an editable card; N opens Quick add; Import reads a LinkedIn export or any CSV in the browser, previews it, dedupes and writes it in one transaction; every write goes through `db/actions.ts`. Ask Connectwork (M5) and everything after it are scaffolds. Open items: [OPEN_ISSUES.md](OPEN_ISSUES.md). Self-reviews: [REVIEWS.md](REVIEWS.md).
 
 ### 1. The big picture
 
@@ -37,6 +37,9 @@ flowchart LR
 ```mermaid
 flowchart LR
   Demo[/"demo/seed.json<br/><small>loaded on demand · M1</small>"/]:::built
+  CsvFile[/"CSV file<br/><small>LinkedIn Connections.csv or any CSV · read in the browser</small>"/]:::built
+  Csv["CSV logic<br/><small>lib/csv.ts · parse, map, dedupe, plan · M4</small>"]:::built
+  Rows["Stored-row schemas (zod)<br/><small>packages/shared/src/storedRows.ts · post-M4</small>"]:::built
   App["App shell<br/><small>App.tsx · M0–M3 · hotkeys N, Escape</small>"]:::built
   Chrome["Top bar · Settings dialog<br/><small>TopBar.tsx, SettingsDialog.tsx · M1</small>"]:::built
   Store["UI state<br/><small>store/useStore.ts · M1</small>"]:::built
@@ -49,7 +52,7 @@ flowchart LR
     direction TB
     Map["Ring map<br/><small>graph/RingMap, PersonNode, LinkLine · M2</small>"]:::built
     Card["Person card · quick add<br/><small>PersonCard, QuickAdd, RingPicker, TagSelect, PersonReminders, PersonLinks · M3</small>"]:::built
-    Import["CSV import · M4"]:::planned
+    Import["CSV import<br/><small>ImportDialog · lazy-loaded · preview, undo · M4</small>"]:::built
     Ask["Ask Connectwork · M5"]:::planned
     Review["Review sheet · M6"]:::planned
     Weekly["Weekly review · M8"]:::planned
@@ -70,7 +73,8 @@ flowchart LR
   App --> Chrome
   Chrome -->|"settingsOpen, clearFocus"| Store
   Chrome -->|"reset · delete · export · import"| Seed
-  Seed <-->|"export / import (validated)"| BackupFile
+  Seed <-->|"export (no secrets) / import (confirmed)"| BackupFile
+  Seed -->|"validate every row"| Rows
   Demo -->|"dynamic import()"| Seed
   Seed -->|"one transaction per action"| DB
   App -->|"selected person → card"| Card
@@ -78,7 +82,9 @@ flowchart LR
   Card -->|"read: useLiveQuery"| DB
   Card -->|"every write"| Actions
   Actions -->|"one transaction per rule"| DB
-  Import -.->|"applyImport · M4"| Actions
+  CsvFile -->|"file.text()"| Import
+  Import -->|"parseCsv, planImport"| Csv
+  Import -->|"applyImport (one transaction)"| Actions
   Ask -.-> Api
   Review -.-> Api
   Weekly -.-> Api
@@ -136,8 +142,8 @@ flowchart LR
 | M1 | IndexedDB, seeding, UI state, settings | ✅ built ([review](REVIEWS.md#m1)) |
 | M2 | Ring map | ✅ built ([review](REVIEWS.md#m2)) |
 | M3 | Every write (`actions.ts`), person card, quick add | ✅ built ([review](REVIEWS.md#m3)) |
-| M4 | CSV import | ⬜ next |
-| M5 | Ask Connectwork → `/api/ai/query` → Gemini | ⬜ |
+| M4 | CSV import | ✅ built ([review](REVIEWS.md#m4)) |
+| M5 | Ask Connectwork → `/api/ai/query` → Gemini | ⬜ next |
 | R, M6 | Route helper; review sheet; classify + links | ⬜ |
 | M7–M14 | Flags/filters, weekly review, snap, drift, calendar, demo cache, deploy | ⬜ |
 | M15–M17 | VEYZL, Photon texting agent, Backboard | ⬜ |
@@ -150,3 +156,5 @@ flowchart LR
 | Oct 17 | M1 | Browser diagram: demo file, App, top bar + Settings, UI state, seed module and IndexedDB are built; added the backup file and the real arrows (seed on mount, live count, Settings → seed → one transaction per action). Status: M1 ✅, M2 next. |
 | Oct 17 | M2 | Browser diagram: ring map built, with its layout (d3-force) and pure helpers as new boxes; App now feeds the map from four live queries; the map reads selection, highlights and filter from the store. Planned UI arrows now start from the person card (M3). Status: M2 ✅, M3 next. |
 | Oct 17 | M3 | Browser diagram: `actions.ts` and the person card / quick add are built; App opens the card for the selected person; the card reads live and writes only through `actions.ts`, which writes to IndexedDB in transactions. Planned: CSV import will write through `applyImport`. Status: M3 ✅, M4 next. |
+| Oct 17 | M4 | Browser diagram: CSV file, CSV logic (`lib/csv.ts`) and the import dialog are built; the file is read in the browser, planned (dedupe, fill-only) and written through `applyImport` in one transaction. Status: M4 ✅, M5 next. |
+| Oct 17 | post-M4 | Open-issues step: added the stored-row schemas that every backup row is checked against; backups carry no secrets and ask before replacing; the import dialog is lazy-loaded and has Undo. |

@@ -32,7 +32,7 @@
  *   7. Notes: <Textarea> with a local draft, saved on blur.
  *   8. <PersonReminders personId /> and <PersonLinks personId /> sections.
  *   9. "Delete person" → inline confirm ("Delete Abbey Chen?" Delete / Cancel) →
- *      deletePerson, selectPerson(null), toast.
+ *      deletePerson, selectPerson(null), toast with Undo (restorePerson; open-issues step).
  *
  * DONE WHEN
  *   - Edits survive a reload; the follow-up tag creates a reminder; delete removes the node.
@@ -49,7 +49,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { deletePerson, logContact, updatePerson } from '@/db/actions';
+import { deletePerson, logContact, restorePerson, updatePerson } from '@/db/actions';
 import { db } from '@/db/db';
 import { safeColor, tagColor } from '@/lib/colors';
 import { describeLastContact } from '@/lib/people';
@@ -227,9 +227,12 @@ function CardBody({ person }: { person: Person }) {
               variant="destructive"
               size="sm"
               onClick={async () => {
-                await deletePerson(person.id);
+                const snapshot = await deletePerson(person.id);
                 selectPerson(null);
-                toast.success(`Deleted ${person.name}`);
+                // Undo restores the person with their links, reminders and history (M3-O5).
+                toast.success(`Deleted ${person.name}`, {
+                  action: snapshot ? { label: 'Undo', onClick: () => void restorePerson(snapshot).then(() => selectPerson(snapshot.person.id)) } : undefined,
+                });
               }}
             >
               Delete

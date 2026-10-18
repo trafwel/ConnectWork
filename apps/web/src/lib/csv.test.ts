@@ -1,6 +1,6 @@
 // ACCEPTANCE TESTS for M4 (lib/csv.ts).
 // These are skipped until you build that milestone. They describe exactly what
-// "done" means: when you finish it, change every `describe.skip(` below back to
+// "done" means: when you finish it, change every `describe(` below back to
 // `describe(` and run `pnpm test` — they should all pass.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -28,7 +28,7 @@ const person = (over: Partial<Person>): Person => ({
   ...over,
 });
 
-describe.skip('parseLinkedInDate', () => {
+describe('parseLinkedInDate', () => {
   it('parses LinkedIn day-month-year dates', () => {
     expect(parseLinkedInDate('15 Oct 2024')).toBe('2024-10-15');
     expect(parseLinkedInDate('3 Jan 2026')).toBe('2026-01-03');
@@ -43,7 +43,7 @@ describe.skip('parseLinkedInDate', () => {
   });
 });
 
-describe.skip('parseCsv (LinkedIn)', () => {
+describe('parseCsv (LinkedIn)', () => {
   it('skips the notes lines and reads every row of the demo export', () => {
     const parsed = parseCsv(demoCsv);
     expect(parsed.kind).toBe('linkedin');
@@ -80,7 +80,7 @@ describe.skip('parseCsv (LinkedIn)', () => {
   });
 });
 
-describe.skip('generic CSV', () => {
+describe('generic CSV', () => {
   const text = 'Full Name,Organization,Title,Tags,Ring\nAlan Turing,Bletchley,Cryptanalyst,Work;Clubs,2\nNo Ring,,,,\n';
 
   it('falls back to generic parsing and guesses columns', () => {
@@ -103,7 +103,7 @@ describe.skip('generic CSV', () => {
   });
 });
 
-describe.skip('dedupe', () => {
+describe('dedupe', () => {
   it('normalizes LinkedIn URLs', () => {
     expect(normalizeLinkedInUrl('https://www.LinkedIn.com/in/ada/?trk=x')).toBe('linkedin.com/in/ada');
     expect(normalizeLinkedInUrl('linkedin.com/in/ada')).toBe('linkedin.com/in/ada');
@@ -148,5 +148,46 @@ describe.skip('dedupe', () => {
     const second = planImport(imported, parsed.drafts);
     expect(second.toAdd).toHaveLength(0);
     expect(second.toUpdate).toHaveLength(0);
+  });
+});
+
+// M4 self-review hardening (added beyond the acceptance tests above).
+describe('import hardening', () => {
+  it('drops non-LinkedIn URLs and bad emails, so a file cannot plant a javascript: link', () => {
+    const parsed = parseCsv('First Name,Last Name,URL,Email Address\nEve,X,javascript:alert(1),not-an-email\nBob,Y,https://evil.example/in/bob,bob@example.com\n');
+    if (parsed.kind !== 'linkedin') throw new Error('expected linkedin');
+    expect(parsed.drafts.map((d) => [d.linkedinUrl, d.email])).toEqual([
+      [undefined, undefined],
+      [undefined, 'bob@example.com'],
+    ]);
+  });
+
+  it('reads a file that starts with a byte-order mark', () => {
+    const parsed = parseCsv('\uFEFFFirst Name,Last Name\nGrace,Hopper\n');
+    expect(parsed.kind === 'linkedin' && parsed.drafts[0]?.name).toBe('Grace Hopper');
+  });
+
+  it('caps text to the same lengths as the person card', () => {
+    const long = 'x'.repeat(1000);
+    const parsed = parseCsv(`First Name,Last Name,Company\n${long},Y,${long}\n`);
+    if (parsed.kind !== 'linkedin') throw new Error('expected linkedin');
+    expect(parsed.drafts[0]!.name.length).toBe(120);
+    expect(parsed.drafts[0]!.company!.length).toBe(300);
+  });
+
+  it('does not merge namesakes when neither has a company', () => {
+    const existing = [person({ id: 'a', name: 'Alex Kim' })];
+    expect(findMatch(existing, { name: 'Alex Kim' })).toBeUndefined();
+    expect(planImport(existing, [{ name: 'Alex Kim' }]).toAdd).toHaveLength(1);
+  });
+
+  it('plans a large import quickly (indexed matching)', () => {
+    const existing = Array.from({ length: 3000 }, (_, i) => person({ id: `e${i}`, name: `Person ${i}`, linkedinUrl: `linkedin.com/in/p${i}` }));
+    const drafts = Array.from({ length: 3000 }, (_, i) => ({ name: `Person ${i}`, linkedinUrl: `https://www.linkedin.com/in/p${i + 1500}/` }));
+    const t0 = performance.now();
+    const plan = planImport(existing, drafts);
+    expect(performance.now() - t0).toBeLessThan(200);
+    expect(plan.toAdd).toHaveLength(1500);
+    expect(plan.unchanged).toBe(1500);
   });
 });

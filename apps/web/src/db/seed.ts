@@ -24,10 +24,11 @@
  *      'driftThresholds', 'relayToken'), clearAll(), writeSeed(), put the settings back.
  *   6. deleteEverything(): clearAll(), re-add DEFAULT_TAGS, and KEEP meta 'seeded' = true
  *      so the demo doesn't come back on reload.
- *   7. exportAll(): read every table into { app: 'connectwork', version: 1,
+ *   7. exportAll() (open-issues step: settings only, never secrets like relayToken): read every table into { app: 'connectwork', version: 1,
  *      exportedAt, data: { tableName: rows } } and return it as a JSON Blob.
  *   8. importBackup(file): JSON.parse(await file.text()); refuse unless app === 'connectwork'
- *      and data exists; clearAll(); bulkPut each table's rows in one transaction.
+ *      and data exists; validate EVERY row with the stored-row zod schemas (open-issues step,
+ *      M1-S2); clearAll(); bulkPut each table's rows in one transaction.
  *   9. (Theme step T) syncDefaultTagColors(): when a theme changes DEFAULT_TAGS, browsers
  *      that seeded earlier keep old colors. On startup, for each default tag name whose
  *      color/behavior differs, put the new one. Never touch custom tags.
@@ -39,23 +40,13 @@
  * Guide: §5.3
  */
 import type { Table } from 'dexie';
+import { BACKUP_META_KEYS, STORED_ROW_SCHEMAS } from '@connectwork/shared';
 import { DEFAULT_TAGS } from '@/lib/colors';
 import { db, TABLES } from './db';
 import { materializeSeed } from './materialize';
 
 /** Meta keys that are the user's settings, not data: kept across "Reset demo data". */
 const SETTING_KEYS = ['userContext', 'driftThresholds', 'relayToken'] as const;
-
-/** The primary key field of each table (matches the first entry of each schema in db.ts). */
-const PRIMARY_KEY: Record<(typeof TABLES)[number], string> = {
-  people: 'id',
-  links: 'id',
-  reminders: 'id',
-  tags: 'name',
-  meetings: 'id',
-  contactLogs: 'id',
-  meta: 'key',
-};
 
 const allTables = () => TABLES.map((t) => db[t]);
 
@@ -94,7 +85,10 @@ export function ensureSeeded(): Promise<void> {
   seeding ??= (async () => {
     if (await db.meta.get('seeded')) return;
     await writeSeed();
-  })();
+  })().catch((err: unknown) => {
+    seeding = null; // remember success, not failure: the next call tries again
+    throw err;
+  });
   return seeding;
 }
 
@@ -131,22 +125,31 @@ export async function exportAll(): Promise<Blob> {
   const data: Record<string, unknown[]> = {};
   await db.transaction('r', allTables(), async () => {
     for (const t of TABLES) data[t] = await db[t].toArray();
+    // Backups get emailed and synced; secrets (e.g. the M16 relay token) never go in them.
+    data.meta = (data.meta as Array<{ key: string }>).filter((row) => backupMetaKeys.has(row.key));
   });
   const backup = { app: 'connectwork', version: 1, exportedAt: new Date().toISOString(), data };
   return new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
 }
 
-/** Every row must be an object with a string primary key; anything else is refused. */
+const backupMetaKeys = new Set<string>(BACKUP_META_KEYS);
+
+/**
+ * Validates every row of one table with its zod schema (packages/shared/src/storedRows.ts).
+ * Returns the cleaned rows (unknown fields stripped, unsafe links dropped) or throws a
+ * message that names the table, row and field.
+ */
 function checkRows(table: (typeof TABLES)[number], rows: unknown): object[] {
   if (rows === undefined) return [];
   if (!Array.isArray(rows)) throw new Error(`Backup table "${table}" is not a list`);
-  const key = PRIMARY_KEY[table];
-  for (const row of rows) {
-    if (typeof row !== 'object' || row === null || typeof (row as Record<string, unknown>)[key] !== 'string') {
-      throw new Error(`Backup table "${table}" has a row without a valid "${key}"`);
-    }
-  }
-  return rows as object[];
+  // Settings that never travel in backups (e.g. a relay token from an older file) are ignored.
+  const input = table === 'meta' ? rows.filter((r) => backupMetaKeys.has((r as { key?: string } | null)?.key ?? '')) : rows;
+  return input.map((row, i) => {
+    const result = STORED_ROW_SCHEMAS[table].safeParse(row);
+    if (result.success) return result.data;
+    const issue = result.error.issues[0];
+    throw new Error(`Backup table "${table}", row ${i + 1}: ${issue?.path.join('.') || 'row'} is not valid`);
+  });
 }
 
 // Step 8. Validate EVERYTHING before touching the database, then clear + write in one

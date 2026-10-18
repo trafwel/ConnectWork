@@ -1,5 +1,7 @@
 # Connectwork — Milestone self-reviews
 
+Open items from every review are collected in [OPEN_ISSUES.md](OPEN_ISSUES.md); teach-back questions are in [TEACH_BACK.md](TEACH_BACK.md).
+
 After every milestone Claude reviews its own work through four lenses (rule 3 in `CLAUDE.md`): **efficiency**, **integration**, **security & privacy**, and **other flaws**. Fixed items say what changed; open items say why they wait and where they belong.
 
 ## M1
@@ -43,13 +45,8 @@ After every milestone Claude reviews its own work through four lenses (rule 3 in
 | O5 | Import replaces everything without a confirm step. A valid but wrong backup overwrites current data. | Open, a team decision: add a confirm like Delete's, or auto-export first? |
 | O6 | Version-check message said "newer version" for any wrong version. | **Fixed:** "Unsupported backup version". |
 
-### Teach-back (open: the team will answer these later)
-1. In M3, someone writes a new person with `indexedDB.open(...)` directly instead of `db.people.add(...)`. What will the user see, and why?
-2. Why does "Delete everything" leave `seeded` set to true? What would happen on the next reload if it didn't?
-3. In `resetDemoData`, why is the demo file loaded *before* `db.transaction(...)` and not inside it?
-4. The seed says John was last contacted "210 days ago". Why store that number instead of the date `2026-03-21`?
-
-Decision still open: **O5**. Should Import ask for confirmation, or auto-export a backup first?
+### Teach-back
+Questions moved to [TEACH_BACK.md](TEACH_BACK.md#m1) (still open).
 
 ## M2
 
@@ -102,11 +99,8 @@ Decision still open: **O5**. Should Import ask for confirmation, or auto-export 
 | O5 | Filter and highlight have no UI yet. | Expected: M5 (agent highlights) and M7 (filter tabs). Verified through the store. |
 | O6 | The empty-state text can't mention Import or N yet. | Expected: a comment in `App.tsx` says to update it in M3/M4. |
 
-### Teach-back (open: the team will answer these later)
-1. Why does the layout run all of its ticks at once, in a layout effect, instead of animating tick by tick? What two problems does that solve?
-2. Editing someone's notes doesn't move anyone on the map, but changing their ring does. What makes the difference in the code?
-3. Why are people outside a filter *dimmed* instead of removed from the map?
-4. Why does `PersonNode` receive a "snapped" zoom (1, 1.3 or 2.2) instead of the real zoom number?
+### Teach-back
+Questions moved to [TEACH_BACK.md](TEACH_BACK.md#m2) (still open).
 
 ## M3
 
@@ -162,8 +156,83 @@ Decision still open: **O5**. Should Import ask for confirmation, or auto-export 
 | O6 | Removing the follow-up tag doesn't remove its reminder. | By design: the reminder is a real task the user may still want. |
 | O7 | Dates show as ISO (`2026-10-24`). | Open, cosmetic: step T. |
 
-### Teach-back (open: the team will answer these later)
-1. Why does no component call `db.people.put(...)` directly, even though it would be one line shorter?
-2. What went wrong when a field copied its value into local state *once*, and how does "draft only while typing" fix it?
-3. Why is `deletePerson` one transaction across four tables? What could a user see if it weren't?
-4. Why are links stored with the smaller id first?
+### Teach-back
+Questions moved to [TEACH_BACK.md](TEACH_BACK.md#m3) (still open).
+
+## M4
+
+**CSV import: LinkedIn export or any CSV** · Oct 17 · branch `m4-csv-import`
+
+**How it was checked:** typecheck, lint (0 warnings), 52 tests (new: 13 acceptance tests in `csv.test.ts` unskipped, 5 hardening tests, 3 `applyImport` tests including a rollback), production build. In the browser, by dropping files on the drop zone:
+- `demo/Connections.csv` previews "120 people found · 114 new · 6 already here". Importing adds 114 people on ring 3 (grey LinkedIn) with company, role, URL, and connection date as last contact. The 6 seed matches are not duplicated, and Abbey ↔ John is still unlinked.
+- Re-importing the same file: **0 new**. It filled one field I'd cleared, and kept a company I'd edited ("My own edit").
+- A generic CSV guesses the columns. Unmapping Name shows "Choose which column holds names." and disables Import. A `.png` is refused.
+- No console errors.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Matching each row against every person is O(n × m), about a million comparisons for 1,000 × 1,000. | **Fixed:** `planImport` builds lookup maps once (`MatchIndex`). A test plans 3,000 × 3,000 in under 200 ms. |
+| E2 | `drafts.slice()` made a new array every render, so the plan was recomputed every render. | **Fixed:** memoized (lint caught it). |
+| E3 | `applyImport` updated matched people one at a time. | **Fixed:** one `bulkUpdate`. |
+| E4 | 114 imported people make the layout block for about 86 ms (M2-E6). | Unchanged; see OPEN_ISSUES. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | The preview could be stale if people change while the dialog is open. | **Handled:** the preview uses a live query, and Import re-plans against the database at click time. |
+| I2 | M6 needs the ids of the people just imported. | **Ready:** `applyImport` returns them. |
+| I3 | Demo story: the 6 seed people in the CSV match by LinkedIn URL. | Verified: no duplicates, Abbey ↔ John unlinked. |
+| I4 | Keyboard: the drop zone is a `<label>` around a visually hidden file input, so Tab reaches the input and the label shows a focus ring. | Built as specified; **not yet checked with a real keyboard** (the browser pane can't open a native file picker). |
+| I5 | Testing lesson: `db.people.where('source')` throws because `source` isn't indexed. | Expected: only indexed fields can use `where()`. |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | A crafted CSV could plant `javascript:` in `linkedinUrl` or a junk email. | **Fixed:** URLs are kept only if they point at `linkedin.com`, and emails only if they look like one (tested). Closes M1-S4 for the import path. |
+| S2 | Imported text bypassed the UI's `maxLength`. | **Fixed:** the same caps (name 120, fields 300, tags 40). Closes M3-S2 for imports; M5 still caps on the server. |
+| S3 | Upload? | None: `file.text()` in the browser. The dialog says so. |
+| S4 | Huge files. | **Fixed:** 10 MB file cap; at most 2,000 people per import, and the preview says so when it trims. |
+| S5 | CSV formula injection (`=HYPERLINK(...)`). | Not applicable: we never write CSV files that a spreadsheet would open. |
+| S6 | A file can't overwrite an existing person by putting their id in a row. | **Tested:** ids are always generated fresh. |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | Name-only matching would merge two different "Alex Kim"s. | **Fixed:** name + company matches only when both have a company (tested). Trade-off: the same person with no URL, email or company in two different files is imported twice. |
+| O2 | My first rollback test for `applyImport` didn't test what its name said. | **Fixed:** replaced with a real rollback test plus an honest id test. |
+| O3 | An import of 114 people has no undo. | Open: **fix now** (see OPEN_ISSUES). |
+| O4 | Imported "connected on" dates become last contact, so most imports will look "drifting" in M10. | Open: M10 should treat `source: 'linkedin'` people with no logged contact gently. |
+| O5 | A generic CSV with an out-of-range ring (e.g. 9) silently falls back to ring 3. | Won't fix: the preview shows everyone landing; they can be moved later. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#m4).
+
+## Open-issues step (after M4)
+
+**Fixing the "fix now" group from [OPEN_ISSUES.md](OPEN_ISSUES.md)** · Oct 17 · branch `m4-csv-import`
+
+**What changed:** ten items fixed. See OPEN_ISSUES → Resolved for each one.
+
+**How it was checked:** typecheck, lint (0 warnings), tests (new: 5 backup tests, 3 undo tests, 2 date-format tests run in UTC, Seattle and Tokyo, 3 colour tests unskipped), production build. In the browser:
+- Initials are dark on pink and green and white on blue.
+- The import chunk isn't loaded until Import opens.
+- Import → Undo goes 154 → 40.
+- Delete John → Undo brings him back with his link and reminder, and reopens his card.
+- The reminder reads "Sun, Oct 18".
+- Settings shows the "not encrypted" hint. Choosing a backup only asks; Cancel keeps the data; a tampered file is refused with the exact row and field; a valid file replaces.
+- No console errors.
+
+### Self-review of the fixes
+| | Finding | Status |
+| --- | --- | --- |
+| Efficiency | Backup validation brings zod (about 77 KB) into the main bundle (571 → 648 KB). | Accepted: M5 needs zod in the browser anyway. Logged under M2-E5. The import dialog split saved 26 KB. |
+| Integration | `PersonNode`'s new memo comparison must learn about any new drawn field. | Logged for M7/M10 (PX-I1), with a ⚠ comment on `sameNode`. |
+| Integration | The memo fix isn't measured at runtime. | Logged (PX-I2). |
+| Security | Backups would have carried the M16 relay token. | **Fixed** and tested (PX-S1). |
+| Security | The backup schemas *clean* unsafe links instead of rejecting the file. | Deliberate: the card lets users type any text, so one odd link mustn't make a whole backup unusable. |
+| Other | Long file names broke mid-word in the import confirm. | **Fixed:** truncated, with the full name in a tooltip. |
+| Other | Undo of an import keeps new tags it created. | Won't fix (PX-O1). |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#open-issues-step-after-m4).
