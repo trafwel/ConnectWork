@@ -65,6 +65,7 @@ export const PersonRow = z.object({
     .string()
     .optional()
     .transform((v) => (isSafePhoto(v) ? v : undefined)),
+  previousTag: z.string().min(1).max(40).optional(),
 }) satisfies z.ZodType<Person, unknown>;
 
 export const LinkRow = z.object({

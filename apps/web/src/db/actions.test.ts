@@ -12,6 +12,8 @@ import {
   deleteGroupIfUnused,
   deletePerson,
   ensureGroup,
+  leaveGroup,
+  undoLeaveGroup,
   deleteReminder,
   LINK_LABEL_MAX,
   logContact,
@@ -408,5 +410,38 @@ describe('Move people: pins and groups (Oct 18)', () => {
     await deletePerson(p.id);
     await deleteGroupIfUnused('Hackathon');
     expect(await db.tags.get('Hackathon')).toBeUndefined();
+  });
+});
+
+describe('Leave / change group from the card (Oct 18)', () => {
+  it('remembers the previous group on every change', async () => {
+    const p = await addPerson({ name: 'Prev Test', ring: 2, primaryTag: 'School' });
+    await updatePerson(p.id, { primaryTag: 'Work' });
+    expect((await db.people.get(p.id))!.previousTag).toBe('School');
+    await updatePerson(p.id, { notes: 'unrelated' });
+    expect((await db.people.get(p.id))!.previousTag).toBe('School');
+  });
+  it('leaving a made group returns them, deletes the empty group, and Undo restores everything', async () => {
+    await ensureGroup('Hackathon', '#882255');
+    const p = await addPerson({ name: 'Leave Test', ring: 2, primaryTag: 'School' });
+    await updatePerson(p.id, { primaryTag: 'Hackathon', tags: ['Hackathon'], pin: { angle: 1, dist: 0.3 } });
+    const left = await leaveGroup(p.id);
+    expect(left).toMatchObject({ group: 'Hackathon', to: 'School', deleted: { name: 'Hackathon', color: '#882255' } });
+    const after = (await db.people.get(p.id))!;
+    expect(after).toMatchObject({ primaryTag: 'School', tags: ['School'], previousTag: 'Hackathon' });
+    expect(after.pin).toBeUndefined();
+    expect(await db.tags.get('Hackathon')).toBeUndefined();
+
+    await undoLeaveGroup(left!);
+    expect(await db.people.get(p.id)).toMatchObject({ primaryTag: 'Hackathon', tags: ['Hackathon'], pin: { angle: 1, dist: 0.3 }, previousTag: 'School' });
+    expect(await db.tags.get('Hackathon')).toMatchObject({ color: '#882255' });
+  });
+  it('keeps a group that others are still in', async () => {
+    await ensureGroup('Climbing', '#44AA99');
+    const a = await addPerson({ name: 'A Climber', ring: 2, primaryTag: 'Climbing' });
+    await addPerson({ name: 'B Climber', ring: 2, primaryTag: 'Climbing' });
+    const left = await leaveGroup(a.id);
+    expect(left?.deleted).toBeUndefined();
+    expect(await db.tags.get('Climbing')).toBeDefined();
   });
 });

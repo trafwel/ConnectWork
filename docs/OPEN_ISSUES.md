@@ -25,7 +25,6 @@ Resolved items move to the table at the bottom, with what changed.
 ## Team decision
 | ID | Question | Claude's suggested default |
 | --- | --- | --- |
-| MP-O1 | Creating a new group needs a drag; there's no keyboard path yet (joining one works from the card's group picker). | Add "New group…" to the card's group picker, which opens a name field. |
 | MP-O2 | Undo toasts close after about 4 s, which is easy to miss after a drag. | Keep Undo toasts for 8 s app-wide (one `duration` setting on the Toaster). |
 | M4-I4 | Import drop zone not yet checked with a real keyboard. | Tab to the drop zone and press Space/Enter once. |
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
@@ -79,6 +78,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| MP-O1 | Creating a new group needed a drag; no keyboard path. | Person card: the group picker has "New group…", which opens a name field (Oct 18). |
 | MO-O1 | Abbey ↔ John was not the first hidden-link suggestion in the demo. | Fewer-people step: the review sheet now lists suggestions strongest first. Abbey ↔ John (90%) leads the re-recorded demo. |
 | F1-I5 | `pnpm lint` failed locally because of the untracked nested `conNetWork/` folder. | Motion step: `eslint.config.js` ignores `conNetWork/**` and pins `tsconfigRootDir`. The folder itself is untouched. |
 | M12-O1 | The full scripted demo had to be recorded (and couldn't replay after an import: random ids). | Polish: repeatable import ids + a fixed summary order; full flow recorded and replay-checked on Oct 18. Re-record on any other day ([DEMO_DAY.md](DEMO_DAY.md)). |

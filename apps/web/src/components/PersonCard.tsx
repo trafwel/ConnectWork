@@ -49,11 +49,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { deletePerson, logContact, restorePerson, updatePerson } from '@/db/actions';
+import { deletePerson, ensureGroup, leaveGroup, logContact, restorePerson, undoLeaveGroup, updatePerson } from '@/db/actions';
 import { db } from '@/db/db';
 import { DraftResponse } from '@connectwork/shared';
 import { aiPost } from '@/lib/api';
-import { safeColor, tagColor } from '@/lib/colors';
+import { nextGroupColor, PRIMARY_TAGS, safeColor, tagColor } from '@/lib/colors';
 import { driftLevel } from '@/lib/drift';
 import { describeLastContact } from '@/lib/people';
 import { useDriftThresholds } from '@/lib/useDriftThresholds';
@@ -120,7 +120,26 @@ function CardBody({ person }: { person: Person }) {
   const selectPerson = useStore((s) => s.selectPerson);
   const [newTag, setNewTag] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [naming, setNaming] = useState<string | null>(null); // the new-group name field, when open
   const extraTags = person.tags.filter((t) => t !== person.primaryTag);
+  // Oct 18 (team request: change or leave a group from the card). A group change replaces the old
+  // group in their tags (so an emptied made group can disappear) and clears a hand-placed spot,
+  // so they move to the new group's sector instead of staying next to the old group.
+  const changeGroup = (to: string) =>
+    to !== person.primaryTag && updatePerson(person.id, { primaryTag: to, tags: [to, ...person.tags.filter((t) => t !== person.primaryTag && t !== to)], pin: undefined });
+  const createGroup = async () => {
+    const name = naming?.trim();
+    if (!name) return;
+    const { name: group } = await ensureGroup(name, nextGroupColor(tags));
+    setNaming(null);
+    await changeGroup(group);
+  };
+  const leave = async () => {
+    const left = await leaveGroup(person.id);
+    if (!left) return;
+    toast(`${person.name} left ${left.group}, now in ${left.to}`, { action: { label: 'Undo', onClick: () => void undoLeaveGroup(left) } });
+  };
+  const madeGroup = !PRIMARY_TAGS.includes(person.primaryTag);
 
   return (
     <>
@@ -130,11 +149,39 @@ function CardBody({ person }: { person: Person }) {
         <PhotoField person={person} color={tagColor(tags, person.primaryTag)} />
         <Label>Ring</Label>
         <RingPicker value={person.ring} onChange={(ring) => updatePerson(person.id, { ring })} />
-        <Label htmlFor="pc-tag">Tag</Label>
+        <Label htmlFor="pc-tag">Group</Label>
         <div className="flex items-center gap-2">
           <span className="inline-block size-2.5 rounded-full" style={{ background: tagColor(tags, person.primaryTag) }} aria-hidden="true" />
-          <TagSelect id="pc-tag" value={person.primaryTag} onChange={(primaryTag) => updatePerson(person.id, { primaryTag })} />
+          <TagSelect id="pc-tag" value={person.primaryTag} onChange={(g) => void changeGroup(g)} onNew={() => setNaming('')} />
+          {madeGroup && naming === null && (
+            <Button size="sm" variant="ghost" onClick={() => void leave()}>
+              Leave {person.primaryTag}
+            </Button>
+          )}
         </div>
+        {naming !== null && (
+          <form
+            className="col-start-2 flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void createGroup();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.stopPropagation(); // close the field, not the card
+                setNaming(null);
+              }
+            }}
+          >
+            <Input autoFocus value={naming} maxLength={40} onChange={(e) => setNaming(e.target.value)} placeholder="New group name" aria-label="New group name" className="h-8" />
+            <Button type="submit" size="sm" disabled={!naming.trim()}>
+              Create
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setNaming(null)}>
+              Cancel
+            </Button>
+          </form>
+        )}
         {FIELDS.map((f) => (
           <FieldRow key={f.key} label={f.label} htmlFor={`pc-${f.key}`}>
             <EditableText

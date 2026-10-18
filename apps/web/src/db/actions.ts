@@ -45,8 +45,9 @@
  * Tests: db/actions.test.ts runs every rule above against an in-memory IndexedDB (fake-indexeddb).
  * Guide: §7.1
  */
-import type { ContactLog, Link, Meeting, Person, Reminder, Ring } from '@connectwork/shared';
+import type { ContactLog, Link, Meeting, Person, Reminder, Ring, Tag } from '@connectwork/shared';
 import { FALLBACK_COLOR } from '@/lib/colors';
+import { leaveDestination } from '@/lib/leaveGroup';
 import { addDays, isoDate, today } from '@/lib/dates';
 import { newId, stableId } from '@/lib/ids';
 import { db } from './db';
@@ -90,6 +91,8 @@ export async function updatePerson(id: string, patch: Partial<Omit<Person, 'id'>
     // Oct 18: a saved drop spot belongs to the ring it was dropped in. Any other ring change (AI
     // sort, the card, the 1/2/3 keys) clears it, so the two can never disagree.
     if (patch.ring !== undefined && patch.ring !== before.ring && !('pin' in patch)) delete next.pin;
+    // Oct 18: remember the group they came from, so "Leave group" on the card can send them back.
+    if (patch.primaryTag !== undefined && patch.primaryTag !== before.primaryTag && !('previousTag' in patch)) next.previousTag = before.primaryTag;
     next.name = next.name.trim() || before.name; // a blank name would leave an empty card title
     if (!next.tags.includes(next.primaryTag)) next.tags = [next.primaryTag, ...next.tags];
     await db.people.put(next);
@@ -360,6 +363,51 @@ export async function deleteGroupIfUnused(name: string): Promise<void> {
   await db.transaction('rw', [db.people, db.tags], async () => {
     const used = await db.people.filter((p) => p.tags.includes(name)).count();
     if (!used) await db.tags.delete(name);
+  });
+}
+
+/** Everything leaveGroup changed, so Undo can put it back exactly. */
+export interface LeftGroup {
+  person: Pick<Person, 'id' | 'primaryTag' | 'tags' | 'pin' | 'previousTag'>;
+  group: string;
+  to: string;
+  /** The group itself, if leaving emptied it and it was deleted. */
+  deleted?: Tag;
+}
+
+/**
+ * Oct 18 (team request: no way to leave a group from a person's card). Moves the person out of
+ * the group they're in, back to where they came from (leaveDestination), drops the old group
+ * from their tags, clears a hand-placed spot so they move to the new group's sector, and deletes
+ * the group if nobody is left in it. One transaction; returns what Undo needs.
+ */
+export async function leaveGroup(id: string): Promise<LeftGroup | undefined> {
+  return db.transaction('rw', [db.people, db.tags], async () => {
+    const p = await db.people.get(id);
+    if (!p) return undefined;
+    const tags = await db.tags.toArray();
+    const to = leaveDestination(p, tags.map((t) => t.name));
+    const group = p.primaryTag;
+    const snapshot: LeftGroup['person'] = { id: p.id, primaryTag: p.primaryTag, tags: p.tags, pin: p.pin, previousTag: p.previousTag };
+    const next: Person = { ...p, primaryTag: to, tags: [to, ...p.tags.filter((t) => t !== group && t !== to)], previousTag: group };
+    delete next.pin;
+    await db.people.put(next);
+    const stillUsed = await db.people.filter((q) => q.tags.includes(group)).count();
+    const deleted = stillUsed ? undefined : tags.find((t) => t.name === group);
+    if (deleted) await db.tags.delete(group);
+    return { person: snapshot, group, to, deleted };
+  });
+}
+
+export async function undoLeaveGroup(left: LeftGroup): Promise<void> {
+  await db.transaction('rw', [db.people, db.tags], async () => {
+    if (left.deleted && !(await db.tags.get(left.deleted.name))) await db.tags.add(left.deleted);
+    const p = await db.people.get(left.person.id);
+    if (!p) return;
+    const back: Person = { ...p, primaryTag: left.person.primaryTag, tags: left.person.tags, pin: left.person.pin, previousTag: left.person.previousTag };
+    if (!back.pin) delete back.pin;
+    if (!back.previousTag) delete back.previousTag;
+    await db.people.put(back);
   });
 }
 

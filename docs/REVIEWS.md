@@ -1282,3 +1282,34 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - Uploading through the card stored an 8 KB JPEG data URL.
 
 **Checks:** typecheck, lint, 223 tests (+3: `isSafePhoto` accepts and refuses, backup row drops an unsafe photo; appearance default), build (the avatars ship in `dist/avatars`).
+
+## Leave or change a group from the person card (Oct 18)
+
+**Team request:** "no option to separate or manage groups in a node's tab". Asked to choose, the team picked **Leave / change group** only (not "separate placement", not rename/delete).
+
+**What changed and why**
+- **The row is called Group** (it said "Tag"), matching the filters, the Groups view and Move people.
+- **Change:**
+  - The picker lists every group plus **New group…**, which opens a name field. Create makes the group with its own color (`ensureGroup` + `nextGroupColor`) and moves the person into it.
+  - This is the keyboard path that open issue MP-O1 asked for. Only the card offers it; Quick add's picker is unchanged.
+- **Leave:** for a group someone made (not one of the six built-in ones), **Leave {group}** sends the person back where they came from.
+  - `updatePerson` now records `previousTag` whenever the group changes.
+  - Where they go is a pure rule in `lib/leaveGroup.ts` (tested): the previous group if it still exists, else Work if they have a company, else Friends.
+  - `leaveGroup` (one transaction) drops the old group from their tags, clears a hand-placed spot, and deletes the group if nobody is left in it.
+  - The toast offers **Undo** (`undoLeaveGroup`), which restores group, tags, spot and previous group, and recreates a deleted group with its original color.
+- **Moving actually moves:** changing a group from the card replaces the old group in their tags (so an emptied group can disappear) and clears a hand-placed spot, so they move to the new group's part of the map instead of staying next to the old one.
+- **Backups:** `PersonRow` validates `previousTag` (1–40 characters).
+
+| | Area | Finding | Status |
+| --- | --- | --- | --- |
+| I1 | Integration | Leaving uses the same group deletion rule as Move people's Undo (nobody's tags include it). | OK (tested) |
+| A1 | Accessibility | Creating, changing and leaving a group all work from the keyboard (native select, form, buttons), which closes MP-O1. Escape closes the name field without closing the card. | OK |
+| O1 | Other | A built-in group (Work, School…) has no Leave button: pick another group instead. Renaming and deleting groups were not requested. | By design |
+
+**Checked live** (production build at `localhost:4173`, to stay off the texting connection):
+- The picker shows the six groups plus **New group…**.
+- "Hackathon" → Create: Theo moved from Friends into Hackathon, and **Leave Hackathon** appeared.
+- Leave: back to Friends, with the toast "Theo Xu left Hackathon, now in Friends"; the empty group disappeared from the picker.
+- Undo: back in Hackathon, and the group returned.
+
+**Checks:** typecheck, lint, 228 tests (+5: previous group recorded; the destination rule; leave with deletion and full undo; a shared group is kept), build.

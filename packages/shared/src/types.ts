@@ -58,6 +58,8 @@ export interface Person {
    * added, resized and stored as a data: URL. Never an outside address (see isSafePhoto).
    */
   photo?: string;
+  /** Oct 18: the group (primary tag) they were in before the last change, so "Leave group" can return them. */
+  previousTag?: string;
 }
 
 /** Undirected: stored with fromId < toId. */
