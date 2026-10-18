@@ -102,6 +102,9 @@ const ImportDialog = lazy(() => import('@/components/ImportDialog').then((m) => 
 function onEscape() {
   const s = useStore.getState();
   if (s.editRings) s.setEditRings(false);
+  // Polish (Oct 18): in the Groups view, Escape steps back out of the last opened group (once no
+  // card or answer is showing, so Escape still closes those first).
+  else if (s.view === 'groups' && s.expandedGroups.size && !s.selectedPersonId && !s.agentAnswer && s.rightPanel === null) s.collapseLastGroup();
   else s.clearFocus();
 }
 

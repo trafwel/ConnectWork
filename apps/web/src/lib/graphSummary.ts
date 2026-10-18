@@ -49,12 +49,17 @@ export function buildSummary(people: Person[], links: Link[], reminders: Reminde
     );
   }
   // Step 3. Only links the user accepted, between people who still exist.
-  for (const l of links) {
-    if (l.status === 'accepted' && ids.has(l.fromId) && ids.has(l.toId)) lines.push(['L', l.fromId, l.toId, field(l.label, 200)].join('|'));
-  }
+  // Polish (Oct 18): every section in a FIXED order (by content, not by database id). The
+  // database returns rows sorted by their random ids, so after "Find hidden links" the same network
+  // gave a different summary each run, and the recorded demo answers stopped matching.
+  const linkLines = links
+    .filter((l) => l.status === 'accepted' && ids.has(l.fromId) && ids.has(l.toId))
+    .map((l) => ['L', l.fromId, l.toId, field(l.label, 200)].join('|'))
+    .sort();
   // Step 4. Only open reminders.
-  for (const r of reminders) {
-    if (!r.done && ids.has(r.personId)) lines.push(['R', r.personId, r.dueDate, field(r.note, 200)].join('|'));
-  }
-  return lines.join('\n');
+  const reminderLines = reminders
+    .filter((r) => !r.done && ids.has(r.personId))
+    .map((r) => ['R', r.personId, r.dueDate, field(r.note, 200)].join('|'))
+    .sort();
+  return [...lines.sort(), ...linkLines, ...reminderLines].join('\n');
 }

@@ -2,10 +2,11 @@
 
 **Two speakers.** **A** (Luke) speaks; **B** (Raio) drives the laptop and takes the technical part. Swap if you like. Each line is about the length you can say in its time slot, roughly 150 words per minute. *Italics* are what's on screen.
 
-**Before you go up:**
-- Record the demo answers ([DEMO_DAY.md](DEMO_DAY.md)) and run `DEMO_CACHE=replay pnpm dev`, so nothing waits on Gemini.
-- Settings → Reset demo data → Import `demo/Connections.csv` → Sort with AI → Accept all.
-- Then reload, close any panels, and leave the map open.
+**Before you go up** (or before recording the video):
+- Run `DEMO_CACHE=replay pnpm dev`, so nothing waits on Gemini. The recording in the repo was made on **Oct 18**; on another day, record again first ([DEMO_DAY.md](DEMO_DAY.md)).
+- Settings → Reset demo data → Import `demo/Connections.csv` → Sort with AI → **Accept all**.
+- Leave the map open.
+- Follow the steps below **in order, with the same clicks** (Accept all, Log this meeting before Review my week). The recorded answers match only the same requests; anything else goes to live Gemini, which is slower (15–30 s for links and the weekly review).
 
 ---
 
@@ -41,7 +42,7 @@
 > "Abbey is a PM at Microsoft. John is a UW student who interned there. They're both in my network, and they've never been introduced. Connectwork noticed.
 > Accept, and the line is on my map, labelled with *why* they're connected."
 
-*B clicks **Accept**, then clicks John: everyone else fades, and the line to Abbey says "both UW, both Microsoft".*
+*B clicks **Accept all**, then clicks John: everyone else fades, and the line to Abbey says "both UW, both Microsoft".*
 
 ## 1:35 – 2:05 · Before the meeting (A, B clicks)
 

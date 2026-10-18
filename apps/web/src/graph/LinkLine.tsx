@@ -31,7 +31,8 @@ interface Props {
 
 function LinkLineImpl({ link, from, to, dimmed, emphasis = 'normal' }: Props) {
   const suggested = link.status === 'suggested';
-  const opacity = emphasis === 'focus' ? 1 : emphasis === 'faint' ? 0.07 : dimmed ? 0.06 : suggested ? 0.9 : T.linkOpacity;
+  // Polish (Oct 18): other people's lines almost vanish while someone is selected.
+  const opacity = emphasis === 'focus' ? 1 : emphasis === 'faint' ? 0.04 : dimmed ? 0.06 : suggested ? 0.9 : T.linkOpacity;
   const width = emphasis === 'focus' ? 2 : suggested ? 1.6 : T.linkWidth;
   return (
     <line

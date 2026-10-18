@@ -31,7 +31,6 @@ Resolved items move to the table at the bottom, with what changed.
 | F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |
 | M13-O1 | Not live yet: VM, domain + DNS, OAuth origin and the VM's `.env` are human steps. | Follow [DEPLOY.md](DEPLOY.md) (about 30 minutes). Run `caddy validate --config /etc/caddy/Caddyfile` before the first reload. |
 | M5-S9 | The live site has no login: anyone with the URL can spend our Gemini quota (30 requests/min per IP). One origin + localhost-only API now make the per-IP limit trustworthy (M13). | Suggested default: keep `DEMO_CACHE=replay` and the per-IP limit for the judging window; add a shared passcode only if we see abuse. |
-| M12-O1 | The full scripted demo (import → sort → question → links → meeting → weekly → snap) has to be recorded on judging morning (keys include today's dates). | One person, about 10 minutes, following [DEMO_DAY.md](DEMO_DAY.md); commit `demo/demo-cache.json` afterwards. |
 | M11-O1 | Real Google sign-in not tested: it needs a Google Cloud OAuth client and test users (human step). | Follow guide §2, put the client id in `.env` as `VITE_GOOGLE_CLIENT_ID`, restart `pnpm dev`, then click "Connect Google Calendar" once. Until then the demo uses sample meetings. |
 | M11-S5 | Scope `calendar.events` can read and write every event (needed for "Add to calendar"). | Keep it for the demo; a read-only scope would drop Google follow-ups. |
 | M10-I7 | In the demo John Park drifts only slightly (210 days vs 180: 93% opacity, a little outward, dotted). | Leave the seed alone (the weekly review relies on it). If you want a stronger visual in the demo, set Settings → Drifting → Ring 2 to **120 days** before presenting, then Reset after. |
@@ -76,6 +75,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| M12-O1 | The full scripted demo had to be recorded (and couldn't replay after an import: random ids). | Polish: repeatable import ids + a fixed summary order; full flow recorded and replay-checked on Oct 18. Re-record on any other day ([DEMO_DAY.md](DEMO_DAY.md)). |
 | F1-O5 | Escape inside Add connection not checked live. | Bug pass: checked; it closes only the form. |
 | S-S1 | The inline no-flash theme script would be blocked by a strict CSP. | M13: allowed by its SHA-256 hash in the Caddyfile CSP (no `'unsafe-inline'` scripts); `scripts/deploy.test.ts` fails if the script changes without the hash. Checked in the browser via `pnpm preview:prod`. |
 | M11-S6 | A strict CSP must allow Google sign-in and the Calendar API. | M13: `accounts.google.com` and `www.googleapis.com` only; Google's sign-in script loads under the policy (checked). |

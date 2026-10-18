@@ -70,6 +70,10 @@ interface Props {
 
 function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, drift = 0, onSelect, onHover, editing, dragging, onDragStart, onSetRing }: Props) {
   const r = NODE_RADIUS[person.ring];
+  // Polish (Oct 18, from a team screenshot): a grayed-out person drops every decoration (ripple,
+  // flag, drift ring, highlight). Their pulsing halos were the clutter around a selection. The
+  // screen-reader label still says "follow-up due" / "drifting".
+  const quiet = dimmed && !selected;
   // Color is never the only signal: the flag's state is also in the label screen readers read.
   const flagText = flag === 'overdue' ? 'follow-up overdue' : flag === 'due' ? 'follow-up due' : undefined;
   // M10: "drifting" is in the label too; fading and the dotted outline are only the visual half.
@@ -87,7 +91,8 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
       className={`${editing ? (dragging ? 'cursor-grabbing' : 'cursor-grab') + ' touch-none' : 'cursor-pointer'} outline-none [&:focus-visible>circle.focus]:opacity-100`}
       // Step 1: a CSS transform (not the x/y attributes) so layout changes animate.
       style={{
-        opacity: dimmed ? 0.15 : 1 - 0.5 * drift, // M10 step 5: fades to half at full drift
+        // M10 step 5: fades to half at full drift. Polish (Oct 18): grayed-out people fade further.
+        opacity: dimmed ? 0.12 : 1 - 0.5 * drift,
         transform: `translate(${x}px, ${y}px)`,
         transition: dragging ? 'opacity 200ms' : 'opacity 200ms, transform 450ms ease-out',
       }}
@@ -112,16 +117,16 @@ function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, fl
     >
       <title>{description}</title>
       <circle className="focus" r={r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
-      {highlighted && !selected && <circle r={r + 5} fill="none" stroke={T.highlight} strokeWidth={2} strokeDasharray={T.highlightDash} />}
+      {highlighted && !selected && !quiet && <circle r={r + 5} fill="none" stroke={T.highlight} strokeWidth={2} strokeDasharray={T.highlightDash} />}
       {selected && <circle r={r + 4} fill="none" stroke={T.selected} strokeWidth={2.5} />}
       {/* M10 step 5: a dotted outline, so drift isn't shown by fading alone. */}
-      {drift > 0 && !selected && <circle r={r + 2.5} fill="none" stroke={T.ink} strokeWidth={1.2} strokeDasharray="2 3" pointerEvents="none" />}
+      {drift > 0 && !selected && !quiet && <circle r={r + 2.5} fill="none" stroke={T.ink} strokeWidth={1.2} strokeDasharray="2 3" pointerEvents="none" />}
       {/* M7: the pulse lives on this inner group, because the outer <g>'s transform is the position. */}
-      <g className={flag ? 'cw-pulse' : undefined}>
+      <g className={flag && !quiet ? 'cw-pulse' : undefined}>
         <circle r={r} fill={color} stroke={T.nodeStroke} strokeWidth={T.nodeStrokeWidth} />
       </g>
-      {flag && <Ripple r={r} overdue={flag === 'overdue'} />}
-      {flag && <Flag r={r} overdue={flag === 'overdue'} />}
+      {flag && !quiet && <Ripple r={r} overdue={flag === 'overdue'} />}
+      {flag && !quiet && <Flag r={r} overdue={flag === 'overdue'} />}
       {person.ring === 1 && (
         <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}

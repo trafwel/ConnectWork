@@ -973,3 +973,18 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - Weekly dates a day later than earlier screens: Reset demo data re-anchors the seed to today.
 - The view switch's highlight seemed to lag: CSS transitions don't run in a hidden browser pane.
 
+## Polish (Oct 18)
+
+**Clutter, Connect tool, Back for groups, true-black dark mode, speed for the demo** · branch `polish` (on `bugfix-pass`) · from a team screenshot and notes
+
+| | What | Change | Checked |
+| --- | --- | --- | --- |
+| C1 | Clutter around a selected person (team screenshot): two "worked together" pills stacked on each other, and grayed-out people still pulsing (ripple, flags, drift rings). | Pills can slide **along their own line** (tested), so two lines leaving one person no longer stack. Grayed-out people drop every decoration and fade further (0.12); other lines fade to 0.04. Screen-reader labels unchanged. | Browser: Samuel selected → pills 46 px apart, 0 decorated grayed-out nodes. |
+| C2 | No way to link two people on the map by hand. | **Edit map → Connect**: click (or Enter on) one person, then another, and optionally name it. `connectPeople` runs in one transaction and says whether it created the link, so **Undo** removes only that link. An AI suggestion is promoted; a self-link is refused. Tested. | Browser: Yuna → Nora "roommates" connected; Theo → Priya connected, then Undo (37 → 36 links). |
+| C3 | No "back" out of an opened group. | **Back (close Work)** button top-right while a group is open; **Escape** closes the last opened group too (after closing a card or answer first). | Browser: Back closed Friends, then School; Escape closed the last. |
+| C4 | Dark mode should be black. | Both dark palettes use a #000 background (cards and panels lift slightly so their edges show). | Browser: body background rgb(0, 0, 0). |
+| S1 | **Speed for the video.** Interactions with 155 people are quick (selecting about 47 ms, switching views 5–14 ms, zoom about 9 ms per frame). One-off 50–75 ms tasks come from the layout re-running when the card opens. The **AI** was the problem: live sort 30–48 s, hidden links 15–65 s, weekly 32 s. | See S2. | — |
+| S2 | **Bug: the demo recording could never replay after an import.** Imported people got random ids, and the summary listed links in database-id order (random for AI-added links), so every Reset + Import made different requests. | Imported ids are now **repeatable** (`stableId` from LinkedIn URL / email / name + company; never reuses a taken id; tested), and the summary has a **fixed order** (tested). A fresh recording of the whole pitch flow is in `demo/demo-cache.json`. | Replay after Reset demo data: **sort, ask, links, brief and weekly all `cache=hit`, about 0.1 s each**. |
+
+**Checks:** typecheck, lint, 180 tests (new: pills along a line, `connectPeople`, repeatable import ids, summary order), build.
+

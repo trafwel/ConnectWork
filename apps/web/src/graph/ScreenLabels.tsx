@@ -121,14 +121,28 @@ export function useScreenLabels(i: Input) {
         const pb = i.byId.get(l.toId);
         if (!a || !b || !pa || !pb) continue;
         const text = relationshipLabel(l, pa, pb);
+        // Polish (Oct 18): try the midpoint, then points further along the line (toward the
+        // other person first), so pills on lines that leave one person at similar angles spread out.
+        const ax = sx(a.x);
+        const ay = sy(a.y);
+        const bx = sx(b.x);
+        const by = sy(b.y);
+        const mx = (ax + bx) / 2;
+        const my = (ay + by) / 2;
+        const towardOther = l.fromId === i.selectedId ? 1 : -1;
+        const spots = [0, 0.14, -0.12, 0.26, -0.22].map((d): [number, number] => {
+          const t = 0.5 + d * towardOther;
+          return [ax + (bx - ax) * t - mx, ay + (by - ay) * t - my];
+        });
         candidates.push({
           id: `link:${l.id}`,
           text: text.length > MAX_LINK_LABEL ? `${text.slice(0, MAX_LINK_LABEL - 1)}…` : text,
-          x: sx((a.x + b.x) / 2),
-          y: sy((a.y + b.y) / 2),
+          x: mx,
+          y: my,
           r: 0,
           priority: 90,
           kind: 'link',
+          spots,
         });
       }
     }

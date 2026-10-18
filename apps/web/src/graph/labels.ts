@@ -28,6 +28,11 @@ export interface LabelCandidate {
   /** 'name': around a node. 'link' (with a pill) and 'ring': centered on the anchor, nudged up or down. */
   kind: 'name' | 'link' | 'ring';
   bold?: boolean;
+  /**
+   * Polish (Oct 18): spots to try instead of the defaults, as offsets from (x, y). Link labels
+   * pass points ALONG their own line, so two lines from one person don't stack their pills.
+   */
+  spots?: Array<[number, number]>;
 }
 
 export interface PlacedLabel extends LabelCandidate {
@@ -73,8 +78,9 @@ export function placeLabels(candidates: LabelCandidate[], measure: (c: LabelCand
     const width = measure(c);
     const h = c.kind === 'link' ? height + 4 : height; // link labels have a pill around them
     const d = c.r + 3 + h / 2; // node center → label center, below/above
-    const spots: Array<[number, number]> =
-      c.kind === 'name'
+    const spots: Array<[number, number]> = c.spots?.length
+      ? c.spots
+      : c.kind === 'name'
         ? [
             [0, d], // below (the usual place)
             [0, -d], // above
