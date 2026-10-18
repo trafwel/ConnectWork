@@ -3,7 +3,7 @@
  *
  * WHAT THIS ACHIEVES
  *   A realistic, entirely fictional network that makes every feature demoable from
- *   the first second: 40 people across three rings, links inside groups, overdue
+ *   the first second: 27 people across three rings, links inside groups, overdue
  *   reminders, drifting friends, a fake LinkedIn export, a club roster PDF and sample
  *   meetings. It plants the demo story: Abbey Chen and John Park share a school and
  *   Microsoft but are NOT linked, so the AI can discover them in M6.
@@ -167,8 +167,9 @@ ring1[1]!.lastContactDaysAgo = 120;
 ring2[0]!.lastContactDaysAgo = 260;
 ring2[1]!.lastContactDaysAgo = 300;
 
-// Three people tagged intro.
-for (const p of people.filter((p) => p.primaryTag === 'Work' && p.ring === 3).slice(0, 3)) {
+// People tagged intro (the weekly review suggests introducing them to someone who shares their
+// company or school). Oct 18: the Microsoft pair, the outer-ring Work people the demo keeps.
+for (const p of people.filter((p) => p.primaryTag === 'Work' && p.ring === 3 && p.company === 'Microsoft')) {
   p.tags.push('intro');
 }
 
@@ -195,6 +196,36 @@ for (const tag of ['Family', 'Friends', 'Work', 'School', 'Clubs']) {
 addLink('p_abbey', byTag('Work')[0]!.id, 'same team');
 addLink('p_john', byTag('School')[0]!.id, 'CSE 332 study group');
 
+// Demo size (Oct 18): 40 people plus an import was too much to present. The outer ring keeps
+// only the people the demo needs: in Work, just the two Microsoft contacts (they make "Who do I
+// know at Microsoft?" interesting; Work was still the most crowded group), and one person each in
+// School, Clubs (Kai, on the club-meeting invite) and Friends. This filters AFTER everything above
+// has drawn its random numbers, so every name, the CSV and the roster stay exactly what they were.
+const RING3_KEEP: Record<string, number> = { School: 1, Clubs: 1, Friends: 1 };
+const ring3Seen = new Map<string, number>();
+const seedPeople = people.filter((p) => {
+  if (p.ring !== 3) return true;
+  if (p.primaryTag === 'Work') return p.company === 'Microsoft';
+  const n = (ring3Seen.get(p.primaryTag) ?? 0) + 1;
+  ring3Seen.set(p.primaryTag, n);
+  return n <= (RING3_KEEP[p.primaryTag] ?? 0);
+});
+const kept = new Set(seedPeople.map((p) => p.id));
+
+// A few more links inside groups among close people (rings 1–2): those are the lines the map
+// draws by default, so the groups read as groups. Fixed pairs (no random numbers) for the same
+// reason as above. byTag()[0] for School was John himself, so his study-group link never
+// existed; it is added here explicitly. Never Abbey <-> John (addLink refuses it anyway).
+const [fam, friends, work, school, clubs] = ['Family', 'Friends', 'Work', 'School', 'Clubs'].map((t) => byTag(t).filter((p) => kept.has(p.id)));
+addLink(fam[0]!.id, fam[1]!.id);
+addLink(friends[0]!.id, friends[3]!.id);
+addLink(work[2]!.id, work[3]!.id, 'worked together');
+addLink(work[1]!.id, work[5]!.id, 'worked together');
+addLink('p_john', school[1]!.id, 'CSE 332 study group');
+addLink(school[3]!.id, school[4]!.id);
+addLink(clubs[0]!.id, clubs[2]!.id);
+const seedLinks = links.filter((l) => kept.has(l.fromId) && kept.has(l.toId));
+
 // Reminders: John's due tomorrow, two overdue, one next week.
 type SeedReminder = { id: string; personId: string; dueInDays: number; note: string };
 const reminders: SeedReminder[] = [
@@ -204,12 +235,13 @@ const reminders: SeedReminder[] = [
   { id: 'r_03', personId: byTag('Work')[1]!.id, dueInDays: 5, note: 'Ask about the referral' },
 ];
 
-writeFileSync(`${OUT}seed.json`, JSON.stringify({ people, links, reminders }, null, 2) + '\n');
+if (!reminders.every((r) => kept.has(r.personId))) throw new Error('a reminder points at someone the demo dropped');
+writeFileSync(`${OUT}seed.json`, JSON.stringify({ people: seedPeople, links: seedLinks, reminders }, null, 2) + '\n');
 
 // ---------------------------------------------------------------------------
-// Connections.csv — fake LinkedIn export (30 rows, 6 overlap the seed)
+// Connections.csv — fake LinkedIn export (12 rows, 6 overlap the seed)
 // ---------------------------------------------------------------------------
-const DEMO_CSV_ROWS = 30;
+const DEMO_CSV_ROWS = 12;
 const csvEscape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 const linkedinDate = (daysAgo: number) => {
   const d = new Date(Date.UTC(2026, 9, 17) - daysAgo * 86400000);
@@ -219,6 +251,7 @@ const linkedinDate = (daysAgo: number) => {
 const rows: string[][] = [];
 // Overlaps with the seed, so re-import dedupe is exercised.
 for (const p of people.filter((p) => p.linkedinUrl).slice(0, 6)) {
+  if (!kept.has(p.id)) throw new Error(`CSV overlap ${p.name} is not in the seed`);
   const [first, ...rest] = p.name.split(' ');
   rows.push([first!, rest.join(' '), p.linkedinUrl!, '', p.company ?? '', p.role ?? '', linkedinDate(p.metDaysAgo ?? 400)]);
 }
@@ -241,8 +274,8 @@ const csv = [
   '"When exporting your connection data, you may notice that some of the email addresses are missing. You will only see email addresses for connections who have allowed their connections to see or download their email address using this setting https://www.linkedin.com/psettings/privacy/email. You can learn more here https://www.linkedin.com/help/linkedin/answer/261"',
   '',
   'First Name,Last Name,URL,Email Address,Company,Position,Connected On',
-  // Demo size (Oct 18): 120 rows made the map too crowded to present, so only the first 30 are
-  // written (the 6 seed overlaps + 24 new). All 120 are still generated so the random sequence,
+  // Demo size (Oct 18): 120 rows made the map too crowded to present, so only the first 12 are
+  // written (the 6 seed overlaps + 6 new). All 120 are still generated so the random sequence,
   // and with it every other demo file, stays byte-identical.
   ...rows.slice(0, DEMO_CSV_ROWS).map((r) => r.map(csvEscape).join(',')),
 ].join('\n');
@@ -261,7 +294,7 @@ const calendar = [
     hour: 18,
     minute: 0,
     durationMin: 60,
-    attendeeEmails: people.filter((p) => p.primaryTag === 'Clubs' && p.email).slice(0, 3).map((p) => p.email!),
+    attendeeEmails: seedPeople.filter((p) => p.primaryTag === 'Clubs' && p.email).slice(0, 3).map((p) => p.email!),
   },
 ];
 writeFileSync(`${OUT}calendar-events.json`, JSON.stringify(calendar, null, 2) + '\n');
@@ -296,6 +329,6 @@ roster.forEach((r, row) => {
 writeFileSync(`${OUT}roster.pdf`, await pdf.save());
 
 console.log(
-  `demo/: seed.json (${people.length} people, ${links.length} links, ${reminders.length} reminders), ` +
+  `demo/: seed.json (${seedPeople.length} people, ${seedLinks.length} links, ${reminders.length} reminders), ` +
     `Connections.csv (${Math.min(rows.length, DEMO_CSV_ROWS)} rows), calendar-events.json (${calendar.length}), roster.pdf (${roster.length})`,
 );

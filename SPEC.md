@@ -677,7 +677,7 @@ export const driftOpacity = (p) => 1 - 0.5 * driftLevel(p, today);
 Deterministic (fixed random seed). Produces:
 
 1. `demo/Connections.csv` — ~120 fake LinkedIn rows with the real header and 3 leading "Notes:" lines. Companies: Microsoft, Amazon, Google, Expedia, T-Mobile, Salesforce, a few startups. Schools: University of Washington, Seattle University, UBC.
-2. `demo/seed.json` — ~40 hand-sorted people (8 in ring 1, 14 in ring 2, rest ring 3) for the first-run map, including the story pair:
+2. `demo/seed.json` — ~27 hand-sorted people (8 in ring 1, 14 in ring 2, 5 in ring 3; cut from 40 for the demo, Oct 18) for the first-run map, including the story pair:
    - **Abbey Chen** — Work, ring 2, Microsoft PM, University of Washington, connected 2025-06.
    - **John Park** — School, ring 2, University of Washington, interned at Microsoft summer 2025, `lastContact` 7 months ago (drifting), reminder "follow up after career fair" due tomorrow.
    - They are **not** linked, so `/api/ai/links` should discover them.
@@ -752,7 +752,7 @@ Build in order. After each milestone: `pnpm typecheck && pnpm test && pnpm build
 | M1 | Data + seed | `pnpm seed` writes `demo/*`. First load seeds Dexie; reload keeps data; Settings → Delete everything clears it. |
 | M2 | Ring map (F1) | Seed renders in 3 rings, clustered by tag, no node overlap, pan/zoom works, click opens PersonCard. |
 | M3 | Quick add + PersonCard (F2, F15) | `N` → type name → Enter adds a node in under 10 s; card edits persist after reload. |
-| M4 | CSV import (F3) | Importing `demo/Connections.csv` adds ~24 people to ring 3 (export cut from ~120 to 30 rows for the demo, Oct 18); re-import adds 0 (dedupe); `csv.test.ts` passes. |
+| M4 | CSV import (F3) | Importing `demo/Connections.csv` adds ~6 people to ring 3 (export cut from ~120 to 12 rows and the seed to 27 people for the demo, Oct 18); re-import adds 0 (dedupe); `csv.test.ts` passes. |
 | M5 | AI query (F4) | "Who do I know at Microsoft?" returns a sentence and highlights exactly the Microsoft people; unknown ids are dropped; 429 shows a friendly message. |
 | — | **Devpost draft** | Submit draft by 9:30 PM Saturday regardless of progress. |
 | M6 | Auto-sort + links (F8, F7) | After import, "Sort with AI" shows a ReviewSheet; Accept all updates rings/tags. Links suggestion finds Abbey ↔ John with an evidence label. |

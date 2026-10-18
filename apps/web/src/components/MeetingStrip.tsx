@@ -18,7 +18,7 @@
  *      meetings table is emptied (Reset demo data). Connected with no meetings stays empty:
  *      no loop, because the dependency doesn't change.
  *   2. Chips: time ("3:30 PM" / "Tomorrow 11:00 AM"), title, initials of matched people.
- *      "Sample meetings" label when not connected, with "Connect Google Calendar" if the app
+ *      "Meetings" label when not connected (was "Sample meetings" until Oct 18), with "Connect Google Calendar" if the app
  *      has a client id (otherwise nothing to click: connecting is a setup step).
  *   3. Chip click → openMeeting(meeting.id, meeting.attendeePersonIds).
  *   4. Connected with nothing today or tomorrow → one quiet line instead of chips.
@@ -38,6 +38,7 @@ import { replaceMeetings } from '@/db/actions';
 import { db } from '@/db/db';
 import { calendarConfigured, connectCalendar, disconnectCalendar, fetchMeetings, loadSampleMeetings } from '@/lib/googleCalendar';
 import { meetingTimeLabel, upcoming } from '@/lib/meetings';
+import { readableOn, tagColor } from '@/lib/colors';
 import { initials } from '@/lib/people';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
@@ -47,6 +48,7 @@ export function MeetingStrip({ people }: { people: Person[] }) {
   const selectedMeetingId = useStore((s) => s.selectedMeetingId);
   const openMeeting = useStore((s) => s.openMeeting);
   const meetings = useLiveQuery(() => db.meetings.toArray(), []);
+  const tags = useLiveQuery(() => db.tags.toArray(), []);
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
 
@@ -88,7 +90,7 @@ export function MeetingStrip({ people }: { people: Person[] }) {
   return (
     <section aria-label="Upcoming meetings" className="flex min-h-11 shrink-0 items-center gap-2 overflow-x-auto border-b px-4 py-1.5 text-sm">
       <CalendarDays className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <span className="shrink-0 text-xs text-muted-foreground">{connected ? 'Google Calendar' : 'Sample meetings'}</span>
+      <span className="shrink-0 text-xs text-muted-foreground">{connected ? 'Google Calendar' : 'Meetings'}</span>
 
       {/* Step 4 */}
       {connected && shown.length === 0 && <span className="text-xs text-muted-foreground">No meetings today or tomorrow.</span>}
@@ -97,7 +99,11 @@ export function MeetingStrip({ people }: { people: Person[] }) {
       <ul className="flex items-center gap-2">
         {shown.map((m) => {
           const known = m.attendeePersonIds.map((id) => byId.get(id)).filter((p): p is Person => Boolean(p));
-          const label = `${m.title}, ${meetingTimeLabel(m.start)}${known.length ? `, with ${known.map((p) => p.name).join(', ')}` : ''}`;
+          // Oct 18: color-coded by the group of the first person you know there, the same colors as
+          // the map. Color is never the only signal: the group is also in the accessible name.
+          const group = known[0]?.primaryTag;
+          const accent = group ? tagColor(tags, group) : undefined;
+          const label = `${m.title}, ${meetingTimeLabel(m.start)}${known.length ? `, with ${known.map((p) => p.name).join(', ')}` : ''}${group ? ` (${group})` : ''}`;
           return (
             <li key={m.id}>
               <button
@@ -105,16 +111,21 @@ export function MeetingStrip({ people }: { people: Person[] }) {
                 aria-pressed={selectedMeetingId === m.id}
                 onClick={() => openMeeting(m.id, m.attendeePersonIds)}
                 className={cn(
-                  'flex items-center gap-2 rounded-md border px-2 py-1 whitespace-nowrap hover:bg-muted',
+                  'flex items-center gap-2 rounded-md border border-l-4 px-2 py-1 whitespace-nowrap hover:bg-muted',
                   selectedMeetingId === m.id && 'border-foreground bg-muted',
                 )}
+                style={accent ? { borderLeftColor: accent } : undefined}
               >
                 <span className="text-xs text-muted-foreground tabular-nums">{meetingTimeLabel(m.start)}</span>
                 <span className="max-w-48 truncate">{m.title}</span>
                 {known.length > 0 && (
                   <span className="flex -space-x-1" aria-hidden="true">
                     {known.slice(0, 3).map((p) => (
-                      <span key={p.id} className="grid size-5 place-items-center rounded-full border bg-background text-[9px] font-semibold">
+                      <span
+                        key={p.id}
+                        className="grid size-5 place-items-center rounded-full border border-background text-[9px] font-semibold"
+                        style={{ background: tagColor(tags, p.primaryTag), color: readableOn(tagColor(tags, p.primaryTag)) }}
+                      >
                         {initials(p.name)}
                       </span>
                     ))}

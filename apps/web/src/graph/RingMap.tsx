@@ -308,8 +308,8 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
   const collapseGroups = useStore((s) => s.collapseGroups);
   const collapseLastGroup = useStore((s) => s.collapseLastGroup);
   const grouping = useMemo(
-    () => (grouped ? buildClusters(people, positions, expandedGroups, new Set(selectedId ? [selectedId] : [])) : null),
-    [grouped, people, positions, expandedGroups, selectedId],
+    () => (grouped ? buildClusters(people, positions, expandedGroups, new Set(selectedId ? [selectedId] : []), { x: g.cx, y: g.cy }) : null),
+    [grouped, people, positions, expandedGroups, selectedId, g.cx, g.cy],
   );
   const visiblePeople = grouping?.visible ?? people;
   const shownLinks = useMemo(() => (grouping ? aggregateLinks(links, grouping.groupOf) : { personLinks: links, edges: [] }), [grouping, links]);

@@ -34,8 +34,8 @@
  *      color/behavior differs, put the new one. Never touch custom tags.
  *
  * DONE WHEN
- *   - 40 people on first load; reload keeps them; Delete everything → 0 after reload;
- *     Reset demo data → 40 again, with "About you" kept; export → import round-trips.
+ *   - 27 people on first load; reload keeps them; Delete everything → 0 after reload;
+ *     Reset demo data → 27 again, with "About you" kept; export → import round-trips.
  *
  * Guide: §5.3
  */

@@ -16,12 +16,12 @@ beforeEach(async () => {
 describe('backups', () => {
   it('round-trips every table, and never exports secrets', async () => {
     const backup = await backupOf();
-    expect(backup.data.people).toHaveLength(40);
+    expect(backup.data.people).toHaveLength(27);
     expect(backup.data.meta!.map((m) => m.key).sort()).toEqual(['seeded', 'userContext']);
 
     await db.people.clear();
     await importBackup(fileOf(backup));
-    expect(await db.people.count()).toBe(40);
+    expect(await db.people.count()).toBe(27);
     const again = await backupOf();
     expect(again.data).toEqual(backup.data);
   });
@@ -31,7 +31,7 @@ describe('backups', () => {
     backup.data.people![3]!.ring = 99;
     await db.people.update(backup.data.people![0]!.id as string, { notes: 'current data' });
     await expect(importBackup(fileOf(backup))).rejects.toThrow('Backup table "people", row 4: ring is not valid');
-    expect(await db.people.count()).toBe(40);
+    expect(await db.people.count()).toBe(27);
     expect((await db.people.get(backup.data.people![0]!.id as string))?.notes).toBe('current data');
   });
 

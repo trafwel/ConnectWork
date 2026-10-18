@@ -41,7 +41,6 @@ Resolved items move to the table at the bottom, with what changed.
 ## Won't fix (for now)
 | ID | Issue | Why |
 | --- | --- | --- |
-| MO-O1 | In the new recording, Abbey ↔ John is the **3rd** of 11 hidden-link suggestions, not the 1st (Gemini was rate-limited, so a fallback model answered). | The demo uses Accept all, and the link is still near the top. Re-recording costs another round of rate-limited calls. If the team wants it first: sort the sheet by confidence, or re-record `/links` once. |
 | MO-O2 | In a background tab, positions don't animate (Chrome pauses frames) and the enter/leave timers slow to about 1 s. | Only tabs nobody is looking at. In a visible tab: 450 ms glide and fade, measured. |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
 | M7-O2 | Reminder-flag pulse should stop for "reduce motion"; built but not checked live. | Team: turn on macOS Reduce Motion once and confirm the flags stop pulsing **and** the Ripple style shows one still ring (fix step 2, F2-O1). |
@@ -78,6 +77,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| MO-O1 | Abbey ↔ John was not the first hidden-link suggestion in the demo. | Fewer-people step: the review sheet now lists suggestions strongest first. Abbey ↔ John (90%) leads the re-recorded demo. |
 | F1-I5 | `pnpm lint` failed locally because of the untracked nested `conNetWork/` folder. | Motion step: `eslint.config.js` ignores `conNetWork/**` and pins `tsconfigRootDir`. The folder itself is untouched. |
 | M12-O1 | The full scripted demo had to be recorded (and couldn't replay after an import: random ids). | Polish: repeatable import ids + a fixed summary order; full flow recorded and replay-checked on Oct 18. Re-record on any other day ([DEMO_DAY.md](DEMO_DAY.md)). |
 | F1-O5 | Escape inside Add connection not checked live. | Bug pass: checked; it closes only the form. |

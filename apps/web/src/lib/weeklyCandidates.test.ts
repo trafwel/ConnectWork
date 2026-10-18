@@ -43,7 +43,7 @@ describe('weeklyCandidates (demo data, fixed date)', () => {
   });
 
   it('includes suggested links and caps the total at 40', () => {
-    const many: Link[] = Array.from({ length: 60 }, (_, i) => ({ id: `l_s${i}`, fromId: people[i % 40]!.id, toId: people[(i + 1) % 40]!.id, source: 'ai', status: 'suggested' }));
+    const many: Link[] = Array.from({ length: 60 }, (_, i) => ({ id: `l_s${i}`, fromId: people[i % people.length]!.id, toId: people[(i + 1) % people.length]!.id, source: 'ai', status: 'suggested' }));
     const big = weeklyCandidates(people, [...links, ...many], reminders, now);
     expect(big).toHaveLength(40);
     expect(big.filter((x) => x.kind === 'accept_link').length).toBeGreaterThan(0);

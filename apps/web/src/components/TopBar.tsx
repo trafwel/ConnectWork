@@ -20,12 +20,13 @@ import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/store/useStore';
 
-export function TopBar({ children }: { children?: ReactNode }) {
+export function TopBar({ children, tools }: { children?: ReactNode; tools?: ReactNode }) {
   const setDialog = useStore((s) => s.setDialog);
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
       <span className="text-lg font-semibold tracking-tight">Connectwork</span>
-      <div className="flex flex-1 items-center gap-2">{children}</div>
+      <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
+      {tools}
       <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => setDialog('settings', true)}>
         <Settings />
       </Button>

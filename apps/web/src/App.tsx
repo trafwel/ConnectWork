@@ -61,7 +61,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarCheck, Camera, Plus, Upload, Waypoints } from 'lucide-react';
+import { CalendarCheck } from 'lucide-react';
 import { AgentAnswer } from '@/components/AgentAnswer';
 import { AgentBar } from '@/components/AgentBar';
 import { DemoBanner } from '@/components/DemoBanner';
@@ -76,6 +76,8 @@ import { ReviewSheet } from '@/components/ReviewSheet';
 import { QuickAdd } from '@/components/QuickAdd';
 import { Segmented } from '@/components/Segmented';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { SplashScreen } from '@/components/SplashScreen';
+import { ToolsMenu } from '@/components/ToolsMenu';
 import { TopBar } from '@/components/TopBar';
 import { WeeklyReview } from '@/components/WeeklyReview';
 import { Button } from '@/components/ui/button';
@@ -83,7 +85,6 @@ import { Toaster } from '@/components/ui/sonner';
 import { db } from '@/db/db';
 import { ensureSeeded } from '@/db/seed';
 import { RingMap } from '@/graph/RingMap';
-import { findHiddenLinks } from '@/lib/aiFlows';
 import { useAppearance } from '@/lib/appearance';
 import type { FilterContext } from '@/lib/filters';
 import { localDate, today } from '@/lib/dates';
@@ -186,44 +187,38 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
-      <TopBar>
-        {/* M10 step 1: the list is the map's accessible twin, so the switch sits up front. */}
-        <Segmented
-          label="View"
-          value={view}
-          onChange={setView}
-          options={[
-            { value: 'map', label: 'Map' },
-            { value: 'groups', label: 'Groups' },
-            { value: 'list', label: 'List' },
-            { value: 'month', label: 'Month' },
-          ]}
-        />
-        <div className="mx-auto w-full max-w-xl">
+      {/* Oct 18 (team request): the search bar takes the free width; the less frequent actions
+          (hidden links, snap, import, add) live in one Tools menu next to Settings. */}
+      <TopBar tools={<ToolsMenu onAdd={openQuickAdd} />}>
+        <div className="min-w-0 flex-1">
           <AgentBar />
         </div>
         <Button size="sm" onClick={() => setWeeklyOpen(true)}>
           <CalendarCheck /> Review my week
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => void findHiddenLinks()}>
-          <Waypoints /> Find hidden links
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setDialog('snap', true)}>
-          <Camera /> Snap
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setDialog('import', true)}>
-          <Upload /> Import
-        </Button>
-        <Button size="sm" variant="outline" onClick={openQuickAdd} aria-keyshortcuts="N">
-          <Plus /> Add <kbd className="ml-1 text-xs opacity-70">N</kbd>
         </Button>
       </TopBar>
       <DemoBanner />
       {/* M11: today's and tomorrow's meetings (Google Calendar, or samples). */}
       {loaded && people.length > 0 && <MeetingStrip people={people} />}
       <div className="flex min-h-0 flex-1">
-        {/* M7 step 4 */}
-        {loaded && people.length > 0 && <FilterTabs counts={counts} />}
+        {/* M7 step 4. Oct 18: the view switcher sits under the filters, in the bottom-left corner. */}
+        <div className="flex w-44 shrink-0 flex-col border-r bg-background">
+          {loaded && people.length > 0 && <FilterTabs counts={counts} />}
+          <div className="mt-auto border-t p-2">
+            <Segmented
+              label="View"
+              value={view}
+              onChange={setView}
+              className="grid grid-cols-2 gap-0.5 rounded-md border p-0.5"
+              options={[
+                { value: 'map', label: 'Map' },
+                { value: 'groups', label: 'Groups' },
+                { value: 'list', label: 'List' },
+                { value: 'month', label: 'Month' },
+              ]}
+            />
+          </div>
+        </div>
         {/* Step 6 */}
         {/* List and Month lay out as a column (answer card on top, then a scrolling body). */}
         <main className={`relative min-w-0 flex-1 ${view === 'list' || view === 'month' ? 'flex flex-col' : ''}`}>
@@ -275,6 +270,8 @@ export default function App() {
       )}
       <SettingsDialog appearance={appearance} onAppearance={setAppearance} />
       <Toaster position="bottom-center" theme={appearance.dark ? 'dark' : 'light'} />
+      {/* Oct 18: the logo writes itself, then dives into "you" once the data is ready. */}
+      <SplashScreen ready={Boolean(loaded) || seedError} />
     </div>
   );
 }
