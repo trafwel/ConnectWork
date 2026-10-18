@@ -166,3 +166,9 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 3. Why do the relay endpoints need a token, and why is it compared with `timingSafeEqual` instead of `===`?
 4. Two servers read our `.env`. What goes wrong if both run the agent, and what stops that?
 
+
+## Motion + smaller demo
+1. A line used to be drawn with `x1/y1/x2/y2`. Why couldn't it glide, and what does drawing a unit line moved by `translate · rotate · scaleX` buy us?
+2. When you switch to Groups, people fly *into* the group, yet they're no longer in the list of visible people. How can React still draw them for half a second?
+3. Why do the motion timers use `setTimeout` instead of `requestAnimationFrame`?
+4. The demo export dropped from 120 to 30 rows. Why did the AI answers have to be recorded again?

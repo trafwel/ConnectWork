@@ -1053,3 +1053,32 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 
 **Checks:** typecheck, lint, 198 tests (3 new for the declutter rules and group labels), build.
 
+
+## Motion + smaller demo (Oct 18)
+
+**Team request: "changes shouldn't be an instant snap from one state to another, there should be motion" and "cut down on the amount of people for the demo"** · branch `motion` (on `declutter`)
+
+**What changed and why**
+- **People glide.** Each node is placed with a CSS `transform` that has a 450 ms transition, so new positions animate instead of jumping. Examples: after Sort with AI, an AI ring change, or the Move-people tool. This needs no animation library: the browser does the tweening, and the GPU does it cheaply.
+- **Lines follow their people.** A line used to be drawn with `x1/y1/x2/y2` attributes, and attributes can't be transitioned in CSS. `LinkLine` now draws a unit line (0,0 → 1,0) and moves it with `translate · rotate · scaleX(length)`, which can. `vector-effect: non-scaling-stroke` stops the stretch from also fattening the stroke. Hidden lines fade (opacity) instead of vanishing.
+- **Groups gather and spread.** Switching to Groups, people fly into their group's centre and fade; the group node pops in (`cw-pop` keyframes). Opening a group, its people start at the group's node and fly out to their places.
+  - How: RingMap keeps a small `Motion` record. It's derived during render when the visible set changes (the React "derive state from props" pattern, no extra effect pass). It holds who is entering (start at the cluster), who is leaving (end at the cluster), and a timer that clears it.
+  - Why timers and not `requestAnimationFrame`: rAF stops in a background tab, which left people stuck in the cluster (found while testing).
+- **The outer ring recedes softly:** scale, fill and outline now transition too.
+- **Reduced motion:** with `prefers-reduced-motion: reduce`, all map transitions and the pop are off. Things snap, as before.
+- **Smaller demo:** the LinkedIn export is now **30 rows** (6 already in the seed, including Abbey and John, plus 24 new), down from 120. The map shows 64 people instead of 155. `make-demo-data.ts` still generates all 120 and writes only the first 30 to the CSV, so the other demo files stay byte-identical. The demo answers were re-recorded for the new data.
+
+| | Area | Finding | Status |
+| --- | --- | --- | --- |
+| E1 | Efficiency | Transitions run on the compositor; React renders once per change (the `Motion` record is computed during the same render). Leaving people stay mounted for 520 ms, then they're dropped. | OK |
+| E2 | Efficiency | `sameNode` (PersonNode memo) now also compares `recede` and `vanish`. Without that, a node wouldn't fade when it should. | Fixed in this step |
+| I1 | Integration | Demo cache: re-recorded (6 routes), then replayed from a fresh reset. Every request was a `cache=hit` (sort, ask, links and snap about 0.2 s each). Brief and weekly were answered by the browser's offline copy, which uses the same key. | Checked |
+| I2 | Integration | Live site rebuilt; the live API was restarted in replay mode with the new recording. Health is `cache: replay`. | Checked |
+| I3 | Integration | Lint failed locally: the nested `conNetWork/` clone gave typescript-eslint two tsconfig roots (F1-I5). `eslint.config.js` now ignores it and pins `tsconfigRootDir`. | Fixed |
+| O1 | Other | Abbey ↔ John is now the 3rd hidden-link suggestion, not the 1st (fallback model, rate-limited). | MO-O1 |
+| O2 | Other | In a background tab, positions don't animate (no frames) and the timers slow down. | MO-O2 |
+| S1 | Security & privacy | No new data flows. The demo CSV is still fictional, and the recording contains only fictional names. | OK |
+
+**Checked (live build, tab in front):** Map → Groups moves a person about 55 px toward the group centre while fading, done by ~370 ms and removed at ~520 ms. Opening Work flies its 12 people out from the group node (opacity 0.16 → 1 over ~280 ms). Back works. Import shows "30 found · 24 new · 6 already here"; All = 64.
+
+**Checks:** typecheck, lint, 198 tests (the CSV test now expects 30 rows), build.

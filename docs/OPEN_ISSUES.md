@@ -27,7 +27,6 @@ Resolved items move to the table at the bottom, with what changed.
 | --- | --- | --- |
 | M4-I4 | Import drop zone not yet checked with a real keyboard. | Tab to the drop zone and press Space/Enter once. |
 | M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
-| F1-I5 | `pnpm lint` fails locally because of the untracked nested `conNetWork/` folder (a second copy of the repo). CI is unaffected. | It looks like a stray clone. If nobody needs it, delete it yourselves (Claude never touches it); otherwise add `conNetWork/**` to the ESLint ignores. |
 | F1-S2 | Relationship names you type are sent to Gemini with each question (as part of accepted links). | Keep it: the AI needs relationships. Free tier stays demo-data only. Say if you'd rather strip user-typed names from the summary. |
 | M16-O1 | Add / remind / log / digest by text are not tried from a real phone yet (only "who do I know at Microsoft?"). | Text each once in the demo dry run. |
 | M16-O4 | "Text me this" button on the weekly review not wired (`notifyOwner` + `/api/relay/notify` exist and are tested). | Small follow-up if time allows. |
@@ -42,6 +41,8 @@ Resolved items move to the table at the bottom, with what changed.
 ## Won't fix (for now)
 | ID | Issue | Why |
 | --- | --- | --- |
+| MO-O1 | In the new recording, Abbey ↔ John is the **3rd** of 11 hidden-link suggestions, not the 1st (Gemini was rate-limited, so a fallback model answered). | The demo uses Accept all, and the link is still near the top. Re-recording costs another round of rate-limited calls. If the team wants it first: sort the sheet by confidence, or re-record `/links` once. |
+| MO-O2 | In a background tab, positions don't animate (Chrome pauses frames) and the enter/leave timers slow to about 1 s. | Only tabs nobody is looking at. In a visible tab: 450 ms glide and fade, measured. |
 | M1-E3 | Export builds the whole backup in memory. | A few thousand people is well under 10 MB. |
 | M7-O2 | Reminder-flag pulse should stop for "reduce motion"; built but not checked live. | Team: turn on macOS Reduce Motion once and confirm the flags stop pulsing **and** the Ripple style shows one still ring (fix step 2, F2-O1). |
 | S-O1 | Atlas polish not done: contour circles, crosshair, uppercase ring labels, bundled IBM Plex, darker tag palette. | Theme step T. |
@@ -77,6 +78,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Resolved
 | ID | Issue | How |
 | --- | --- | --- |
+| F1-I5 | `pnpm lint` failed locally because of the untracked nested `conNetWork/` folder. | Motion step: `eslint.config.js` ignores `conNetWork/**` and pins `tsconfigRootDir`. The folder itself is untouched. |
 | M12-O1 | The full scripted demo had to be recorded (and couldn't replay after an import: random ids). | Polish: repeatable import ids + a fixed summary order; full flow recorded and replay-checked on Oct 18. Re-record on any other day ([DEMO_DAY.md](DEMO_DAY.md)). |
 | F1-O5 | Escape inside Add connection not checked live. | Bug pass: checked; it closes only the form. |
 | S-S1 | The inline no-flash theme script would be blocked by a strict CSP. | M13: allowed by its SHA-256 hash in the Caddyfile CSP (no `'unsafe-inline'` scripts); `scripts/deploy.test.ts` fails if the script changes without the hash. Checked in the browser via `pnpm preview:prod`. |

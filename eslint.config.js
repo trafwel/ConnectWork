@@ -26,9 +26,12 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', 'apps/web/src/components/ui/**'] },
+  // conNetWork/ is a stray local clone of this repo (never committed); without ignoring it and
+  // pinning the root, typescript-eslint sees two tsconfig roots and refuses to parse anything.
+  { ignores: ['**/dist/**', '**/node_modules/**', 'apps/web/src/components/ui/**', 'conNetWork/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  { languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   {
     // Stubs keep their final signatures; prefix a not-yet-used parameter with _ .
     rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }] },

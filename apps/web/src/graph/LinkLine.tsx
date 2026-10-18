@@ -27,24 +27,38 @@ interface Props {
   dimmed: boolean;
   /** 'focus' = touches the selected person; 'faint' = someone is selected but this link isn't theirs. */
   emphasis?: 'normal' | 'focus' | 'faint';
+  /** Motion: kept in the DOM but invisible, so showing it again fades it in. */
+  hidden?: boolean;
 }
 
-function LinkLineImpl({ link, from, to, dimmed, emphasis = 'normal' }: Props) {
+function LinkLineImpl({ link, from, to, dimmed, emphasis = 'normal', hidden = false }: Props) {
   const suggested = link.status === 'suggested';
   // Polish (Oct 18): other people's lines almost vanish while someone is selected.
-  const opacity = emphasis === 'focus' ? 1 : emphasis === 'faint' ? 0.04 : dimmed ? 0.06 : suggested ? 0.9 : T.linkOpacity;
+  const opacity = hidden ? 0 : emphasis === 'focus' ? 1 : emphasis === 'faint' ? 0.04 : dimmed ? 0.06 : suggested ? 0.9 : T.linkOpacity;
   const width = emphasis === 'focus' ? 2 : suggested ? 1.6 : T.linkWidth;
+  // Motion (Oct 18): the line is a unit segment placed with a CSS transform (translate, rotate,
+  // stretch), so when the layout moves it GLIDES with the people at its ends (they move with a
+  // 450 ms CSS transition too) instead of jumping ahead of them. vector-effect keeps the stroke
+  // width and dashes from being stretched along with it.
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 0.0001;
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
   return (
     <line
-      x1={from.x}
-      y1={from.y}
-      x2={to.x}
-      y2={to.y}
+      x1={0}
+      y1={0}
+      x2={1}
+      y2={0}
       stroke={suggested ? T.suggestedLink : T.link}
       strokeWidth={width}
       strokeDasharray={suggested ? T.suggestedDash : undefined}
+      vectorEffect="non-scaling-stroke"
       opacity={opacity}
-      style={{ transition: 'opacity 200ms, stroke-width 200ms' }}
+      style={{
+        transform: `translate(${from.x}px, ${from.y}px) rotate(${angle}deg) scaleX(${length})`,
+        transition: 'opacity 300ms, stroke-width 300ms, transform 450ms ease-out',
+      }}
     >
       {link.label ? <title>{link.label}</title> : null}
     </line>

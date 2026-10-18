@@ -50,6 +50,8 @@ function ClusterNodeImpl({ cluster, color, highlighted, due, drifting, dimmed, m
       }}
     >
       <title>{label}</title>
+      {/* Motion: the group node pops in when people gather into it (CSS keyframes in index.css). */}
+      <g className="cw-pop">
       <circle className="focus" r={cluster.r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
       {highlighted > 0 && <circle r={cluster.r + 5} fill="none" stroke={T.highlight} strokeWidth={2.5} strokeDasharray={T.highlightDash} />}
       {/* A soft outer ring says "there's more inside" without words. */}
@@ -58,6 +60,7 @@ function ClusterNodeImpl({ cluster, color, highlighted, due, drifting, dimmed, m
       <text textAnchor="middle" dy="0.35em" fontSize={Math.min(16, 9 + cluster.r / 5)} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
         {n}
       </text>
+      </g>
     </g>
   );
 }
