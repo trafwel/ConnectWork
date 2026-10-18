@@ -60,6 +60,7 @@ import { useDriftThresholds } from '@/lib/useDriftThresholds';
 import { sectionHeading } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import { PersonLinks } from './PersonLinks';
+import { PhotoField } from './PhotoField';
 import { PersonReminders } from './PersonReminders';
 import { RingPicker } from './RingPicker';
 import { TagSelect } from './TagSelect';
@@ -125,6 +126,8 @@ function CardBody({ person }: { person: Person }) {
     <>
       {/* Steps 3–4 */}
       <section className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-2 text-sm">
+        <Label>Photo</Label>
+        <PhotoField person={person} color={tagColor(tags, person.primaryTag)} />
         <Label>Ring</Label>
         <RingPicker value={person.ring} onChange={(ring) => updatePerson(person.id, { ring })} />
         <Label htmlFor="pc-tag">Tag</Label>

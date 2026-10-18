@@ -49,6 +49,8 @@ export function materializeSeed(file: SeedFile, now = new Date()): { people: Per
     metAt: ago(p.metDaysAgo),
     lastContact: ago(p.lastContactDaysAgo),
     notes: p.notes,
+    // Oct 18: the bundled demo portrait, if the generator gave one.
+    photo: (p as { photo?: string }).photo,
     source: 'seed',
     createdAt,
   }));

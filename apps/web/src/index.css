@@ -294,3 +294,12 @@
   .cw-ripple circle { animation: none; transform: scale(1.35); opacity: 0.8; }
   .cw-ripple circle + circle { display: none; }
 }
+
+/* Oct 18: Settings → Appearance → Photos. Nodes always carry their photo (if any); this only
+   shows or hides it, so toggling re-renders nothing. Initials give way to the face. */
+:root:not([data-photos="on"]) .cw-photo {
+    display: none;
+}
+:root[data-photos="on"] .cw-photo-initials {
+    display: none;
+}

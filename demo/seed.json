@@ -15,7 +15,8 @@
       "linkedinUrl": "https://www.linkedin.com/in/abbey-chen-demo",
       "metDaysAgo": 490,
       "lastContactDaysAgo": 40,
-      "notes": "Met on the Azure onboarding project. UW class of 2024. Offered to review my resume."
+      "notes": "Met on the Azure onboarding project. UW class of 2024. Offered to review my resume.",
+      "photo": "/avatars/p_abbey.jpg"
     },
     {
       "id": "p_john",
@@ -33,7 +34,8 @@
       "linkedinUrl": "https://www.linkedin.com/in/john-park-demo",
       "metDaysAgo": 760,
       "lastContactDaysAgo": 210,
-      "notes": "Lab partner in CSE 332. Interned at Microsoft summer 2025. Said to ping him after the career fair."
+      "notes": "Lab partner in CSE 332. Interned at Microsoft summer 2025. Said to ping him after the career fair.",
+      "photo": "/avatars/p_john.jpg"
     },
     {
       "id": "p_01",
@@ -47,7 +49,8 @@
       "email": "aisha.larsen@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/aisha-larsen-demo",
       "metDaysAgo": 419,
-      "lastContactDaysAgo": 150
+      "lastContactDaysAgo": 150,
+      "photo": "/avatars/p_01.jpg"
     },
     {
       "id": "p_02",
@@ -59,7 +62,8 @@
       ],
       "email": "priya.alvarez@example.com",
       "metDaysAgo": 906,
-      "lastContactDaysAgo": 120
+      "lastContactDaysAgo": 120,
+      "photo": "/avatars/p_02.jpg"
     },
     {
       "id": "p_03",
@@ -71,7 +75,8 @@
       ],
       "school": "University of British Columbia",
       "metDaysAgo": 546,
-      "lastContactDaysAgo": 43
+      "lastContactDaysAgo": 43,
+      "photo": "/avatars/p_03.jpg"
     },
     {
       "id": "p_04",
@@ -84,7 +89,8 @@
       "email": "tara.yamada@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/tara-yamada-demo",
       "metDaysAgo": 270,
-      "lastContactDaysAgo": 27
+      "lastContactDaysAgo": 27,
+      "photo": "/avatars/p_04.jpg"
     },
     {
       "id": "p_05",
@@ -97,7 +103,8 @@
       "email": "theo.xu@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/theo-xu-demo",
       "metDaysAgo": 540,
-      "lastContactDaysAgo": 40
+      "lastContactDaysAgo": 40,
+      "photo": "/avatars/p_05.jpg"
     },
     {
       "id": "p_06",
@@ -110,7 +117,8 @@
       "email": "yuna.xu@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/yuna-xu-demo",
       "metDaysAgo": 625,
-      "lastContactDaysAgo": 31
+      "lastContactDaysAgo": 31,
+      "photo": "/avatars/p_06.jpg"
     },
     {
       "id": "p_07",
@@ -123,7 +131,8 @@
       "email": "nora.larsen@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/nora-larsen-demo",
       "metDaysAgo": 390,
-      "lastContactDaysAgo": 42
+      "lastContactDaysAgo": 42,
+      "photo": "/avatars/p_07.jpg"
     },
     {
       "id": "p_08",
@@ -138,7 +147,8 @@
       "email": "samuel.alvarez@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/samuel-alvarez-demo",
       "metDaysAgo": 927,
-      "lastContactDaysAgo": 30
+      "lastContactDaysAgo": 30,
+      "photo": "/avatars/p_08.jpg"
     },
     {
       "id": "p_09",
@@ -154,7 +164,8 @@
       "email": "omar.choi@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/omar-choi-demo",
       "metDaysAgo": 410,
-      "lastContactDaysAgo": 260
+      "lastContactDaysAgo": 260,
+      "photo": "/avatars/p_09.jpg"
     },
     {
       "id": "p_10",
@@ -169,7 +180,8 @@
       "email": "hana.choi@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/hana-choi-demo",
       "metDaysAgo": 211,
-      "lastContactDaysAgo": 300
+      "lastContactDaysAgo": 300,
+      "photo": "/avatars/p_10.jpg"
     },
     {
       "id": "p_11",
@@ -183,7 +195,8 @@
       "role": "Data Scientist",
       "linkedinUrl": "https://www.linkedin.com/in/lena-hughes-demo",
       "metDaysAgo": 677,
-      "lastContactDaysAgo": 15
+      "lastContactDaysAgo": 15,
+      "photo": "/avatars/p_11.jpg"
     },
     {
       "id": "p_12",
@@ -199,7 +212,8 @@
       "email": "aisha.hughes@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/aisha-hughes-demo",
       "metDaysAgo": 621,
-      "lastContactDaysAgo": 120
+      "lastContactDaysAgo": 120,
+      "photo": "/avatars/p_12.jpg"
     },
     {
       "id": "p_13",
@@ -213,7 +227,8 @@
       "school": "University of British Columbia",
       "email": "owen.kowalski@example.com",
       "metDaysAgo": 177,
-      "lastContactDaysAgo": 87
+      "lastContactDaysAgo": 87,
+      "photo": "/avatars/p_13.jpg"
     },
     {
       "id": "p_14",
@@ -227,7 +242,8 @@
       "school": "Seattle University",
       "linkedinUrl": "https://www.linkedin.com/in/mateo-moreau-demo",
       "metDaysAgo": 669,
-      "lastContactDaysAgo": 40
+      "lastContactDaysAgo": 40,
+      "photo": "/avatars/p_14.jpg"
     },
     {
       "id": "p_15",
@@ -241,7 +257,8 @@
       "school": "University of British Columbia",
       "email": "tara.bennett@example.com",
       "metDaysAgo": 667,
-      "lastContactDaysAgo": 39
+      "lastContactDaysAgo": 39,
+      "photo": "/avatars/p_15.jpg"
     },
     {
       "id": "p_16",
@@ -254,7 +271,8 @@
       "role": "Student",
       "school": "University of Washington",
       "metDaysAgo": 212,
-      "lastContactDaysAgo": 54
+      "lastContactDaysAgo": 54,
+      "photo": "/avatars/p_16.jpg"
     },
     {
       "id": "p_17",
@@ -268,7 +286,8 @@
       "email": "leo.fischer@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/leo-fischer-demo",
       "metDaysAgo": 234,
-      "lastContactDaysAgo": 86
+      "lastContactDaysAgo": 86,
+      "photo": "/avatars/p_17.jpg"
     },
     {
       "id": "p_18",
@@ -282,7 +301,8 @@
       "email": "ethan.zhou@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/ethan-zhou-demo",
       "metDaysAgo": 805,
-      "lastContactDaysAgo": 33
+      "lastContactDaysAgo": 33,
+      "photo": "/avatars/p_18.jpg"
     },
     {
       "id": "p_19",
@@ -293,7 +313,8 @@
         "Friends"
       ],
       "metDaysAgo": 310,
-      "lastContactDaysAgo": 23
+      "lastContactDaysAgo": 23,
+      "photo": "/avatars/p_19.jpg"
     },
     {
       "id": "p_20",
@@ -306,7 +327,8 @@
       "school": "University of Washington",
       "email": "mateo.novak@example.com",
       "metDaysAgo": 180,
-      "lastContactDaysAgo": 138
+      "lastContactDaysAgo": 138,
+      "photo": "/avatars/p_20.jpg"
     },
     {
       "id": "p_24",
@@ -323,7 +345,8 @@
       "email": "nina.walsh@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/nina-walsh-demo",
       "metDaysAgo": 380,
-      "lastContactDaysAgo": 235
+      "lastContactDaysAgo": 235,
+      "photo": "/avatars/p_24.jpg"
     },
     {
       "id": "p_25",
@@ -339,7 +362,8 @@
       "email": "owen.alvarez@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/owen-alvarez-demo",
       "metDaysAgo": 986,
-      "lastContactDaysAgo": 196
+      "lastContactDaysAgo": 196,
+      "photo": "/avatars/p_25.jpg"
     },
     {
       "id": "p_27",
@@ -352,7 +376,8 @@
       "role": "Student",
       "school": "University of British Columbia",
       "metDaysAgo": 976,
-      "lastContactDaysAgo": 319
+      "lastContactDaysAgo": 319,
+      "photo": "/avatars/p_27.jpg"
     },
     {
       "id": "p_32",
@@ -366,7 +391,8 @@
       "email": "kai.larsen@example.com",
       "linkedinUrl": "https://www.linkedin.com/in/kai-larsen-demo",
       "metDaysAgo": 1090,
-      "lastContactDaysAgo": 292
+      "lastContactDaysAgo": 292,
+      "photo": "/avatars/p_32.jpg"
     },
     {
       "id": "p_36",
@@ -379,7 +405,8 @@
       "school": "Seattle University",
       "linkedinUrl": "https://www.linkedin.com/in/samuel-quinn-demo",
       "metDaysAgo": 978,
-      "lastContactDaysAgo": 141
+      "lastContactDaysAgo": 141,
+      "photo": "/avatars/p_36.jpg"
     }
   ],
   "links": [

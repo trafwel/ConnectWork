@@ -1246,3 +1246,26 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **Checks:** typecheck, lint, 220 tests (+1), build.
 - **Also (Oct 18):** "Text me M. Richard Hurtz's information" sent *as a text* got "I am texting you … now" and no details. Over iMessage the reply already is the text, so the relay now replies with the model's `textMe` message (up to 600 characters) when there is one, instead of the search bar's one-line sentence.
 - **Also (Oct 18, team screenshot): Settings overflowed its right edge.** Four Style options no longer fit the dialog's default 24rem. Because the dialog lays out its content as one grid, that row stretched the whole grid, so every row (pickers, About you, the texting row) ran past the edge. Now: the dialog is 28rem wide, its children have `min-width: 0`, option rows wrap if they ever don't fit, and the dialog scrolls on short screens. The token field, Save and Disconnect are centered on one line. Measured: nothing overflows at desktop or 375 px phone width.
+
+## Profile pictures (Oct 18)
+
+**Team request:** "Add profile picture support as an option you can toggle in the menu, but keep the categorical color as an outline and pull free stock images to fill in."
+
+**What changed and why**
+- **Data:** `Person.photo` is a bundled demo portrait (`/avatars/<id>.jpg`) or a photo the user added, stored inline as a small JPEG data URL.
+  - **Safety check:** `isSafePhoto` (shared) allows only those two forms, so a backup file can't make the browser fetch an outside address (a tracking pixel). Backup import drops anything else and keeps the person (tested).
+- **Map:** the photo is clipped inside the group-color circle, 2.5 px smaller, so the category color stays as a ring around the face.
+  - Rings 1–2 only; an outer-ring dot is too small for a face.
+  - `sameNode` compares `photo`, so a new photo redraws the node.
+- **Toggle:** Settings → Appearance → **Photos: On / Off** (on by default). It sets `data-photos` on `<html>`, and CSS hides the photos and brings the initials back, so toggling re-renders nothing.
+- **Card:** a Photo row with **Add / Change photo** and **Remove**. The file never leaves the browser: it's center-cropped and shrunk to 160 px on a canvas (about 8 KB).
+- **Stock images:** 27 mockup portraits from randomuser.me (made for demos, credits in `public/avatars/CREDITS.md`), one per seed person, chosen to fit each first name. They ship with the app (188 KB in total), so they work offline and pass the CSP (`img-src 'self'`). Imported and snapped people get none, like a real LinkedIn export.
+- **Existing browsers** get the portraits once on load (`backfillSeedPhotos`), with no reset: only original demo people who have no photo yet; the user's own edits are untouched.
+- **Not sent to the AI:** `buildSummary` never includes photos.
+
+**Checked live (`localhost:5173`):**
+- The backfill gave 27 of 27 demo people a portrait; 22 faces drawn (rings 1–2) with color rings.
+- Photos Off → 0 faces, initials back. On → 22.
+- Uploading through the card stored an 8 KB JPEG data URL.
+
+**Checks:** typecheck, lint, 223 tests (+3: `isSafePhoto` accepts and refuses, backup row drops an unsafe photo; appearance default), build (the avatars ship in `dist/avatars`).

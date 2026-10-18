@@ -53,6 +53,11 @@ export interface Person {
    * map's smaller side), so it survives resizing. Absent = placed automatically.
    */
   pin?: { angle: number; dist: number };
+  /**
+   * Oct 18: profile picture. A bundled demo portrait ("/avatars/p_01.jpg") or a photo the user
+   * added, resized and stored as a data: URL. Never an outside address (see isSafePhoto).
+   */
+  photo?: string;
 }
 
 /** Undirected: stored with fromId < toId. */
