@@ -227,3 +227,75 @@ describe('POST /api/ai/links', () => {
     expect(generate.mock.calls[0]![0].thinking).toBe('medium');
   });
 });
+
+// M8
+describe('POST /api/ai/weekly-review', () => {
+  const today = new Date();
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const inDays = (n: number) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + n));
+  const weeklySummary = summary + '\nP|p_01|Someone|3|Work|Work|Microsoft|||' + '\nP|p_02|Other|2|School|School|||University of Washington||';
+  const candidates = [
+    { kind: 'follow_up', personId: 'p_john', reminderId: 'r1', dueDate: inDays(1), note: 'career fair' },
+    { kind: 'reconnect', personId: 'p_john', daysSinceContact: 210 },
+    { kind: 'accept_link', linkId: 'l_s1', fromId: 'p_abbey', toId: 'p_john', label: 'both UW' },
+    { kind: 'intro', personIds: ['p_01', 'p_02'], shared: 'Microsoft' },
+  ];
+  const post = (app: ReturnType<typeof createApp>, b: unknown) =>
+    app.request('/api/ai/weekly-review', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+
+  it('keeps only actions that match a candidate, with real ids, links and dates', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({
+        headline: '1 follow-up, 1 reconnect, 1 link, 1 intro',
+        actions: [
+          { kind: 'follow_up', personIds: ['p_john'], title: 'Follow up with John', why: 'Due tomorrow', reminderDate: inDays(2) },
+          { kind: 'follow_up', personIds: ['p_john'], title: 'Duplicate', why: 'dup' },
+          { kind: 'reconnect', personIds: ['p_john'], title: 'Reconnect with John', why: '210 days', reminderDate: '2020-01-01' },
+          { kind: 'reconnect', personIds: ['p_abbey'], title: 'Not a candidate', why: 'invented task' },
+          { kind: 'accept_link', personIds: ['p_ghost'], title: 'Accept Abbey ↔ John', why: 'both UW', linkId: 'l_s1' },
+          { kind: 'intro', personIds: ['p_02', 'p_01'], title: 'Introduce them', why: 'both Microsoft', reminderDate: '2026-02-30' },
+        ],
+      }),
+    );
+    const res = await post(appWith(generate), { summary: weeklySummary, candidates, today: iso(today) });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { actions: Array<Record<string, unknown>> };
+    expect(body.actions.map((a) => a.title)).toEqual(['Follow up with John', 'Reconnect with John', 'Accept Abbey ↔ John', 'Introduce them']);
+    expect(body.actions[0]).toMatchObject({ reminderDate: inDays(2) });
+    expect(body.actions[1]).not.toHaveProperty('reminderDate'); // a past date is dropped
+    expect(body.actions[2]).toMatchObject({ linkId: 'l_s1', personIds: ['p_abbey', 'p_john'] }); // people from OUR candidate
+    expect(body.actions[3]).not.toHaveProperty('reminderDate'); // Feb 30 doesn't exist
+    expect(generate.mock.calls[0]![0].thinking).toBe('medium');
+    expect(JSON.stringify(generate.mock.calls[0]![0].parts)).toContain(`Today is ${iso(today)}`);
+  });
+
+  it('drops a link the app never offered', async () => {
+    const generate = vi.fn<Generate>(async () =>
+      JSON.stringify({ headline: 'x', actions: [{ kind: 'accept_link', personIds: ['p_abbey', 'p_john'], title: 'Unknown link', why: 'x', linkId: 'l_made_up' }] }),
+    );
+    const res = await post(appWith(generate), { summary: weeklySummary, candidates, today: iso(today) });
+    expect(((await res.json()) as { actions: unknown[] }).actions).toEqual([]);
+  });
+
+  it('rejects more than 40 candidates', async () => {
+    const many = Array.from({ length: 41 }, (_, i) => ({ kind: 'reconnect', personId: `p_${i}`, daysSinceContact: 200 }));
+    expect((await post(appWith(null), { summary, candidates: many, today: iso(today) })).status).toBe(400);
+  });
+});
+
+describe('POST /api/ai/draft', () => {
+  it('drafts one message, trimmed, with notes sent only for this person', async () => {
+    const generate = vi.fn<Generate>(async () => JSON.stringify({ message: '  Hi John, great seeing you at the career fair!  ' }));
+    const res = await createApp({ generate, cache: new DemoCache('off') }).request('/api/ai/draft', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ person: { id: 'p_john', name: 'John Park', notes: 'Lab partner in CSE 332' }, sharedConnections: ['Abbey Chen'] }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ message: 'Hi John, great seeing you at the career fair!' });
+    const text = JSON.stringify(generate.mock.calls[0]![0].parts);
+    expect(text).toContain('Lab partner in CSE 332');
+    expect(text).toContain('Shared connections: Abbey Chen');
+    expect(text).toContain('Purpose: catch up');
+  });
+});

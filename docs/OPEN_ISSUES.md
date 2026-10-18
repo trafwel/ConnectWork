@@ -12,7 +12,7 @@ Resolved items move to the table at the bottom, with what changed.
 ## Fix now
 | ID | Issue | Plan |
 | --- | --- | --- |
-| — | Nothing open. M7 left no "fix now" items (see the M7 review). | — |
+| — | Nothing open. M8 left no "fix now" items (see the M8 review). | — |
 
 ## Waits for a milestone
 | ID | Issue | Milestone |
@@ -30,6 +30,7 @@ Resolved items move to the table at the bottom, with what changed.
 | ID | Question | Claude's suggested default |
 | --- | --- | --- |
 | M4-I4 | Import drop zone not yet checked with a real keyboard. | Tab to the drop zone and press Space/Enter once. |
+| M8-O2 | If the model gives a follow-up no reminder date, Approve only marks the card done. | Suggested default: approving a follow-up with no date marks its reminder **done** (you said you'll do it). Not applied yet. |
 | M1-O5 | Import replaces everything without confirming. Should it ask first, or auto-export a backup? | A two-step confirm like Delete ("Replace all your data with this backup?"). It's consistent, needs no extra download, and is easy to change. *Applied in the fix step unless you say otherwise.* |
 
 ## Won't fix (for now)
@@ -42,6 +43,7 @@ Resolved items move to the table at the bottom, with what changed.
 | M7-O4 | "Done" on a reminder has no undo toast. | Untick it in the person card. |
 | M6-O2 | No undo after accepting a sort. | The review sheet is the confirmation; each person can be changed on their card. |
 | P5-O1 | Cancelling a question stops the *browser* waiting, but the server still finishes the Gemini call (quota is spent). | Passing the client's abort through to Gemini (`c.req.raw.signal` → SDK `abortSignal`) is possible; worth it only if quota gets tight. |
+| M8-O1 | AI drafts may still invent small details (models vary). | Prompt rule added; drafts stay editable and are labelled "edit before sending". |
 | M5-E2 | Every question sends the whole network (about 10k tokens at 154 people). | Fine on the free tier; the model needs the data. Trim only if cost matters. |
 | M5-S5 | A crafted contact name could make the answer *sentence* misleading (prompt injection). | Ids are filtered in code and the answer is plain text; the residual risk is wording only. |
 | M5-O5 | On a narrow window the corner answer card can overlap the outer ring. | Desktop-first demo. |

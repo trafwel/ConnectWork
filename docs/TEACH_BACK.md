@@ -85,3 +85,11 @@ Rule 4 in `CLAUDE.md`: after every milestone Claude writes 2–4 short questions
 2. An all-day calendar event on Oct 18 has its end date set to Oct 19. Why?
 3. The `ics` library's tests passed, yet we found a bug in its output. What was it, and how did we find it?
 4. Why does clicking a filter tab clear the AI's highlights?
+
+## M8
+**Weekly review**
+
+1. Why does the app compute the candidates in code instead of letting the AI look at everyone?
+2. Approving a follow-up reschedules its existing reminder. What would go wrong if it created a new one?
+3. Why does approving an action never change anyone's "last contact"?
+4. "Draft a message" is the only AI call that sends notes. Why is that acceptable there but not in Ask Connectwork?

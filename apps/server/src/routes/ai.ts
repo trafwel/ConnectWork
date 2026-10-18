@@ -41,8 +41,10 @@ import { QueryRequest, QueryResponse } from '@connectwork/shared';
 import type { AppDeps } from '../app';
 import { QUERY_SYSTEM } from '../prompts';
 import { registerClassify } from './classify';
+import { registerDraft } from './draft';
 import { registerLinks } from './links';
 import { structured, summaryIds } from './structured';
+import { registerWeeklyReview } from './weeklyReview';
 
 // Re-exported so existing imports (tests, M16) keep working after step R.
 export { requestToday, summaryIds } from './structured';
@@ -68,6 +70,8 @@ export function aiRoutes(deps: AppDeps) {
 
   registerClassify(routes, deps); // M6
   registerLinks(routes, deps); // M6
+  registerWeeklyReview(routes, deps); // M8
+  registerDraft(routes, deps); // M8
 
   return routes;
 }

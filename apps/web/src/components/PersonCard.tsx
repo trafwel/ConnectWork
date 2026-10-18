@@ -1,5 +1,5 @@
 /**
- * M3 — Person card · done (M7 adds Add to calendar, M8 Draft follow-up)
+ * M3 — Person card · done (M7 added Add to calendar, M8 Draft a message)
  *
  * WHAT THIS ACHIEVES
  *   Everything about one person in one panel, editable in place: name, ring, tag,
@@ -42,7 +42,7 @@
 
 import { useState, type ComponentProps } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { X } from 'lucide-react';
+import { Copy, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Person } from '@connectwork/shared';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { deletePerson, logContact, restorePerson, updatePerson } from '@/db/actions';
 import { db } from '@/db/db';
+import { DraftResponse } from '@connectwork/shared';
+import { aiPost } from '@/lib/api';
 import { safeColor, tagColor } from '@/lib/colors';
 import { describeLastContact } from '@/lib/people';
 import { sectionHeading } from '@/lib/utils';
@@ -214,6 +216,9 @@ function CardBody({ person }: { person: Person }) {
         />
       </section>
 
+      {/* M8 */}
+      <DraftMessage person={person} />
+
       {/* Step 8 */}
       <PersonReminders personId={person.id} />
       <PersonLinks personId={person.id} />
@@ -248,6 +253,71 @@ function CardBody({ person }: { person: Person }) {
         )}
       </section>
     </>
+  );
+}
+
+/**
+ * M8. "Draft a message": the ONE AI call that sends a person's notes, and only for this person,
+ * only when the user clicks (free tier: demo data only). The draft is editable and never sent.
+ */
+function DraftMessage({ person }: { person: Person }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const make = async () => {
+    setBusy(true);
+    const links = await db.links.where('fromId').equals(person.id).or('toId').equals(person.id).filter((l) => l.status === 'accepted').toArray();
+    const others = await db.people.bulkGet(links.map((l) => (l.fromId === person.id ? l.toId : l.fromId)));
+    const res = await aiPost(
+      '/draft',
+      {
+        person: {
+          id: person.id,
+          name: person.name.slice(0, 120),
+          company: person.company?.slice(0, 300),
+          role: person.role?.slice(0, 300),
+          school: person.school?.slice(0, 300),
+          metAt: person.metAt,
+          notes: person.notes?.slice(0, 4000),
+          lastContact: person.lastContact,
+        },
+        sharedConnections: others.flatMap((o) => (o ? [o.name] : [])).slice(0, 20),
+      },
+      DraftResponse,
+    );
+    setBusy(false);
+    if (res.ok) setDraft(res.data.message);
+    else toast.error(res.message);
+  };
+
+  return (
+    <section className="space-y-2" aria-labelledby="draft-heading">
+      <div className="flex items-center justify-between">
+        <h3 id="draft-heading" className={sectionHeading}>
+          Message
+        </h3>
+        <Button variant="outline" size="xs" disabled={busy} onClick={() => void make()}>
+          <Sparkles /> {busy ? 'Drafting…' : draft === null ? 'Draft a message' : 'Draft again'}
+        </Button>
+      </div>
+      {draft !== null && (
+        <>
+          <Textarea aria-label={`Draft message to ${person.name}`} rows={4} maxLength={800} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() =>
+              void navigator.clipboard.writeText(draft).then(
+                () => toast.success('Draft copied'),
+                () => toast.error('Could not copy. Select the text and copy it yourself.'),
+              )
+            }
+          >
+            <Copy /> Copy
+          </Button>
+        </>
+      )}
+    </section>
   );
 }
 

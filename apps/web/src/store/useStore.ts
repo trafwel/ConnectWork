@@ -12,7 +12,8 @@
  *     const selectedId = useStore((s) => s.selectedPersonId);
  *
  * STEPS
- *   1. `import { create } from 'zustand';` then
+ *   1. `import { create } from 'zustand';
+import type { Candidate, WeeklyReviewResponse } from '@connectwork/shared';` then
  *        export const useStore = create<UIState>((set, get) => ({ …initial state…, …actions… }))
  *      Initial state: view 'map', filter 'all', selectedPersonId null, highlightIds
  *      new Set(), rightPanel null, agentAnswer null, agentError false, agentBusy false,
@@ -34,6 +35,7 @@
  * Shared file: tell your teammate before editing it. Guide: §5.5
  */
 import { create } from 'zustand';
+import type { Candidate, WeeklyReviewResponse } from '@connectwork/shared';
 
 // M6. One suggestion in the review sheet, and the whole review.
 export interface ReviewItem {
@@ -54,6 +56,16 @@ export interface ReviewPayload {
   onDismiss?: () => Promise<void>;
 }
 
+/** M8. The weekly plan is kept here so reopening the panel doesn't call Gemini again. */
+export interface WeeklyState {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  plan?: WeeklyReviewResponse;
+  candidates?: Candidate[];
+  message?: string;
+  /** Indexes of approved actions. */
+  done: number[];
+}
+
 export type Filter = 'all' | 'due' | 'drifting' | (string & {});
 export type RightPanel = null | 'person' | 'weekly' | 'review' | 'meeting';
 
@@ -72,6 +84,8 @@ export interface UIState {
   importOpen: boolean;
   settingsOpen: boolean;
   reviewPayload: ReviewPayload | null;
+  weeklyOpen: boolean;
+  weekly: WeeklyState;
 
   setView: (view: 'map' | 'list') => void;
   setFilter: (filter: Filter) => void;
@@ -82,6 +96,8 @@ export interface UIState {
   setDialog: (dialog: 'quickAdd' | 'import' | 'settings', open: boolean) => void;
   openReview: (payload: ReviewPayload) => void;
   closeReview: () => void;
+  setWeeklyOpen: (open: boolean) => void;
+  setWeekly: (patch: Partial<WeeklyState>) => void;
 }
 
 // What clearFocus() resets. Kept in one place so the initial state and "clear" can't drift apart.
@@ -105,6 +121,8 @@ export const useStore = create<UIState>((set, get) => ({
   importOpen: false,
   settingsOpen: false,
   reviewPayload: null,
+  weeklyOpen: false,
+  weekly: { status: 'idle', done: [] },
 
   setView: (view) => set({ view }),
   setFilter: (filter) => set({ filter }),
@@ -117,4 +135,7 @@ export const useStore = create<UIState>((set, get) => ({
   setDialog: (dialog, open) => set({ [DIALOG_FLAG[dialog]]: open }),
   openReview: (payload) => set({ reviewPayload: payload, rightPanel: 'review', selectedPersonId: null }),
   closeReview: () => set({ reviewPayload: null, rightPanel: get().selectedPersonId ? 'person' : null, highlightIds: new Set<string>() }),
+  // M8. The panel shows whenever it's open and no review or person card is in front of it.
+  setWeeklyOpen: (open) => set({ weeklyOpen: open, ...(open ? { selectedPersonId: null } : {}) }),
+  setWeekly: (patch) => set({ weekly: { ...get().weekly, ...patch } }),
 }));
