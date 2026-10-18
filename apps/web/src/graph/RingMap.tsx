@@ -47,6 +47,13 @@
  *  10. Accessibility: <svg role="group" aria-label="Network map. People closer to the center
  *      are closer to you.">; decorative layers aria-hidden.
  *
+ * BUG FIX (Oct 17) — labels, focus and relationship names
+ *   - Names, ring labels and link labels are drawn in a SCREEN-SPACE layer outside the zoom
+ *     <g>: their size no longer follows the zoom (only a gentle 11 → 13 px), and placeLabels()
+ *     (labels.ts) gives each one a free spot or skips it, so they never overlap.
+ *   - Clicking a person grays out everyone except them and the people they're linked to.
+ *   - Their lines get a relationship label (the link's name, or what the two have in common).
+ *
  * DONE WHEN
  *   - Zoom, pan, reset view, click-to-open and keyboard selection work; clicking a person
  *     centers them (also after the card opens) and only their links stay strong.
@@ -65,10 +72,10 @@ import { useStore } from '@/store/useStore';
 import { geometry, LABEL_ANGLE, ringRadius, useForceLayout } from './layout';
 import { LinkLine } from './LinkLine';
 import { PersonNode } from './PersonNode';
+import { ScreenLabels, useScreenLabels } from './ScreenLabels';
 import { mapTheme as T } from './theme';
 
 const RINGS: Ring[] = [1, 2, 3];
-const RING_LABELS: Record<Ring, string> = { 1: 'Close', 2: 'Regular', 3: 'Wider' };
 
 interface Props {
   people: Person[];
@@ -97,20 +104,20 @@ function useSize<E extends HTMLElement>() {
   return [ref, size] as const;
 }
 
-/** Labels only change at zoom 1.3 and 2.2, so nodes get a snapped value and skip re-rendering mid-zoom. */
-const labelZoom = (k: number) => (k >= 2.2 ? 2.2 : k >= 1.3 ? 1.3 : 1);
 
 export function RingMap({ people, links, tags, filterContext, offsetFor }: Props) {
   const [containerRef, { width, height }] = useSize<HTMLDivElement>();
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
+  const [zooming, setZooming] = useState(false);
 
   const selectedId = useStore((s) => s.selectedPersonId);
   const highlightIds = useStore((s) => s.highlightIds);
   const filter = useStore((s) => s.filter);
   const selectPerson = useStore((s) => s.selectPerson);
   const clearFocus = useStore((s) => s.clearFocus);
+  const [hoverId, setHoverId] = useState<string | null>(null);
 
   // Step 2.
   const layout = useForceLayout(people, links, width, height, offsetFor);
@@ -121,12 +128,21 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
+    // `zooming` stays true until 150 ms after the last zoom frame (pans from panTo included),
+    // so screen labels follow instantly while zooming and glide only when the layout moves.
+    let settle: ReturnType<typeof setTimeout> | undefined;
     const behavior = d3zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.5, 3])
-      .on('zoom', (e: { transform: ZoomTransform }) => setTransform(e.transform));
+      .on('zoom', (e: { transform: ZoomTransform }) => {
+        setTransform(e.transform);
+        setZooming(true);
+        clearTimeout(settle);
+        settle = setTimeout(() => setZooming(false), 150);
+      });
     select(svg).call(behavior).on('dblclick.zoom', null);
     zoomRef.current = behavior;
     return () => {
+      clearTimeout(settle);
       select(svg).on('.zoom', null);
     };
   }, []);
@@ -158,17 +174,6 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
     return out;
   }, [people, positions, g.cx, g.cy]);
 
-  // Step 6. Highlights win over the filter. Dim, never remove, so nobody moves.
-  const dimmedIds = useMemo(() => {
-    const hasHighlights = highlightIds.size > 0;
-    const out = new Set<string>();
-    for (const p of people) {
-      const dim = hasHighlights ? !highlightIds.has(p.id) : !matchesFilter(p, filter, filterContext);
-      if (dim) out.add(p.id);
-    }
-    return out;
-  }, [people, highlightIds, filter, filterContext]);
-
   // Step 8a. People directly linked to the selected person.
   const neighborIds = useMemo(() => {
     const out = new Set<string>();
@@ -179,6 +184,22 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
     }
     return out;
   }, [links, selectedId]);
+
+  // Step 6. A selection wins (gray out all but the person and their links), then highlights,
+  // then the filter. Dim, never remove, so nobody moves.
+  const dimmedIds = useMemo(() => {
+    const hasHighlights = highlightIds.size > 0;
+    const out = new Set<string>();
+    for (const p of people) {
+      const dim = selectedId
+        ? p.id !== selectedId && !neighborIds.has(p.id)
+        : hasHighlights
+          ? !highlightIds.has(p.id)
+          : !matchesFilter(p, filter, filterContext);
+      if (dim) out.add(p.id);
+    }
+    return out;
+  }, [people, selectedId, neighborIds, highlightIds, filter, filterContext]);
 
   // Ring 3 first so closer people draw on top. Sorted once per data change, not per zoom frame.
   const drawOrder = useMemo(() => [...people].sort((a, b) => b.ring - a.ring), [people]);
@@ -199,7 +220,29 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
     panTo(svgRef.current, zoomRef.current, pos, width, height);
   }, [selectedId, positions, layout.width, layout.height, width, height]);
 
-  const k = labelZoom(transform.k);
+  const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
+  const ringAnchors = useMemo(
+    () => RINGS.map((ring) => ({ ring, a: labelAngles[ring], r: ringRadius(geometry(width, height), ring) })),
+    [labelAngles, width, height],
+  );
+  const center = useMemo(() => ({ x: g.cx, y: g.cy }), [g.cx, g.cy]);
+  const labels = useScreenLabels({
+    transform,
+    zooming,
+    people,
+    byId,
+    links,
+    positions,
+    ringAnchors,
+    center,
+    viewport: { width, height },
+    selectedId,
+    hoverId,
+    highlightIds,
+    neighborIds,
+    dimmedIds,
+  });
+
   const zoomed = transform.k !== 1 || transform.x !== 0 || transform.y !== 0;
 
   return (
@@ -267,41 +310,19 @@ export function RingMap({ people, links, tags, filterContext, offsetFor }: Props
                 x={pos.x}
                 y={pos.y}
                 color={tagColor(tags, p.primaryTag)}
-                zoom={k}
                 selected={selectedId === p.id}
                 highlighted={highlightIds.has(p.id)}
                 dimmed={dimmedIds.has(p.id)}
-                neighbor={neighborIds.has(p.id)}
                 flag={filterContext.overdueIds?.has(p.id) ? 'overdue' : filterContext.dueIds.has(p.id) ? 'due' : undefined}
                 onSelect={selectPerson}
+                onHover={setHoverId}
               />
             );
           })}
-
-          <g aria-hidden="true" pointerEvents="none">
-            {RINGS.map((ring) => {
-              const a = labelAngles[ring];
-              const r = ringRadius(g, ring);
-              return (
-                <text
-                  key={ring}
-                  x={g.cx + r * Math.cos(a)}
-                  y={g.cy + r * Math.sin(a)}
-                  dy="0.35em"
-                  textAnchor="middle"
-                  fontSize={11}
-                  fontFamily={T.font}
-                  fill={T.ringLabel}
-                  stroke={T.paper}
-                  strokeWidth={5}
-                  paintOrder="stroke"
-                >
-                  {RING_LABELS[ring]}
-                </text>
-              );
-            })}
-          </g>
         </g>
+
+        {/* Screen space: names, ring labels and relationship labels, on top of everything. */}
+        <ScreenLabels labels={labels.placed} fontSize={labels.fontSize} animate={labels.animate} />
       </svg>
 
       <Legend tags={tags} />

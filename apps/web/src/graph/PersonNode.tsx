@@ -5,6 +5,7 @@
  *   Level of detail that keeps 150+ people readable: ring 1 shows initials and a
  *   name, ring 2 shows the name on hover/focus or when zoomed in, ring 3 is a dot
  *   until you zoom far in or it is selected, highlighted or a neighbor of the selection.
+ *   (Since the Oct 17 fix RingMap draws the names, in screen space; see graph/labels.ts.)
  *
  * HOW IT FITS
  *   Rendered by RingMap; wrap in React.memo so only changed nodes re-render.
@@ -19,16 +20,16 @@
  *      (dashed accent in Atlas); the node circle filled with the tag color.
  *   3. Ring 1: initials (lib/people.ts) centered, colored readableOn(color) (step T) so they
  *      always pass 4.5:1 contrast.
- *   4. Name label below the node when: ring 1, selected, highlighted, neighbor, hovered/focused,
- *      ring 2 and zoom ≥ 1.3, or ring 3 and zoom ≥ 2.2. Give it a halo
- *      (stroke = background, strokeWidth 3–4, paintOrder="stroke") and pointerEvents="none".
+ *   4. Name labels moved to RingMap's screen-space layer (bug fix, Oct 17: they overlapped and
+ *      scaled with zoom). The node only reports hover/focus up (onHover) so the map can show
+ *      that name first.
  *   5. Accessibility: role="button", tabIndex={0}, aria-label "Name, ring N, Tag, Company",
  *      aria-pressed={selected}; Enter/Space selects; onClick stops propagation; <title> for
  *      a native tooltip.
  *
  * Guide: §6.2
  */
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import type { Person } from '@connectwork/shared';
 import { readableOn } from '@/lib/colors';
 import { initials } from '@/lib/people';
@@ -40,28 +41,18 @@ interface Props {
   x: number;
   y: number;
   color: string;
-  zoom: number;
   selected: boolean;
   highlighted: boolean;
   dimmed: boolean;
-  /** Connected to the selected person: always show the name. */
-  neighbor?: boolean;
   /** M7: a follow-up due within 7 days, or overdue. */
   flag?: 'due' | 'overdue';
   onSelect: (id: string) => void;
+  /** Hover or keyboard focus, so RingMap shows this name even where it's crowded. */
+  onHover: (id: string | null) => void;
 }
 
-function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimmed, neighbor = false, flag, onSelect }: Props) {
-  const [hover, setHover] = useState(false);
+function PersonNodeImpl({ person, x, y, color, selected, highlighted, dimmed, flag, onSelect, onHover }: Props) {
   const r = NODE_RADIUS[person.ring];
-  const showLabel =
-    person.ring === 1 ||
-    selected ||
-    highlighted ||
-    neighbor ||
-    hover ||
-    (person.ring === 2 && zoom >= 1.3) ||
-    (person.ring === 3 && zoom >= 2.2);
   // Color is never the only signal: the flag's state is also in the label screen readers read.
   const flagText = flag === 'overdue' ? 'follow-up overdue' : flag === 'due' ? 'follow-up due' : undefined;
   const description = [person.name, `ring ${person.ring}`, person.primaryTag, person.company, flagText].filter(Boolean).join(', ');
@@ -85,10 +76,10 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
           onSelect(person.id);
         }
       }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onFocus={() => setHover(true)}
-      onBlur={() => setHover(false)}
+      onMouseEnter={() => onHover(person.id)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(person.id)}
+      onBlur={() => onHover(null)}
     >
       <title>{description}</title>
       <circle className="focus" r={r + 6} fill="none" stroke={T.ink} strokeWidth={2} strokeDasharray="3 3" opacity={0} />
@@ -102,21 +93,6 @@ function PersonNodeImpl({ person, x, y, color, zoom, selected, highlighted, dimm
       {person.ring === 1 && (
         <text textAnchor="middle" dy="0.35em" fontSize={11} fontWeight={600} fontFamily={T.font} fill={readableOn(color)} pointerEvents="none">
           {initials(person.name)}
-        </text>
-      )}
-      {showLabel && (
-        <text
-          y={r + 14}
-          textAnchor="middle"
-          fontSize={person.ring === 1 ? 12 : 11}
-          fontWeight={person.ring === 1 || selected ? 600 : 500}
-          fill={T.label}
-          stroke={T.labelHalo}
-          strokeWidth={4}
-          paintOrder="stroke"
-          pointerEvents="none"
-        >
-          {person.name}
         </text>
       )}
     </g>
@@ -155,13 +131,12 @@ function sameNode(a: Props, b: Props): boolean {
     a.x === b.x &&
     a.y === b.y &&
     a.color === b.color &&
-    a.zoom === b.zoom &&
     a.selected === b.selected &&
     a.highlighted === b.highlighted &&
     a.dimmed === b.dimmed &&
-    a.neighbor === b.neighbor &&
     a.flag === b.flag && // M7 (PX-I1: every new prop must be compared here)
-    a.onSelect === b.onSelect
+    a.onSelect === b.onSelect &&
+    a.onHover === b.onHover
   );
 }
 

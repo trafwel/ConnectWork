@@ -569,3 +569,61 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m8).
 
 ### Teach-back
 Questions in [TEACH_BACK.md](TEACH_BACK.md#m9).
+
+## Fix step 1: map labels
+
+**Map labels, click focus, named connections** · Oct 17 · branch `fix-map-labels` (on `m9-snap`)
+
+The team's bug list, part 1 (features such as the ripple pulse and drag-to-ring come in part 2):
+names overlapped; text and spacing didn't adapt to zoom; clicking a node should gray out everything except it and its connections; its lines should show the type of relationship; connections should be nameable; you should be able to connect two people yourself.
+
+**What changed**
+- **Names left the zoomed map.** They are drawn in a screen-space layer on top (`graph/ScreenLabels.tsx`). A pure function, `placeLabels` (`graph/labels.ts`), gives each label the first free spot around its node (below, above, right, left), most important first, and skips one with no room. So two labels never overlap, and text stays 11 px at normal zoom, growing gently to 13 px at 3×. Zooming in spreads the nodes, so more names fit: the text adapts by showing more, not by growing.
+- **Click focus:** selecting someone grays out everyone except them and the people they're linked to. Their lines get a **relationship pill** on the line: the link's name, or what the two share ("both at Microsoft", "both UW", "both Friends"), or "connected".
+- **Person card:** each connection's relationship name is a button you can click to rename in place, and **Add connection** links this person to anyone else, with an optional name.
+
+**How it was checked:** typecheck, lint, 133 tests (7 new for label placement and relationship names, 1 for `renameLink`), production build. In the browser, on the seed data:
+- at normal zoom, no names overlapped; at 3× the text stayed about 13 px;
+- clicking Yuna Xu centered her, grayed out the rest (37 of 40 people for Samuel Alvarez), and put "both Friends" on her line to Theo Xu;
+- Add connection Yuna → Nora Larsen "roommates" drew the new line, labelled, and un-grayed Nora;
+- renaming Theo's link to "lab partners" updated the map live, and clearing it went back to "both Friends";
+- hovering a grayed-out person showed their name;
+- in both Neutral and Atlas (mono font), the pills fit their text.
+
+I removed my test link and cleared the test name afterwards, so the browser's data is back to the seed.
+
+### Efficiency
+| | Finding | Status |
+| --- | --- | --- |
+| E1 | Labels are placed again on every zoom frame. | Measured: **0.5 ms** for 150 people (greedy, O(labels × (labels + nodes))). Text widths come from canvas `measureText`, cached per font + text, so the DOM isn't measured. |
+| E2 | Nodes used to get a `zoom` prop and re-render at zoom 1.3 and 2.2. | Gone: nodes draw no text now, so zooming re-renders only the label layer. Hover moved up to RingMap with a stable `setHoverId`, so the memoized nodes still skip. |
+| E3 | "Add connection" needs everyone's names. | The query runs only while the form is open, not for every card. |
+
+### Integration
+| | Finding | Status |
+| --- | --- | --- |
+| I1 | Dimming order is now: **selection** → AI-answer highlights → filter. Before, an answer's highlights kept dimming even with someone selected. | Applied, because the team asked for it. Clear the selection (Escape or click empty space) and the highlights or filter dimming come back. |
+| I2 | Labels and nodes move differently when the layout changes: nodes glide (CSS, 450 ms), labels used to be inside them. | Labels glide too (same 450 ms), except while zooming or panning, where they must follow at once. Known issue O1. |
+| I3 | Every new link still goes through `upsertLink` (no self-links, one row per pair, never downgrades). Renames go through a new `renameLink` (trimmed, 60-character cap, empty clears). | Tested. |
+| I4 | Demo story: Abbey ↔ John are still **not** linked in the seed. | Unchanged. |
+| I5 | Local `pnpm lint` fails on this Mac because of the untracked nested `conNetWork/` folder (a second copy of the repo; typescript-eslint sees two tsconfig roots). | CI doesn't have the folder. I linted the project folders directly (clean). Team decision in OPEN_ISSUES (F1-I5). |
+
+### Security & privacy
+| | Finding | Status |
+| --- | --- | --- |
+| S1 | Relationship names you type are user text shown on the map. | Rendered as React text (no HTML), capped at 60 characters, and truncated to 28 on the map. |
+| S2 | Accepted links and their names are part of the network summary sent to Gemini with a question (that was already true for seed and AI names). So a name like "dating" or "my therapist" would reach Google. | By design: the AI needs relationships to answer "who do I know at…". Free tier = demo data only, as the banner says. Listed in OPEN_ISSUES (F1-S2). |
+| S3 | Nothing new leaves the browser: labels, focus and naming are all local. | — |
+
+### Other flaws
+| | Finding | Status |
+| --- | --- | --- |
+| O1 | When a click both pans the map and re-lays it out (the card opens and narrows the map), labels go straight to the new place while nodes are still gliding, for about half a second. Lines already did this. | Cosmetic; open. |
+| O2 | A label with no free spot is skipped. | The name is still in the node's screen-reader label and tooltip, and hovering or focusing the node always shows it. |
+| O3 | A ring label ("Regular") that would be cut off at the map's edge is hidden. | A cut-off "gular" looked broken. |
+| O4 | The "Add connection" person picker is a native `<datalist>`, so it looks slightly different in Safari and Chrome. | Fine; it's keyboard-accessible and needs no new dependency. |
+| O5 | Not checked live: Escape inside the Add connection form (it should close the form, not the card). | The code stops the event; check once by hand. |
+| O6 | Resolves **M2-O3** ("neighbour names can overlap when someone is selected"). | Moved to Resolved. |
+
+### Teach-back
+Questions in [TEACH_BACK.md](TEACH_BACK.md#fix-step-1-map-labels).
