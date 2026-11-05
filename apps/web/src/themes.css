@@ -485,3 +485,16 @@
         animation: none;
     }
 }
+
+/* ───────────────────────────── All styles ───────────────────────────── */
+/* Nov 5 (found in the showcase screenshots): the styles' backdrops (Solar's stars, Spiderweb's
+   web and spider, Phantom's halftone and slash) belong behind the map. In List and Month they sat
+   under the table and calendar, and the stars read as specks on the text. One rule for all of
+   them; it outranks each style's own `main` rules. */
+:root[data-style] main:is([data-view="list"], [data-view="month"]) {
+    background-image: none;
+}
+:root[data-style] main:is([data-view="list"], [data-view="month"])::before,
+:root[data-style] main:is([data-view="list"], [data-view="month"])::after {
+    display: none;
+}
