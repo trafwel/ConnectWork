@@ -33,7 +33,7 @@
  *
  * DONE WHEN
  *   - Signed in: today's real meetings appear; a reminder shows up in Google Calendar.
- *   - Signed out: sample meetings appear, labelled as samples.
+ *   - Signed out: the demo meetings appear (the strip calls them "Meetings"; renamed Oct 18).
  *
  * Guide: §18.1–18.2
  */

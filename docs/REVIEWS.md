@@ -1300,3 +1300,17 @@ Questions in [TEACH_BACK.md](TEACH_BACK.md#m13).
 - **Bug fixed on the way:** two quick appearance changes (Style, then Mode) lost the first one, because `update` merged into a stale copy of the settings. It now merges into the latest state.
 
 **Checked:** screenshots in dark and light on a preview of this branch; typecheck, lint, tests, build.
+
+## Visual fixes from the showcase screenshots (Nov 5)
+
+Found while reviewing the 2880×1800 showcase screenshots; checked with a headless Chrome script that measures computed styles, plus screenshots.
+
+| | Finding | Fix | Checked |
+| --- | --- | --- | --- |
+| V1 | Themed backdrops (Solar's stars, Spiderweb's web and spider, Phantom's halftone and slash) sat under the List and Month views; the stars read as specks on the text. | `<main data-view>` in `App.tsx`; one rule in `themes.css` turns off `background-image`, `::before` and `::after` in List and Month for every style. | Solar, Spiderweb, Phantom: backdrop shown on Map; none in List or Month. |
+| V2 | The meeting card's subtitle still said "· sample meeting", after the strip was renamed "Meetings" (Oct 18). | Removed the tag; the free-tier note for real calendar meetings is unchanged. | Subtitle reads "3:30 PM". |
+| V3 | Map overlay buttons (Back, Reset view, Edit map) use the outline style, 30% see-through in dark mode, so a group bubble or name showed through them. The corner panels (legend, Groups) were 90% opaque, so a ring label showed through ("Groups egular"). | `OVERLAY_BUTTON` gives the map's buttons a solid background and a shadow; both panels are fully opaque. | Buttons are solid `rgb(4,5,11)` in Solar dark; screenshot clean. |
+| V4 | With a group open, the other (faded) groups' names could collide with the corner buttons ("Sc" peeking out beside Edit map). | Faded groups' names are hidden while a group is open. The Groups panel still lists every group, and bubbles keep their `aria-label`. | Groups → Work: no stray label. |
+| — | Suspected: Phantom dark "You" label hard to read. | **Not a bug:** it renders near-black `rgb(11,11,11)` on red `rgb(255,58,58)`, 5.5:1 (passes 4.5:1). It only looked low in a downscaled screenshot. No change. | Measured in the browser. |
+
+**Checks:** typecheck, lint, tests, build.

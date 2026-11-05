@@ -506,7 +506,10 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
     people: labelPeople,
     byId,
     links: shownLinks.personLinks,
-    clusters: grouping?.clusters,
+    // Nov 5: while a group is open the others are faded, and their names were what collided with
+    // the corner buttons. Hide those names then; the Groups panel still lists every group, and each
+    // bubble keeps its name for screen readers (aria-label).
+    clusters: anyGroupOpen ? undefined : grouping?.clusters,
     positions,
     ringAnchors,
     center,
@@ -635,7 +638,7 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
 
       {/* Polish (Oct 18): a visible way back out of an opened group (Escape does the same). */}
       {grouped && expandedGroups.size > 0 && (
-        <Button variant="outline" size="sm" className="absolute top-3 right-3" onClick={collapseLastGroup} aria-keyshortcuts="Escape">
+        <Button variant="outline" size="sm" className={`absolute top-3 right-3 ${OVERLAY_BUTTON}`} onClick={collapseLastGroup} aria-keyshortcuts="Escape">
           <ArrowLeft /> Back (close {[...expandedGroups].at(-1)})
         </Button>
       )}
@@ -688,17 +691,24 @@ export function RingMap({ people, links, tags, filterContext, grouped = false }:
       )}
       <div className="absolute right-3 bottom-3 flex flex-col items-end gap-2">
         {zoomed && (
-          <Button variant="outline" size="sm" onClick={resetView}>
+          <Button variant="outline" size="sm" className={OVERLAY_BUTTON} onClick={resetView}>
             <Maximize /> Reset view
           </Button>
         )}
-        <Button variant={editing ? 'default' : 'outline'} size="sm" aria-pressed={editing} onClick={toggleEditing}>
+        <Button variant={editing ? 'default' : 'outline'} size="sm" className={editing ? undefined : OVERLAY_BUTTON} aria-pressed={editing} onClick={toggleEditing}>
           <Move /> {editing ? 'Done editing' : 'Edit map'}
         </Button>
       </div>
     </div>
   );
 }
+
+/**
+ * Nov 5 (found in the showcase screenshots): buttons floating over the map need a solid
+ * background. The outline style is 30% see-through in dark mode, so a group bubble or a name
+ * underneath showed through "Reset view" and "Edit map".
+ */
+const OVERLAY_BUTTON = 'shadow-sm dark:bg-background dark:hover:bg-muted';
 
 /** Polish (Oct 18): name the new connection (optional), right where the two people were picked. */
 /** Oct 18: what to do with a person dropped onto another one. */
@@ -807,7 +817,7 @@ function GroupPanel({ people, tags, open, onToggle, onCloseAll }: { people: Pers
   const counts = new Map<string, number>();
   for (const p of people) counts.set(p.primaryTag, (counts.get(p.primaryTag) ?? 0) + 1);
   return (
-    <div className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-md border bg-background/90 px-3 py-2 text-xs">
+    <div className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-md border bg-background px-3 py-2 text-xs shadow-sm">
       <div className="mb-1 flex items-center justify-between gap-4">
         <span className="font-medium">Groups</span>
         {open.size > 0 && (
@@ -842,7 +852,7 @@ function GroupPanel({ people, tags, open, onToggle, onCloseAll }: { people: Pers
 function Legend({ tags }: { tags: Tag[] }) {
   const shown = tags.filter((t) => t.behavior === 'none');
   return (
-    <div className="absolute bottom-3 left-3 rounded-md border bg-background/90 px-3 py-2 text-xs">
+    <div className="absolute bottom-3 left-3 rounded-md border bg-background px-3 py-2 text-xs shadow-sm">
       <ul className="grid grid-cols-3 gap-x-4 gap-y-1" aria-label="Tag colors">
         {shown.map((t) => (
           <li key={t.name} className="flex items-center gap-1.5">

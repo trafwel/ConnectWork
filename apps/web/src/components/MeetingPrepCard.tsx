@@ -124,8 +124,8 @@ export function MeetingPrepCard({ meetingId }: { meetingId: string }) {
         <div className="min-w-0">
           <h2 className="truncate text-lg font-semibold">{meeting.title}</h2>
           <p className="text-sm text-muted-foreground">
+            {/* Nov 5: no "· sample meeting" tag; the strip calls them "Meetings" too (renamed Oct 18). */}
             {meetingTimeLabel(meeting.start)}
-            {isSampleMeeting(meeting) && ' · sample meeting'}
           </p>
         </div>
         <Button variant="ghost" size="icon" aria-label="Close" onClick={clearFocus}>

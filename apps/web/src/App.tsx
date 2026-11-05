@@ -225,7 +225,8 @@ export default function App() {
         </div>
         {/* Step 6 */}
         {/* List and Month lay out as a column (answer card on top, then a scrolling body). */}
-        <main className={`relative min-w-0 flex-1 ${view === 'list' || view === 'month' ? 'flex flex-col' : ''}`}>
+        {/* Nov 5: data-view lets the styles keep their backdrops (stars, webs, halftone) behind the map only. */}
+        <main data-view={view} className={`relative min-w-0 flex-1 ${view === 'list' || view === 'month' ? 'flex flex-col' : ''}`}>
           {/* M10: same element in both views (screen readers keep announcing); the list puts it in the flow. */}
           <AgentAnswer inline={view === 'list'} />
           {seedError ? (
